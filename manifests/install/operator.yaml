@@ -65,8 +65,8 @@ items:
       spec:
         serviceAccountName: openshift-cluster-kube-scheduler-operator
         containers:
-        - name: operator
-          image: openshift/origin-cluster-kube-scheduler-operator:latest
+        - name: kube-scheduler-operator-container
+          image: docker.io/aveshagarwal/origin-cluster-kube-scheduler-operator:latest
           imagePullPolicy: IfNotPresent
           command: ["cluster-kube-scheduler-operator", "operator"]
           args:
@@ -76,11 +76,6 @@ items:
           - mountPath: /var/run/configmaps/config
             name: config
         volumes:
-        - name: serving-cert
-          secret:
-            defaultMode: 400
-            secretName: openshift-cluster-kube-scheduler-operator-serving-cert
-            optional: true
         - name: config
           configMap:
             defaultMode: 440
