@@ -34,14 +34,14 @@ func syncKubeScheduler_v311_00_to_latest(c KubeSchedulerOperator, operatorConfig
 		errors = append(errors, fmt.Errorf("%q: %v", "ns", err))
 	}
 
-	requiredPublicRole := resourceread.ReadRoleV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/public-info-role.yaml"))
-	_, _, err = resourceapply.ApplyRole(c.rbacv1Client, requiredPublicRole)
+	requiredPublicRole := resourceread.ReadClusterRoleV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/public-info-role.yaml"))
+	_, _, err = resourceapply.ApplyClusterRole(c.rbacv1Client, requiredPublicRole)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "svc", err))
 	}
 
-	requiredPublicRoleBinding := resourceread.ReadRoleBindingV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/public-info-rolebinding.yaml"))
-	_, _, err = resourceapply.ApplyRoleBinding(c.rbacv1Client, requiredPublicRoleBinding)
+	requiredPublicRoleBinding := resourceread.ReadClusterRoleBindingV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/public-info-rolebinding.yaml"))
+	_, _, err = resourceapply.ApplyClusterRoleBinding(c.rbacv1Client, requiredPublicRoleBinding)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "svc", err))
 	}
