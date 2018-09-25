@@ -8,6 +8,7 @@
 // manifests/v3.11.0/kube-scheduler/public-info-rolebinding.yaml
 // manifests/v3.11.0/kube-scheduler/public-info.yaml
 // manifests/v3.11.0/kube-scheduler/sa.yaml
+// manifests/v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml
 // manifests/v3.11.0/kube-scheduler/svc.yaml
 // DO NOT EDIT!
 
@@ -180,26 +181,13 @@ metadata:
   name: system:openshift:operator:kube-scheduler:public
 rules:
 - apiGroups:
-  - ""
+  - storage.k8s.io
   resources:
-  - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
-  - events
-  - configmaps
-  - secrets
+  - storageclasses
   verbs:
-  - "*"
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
-  verbs:
-  - "*"
+  - get
+  - list
+  - watch
 `)
 
 func v3110KubeSchedulerPublicInfoRoleYamlBytes() ([]byte, error) {
@@ -302,6 +290,35 @@ func v3110KubeSchedulerSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _v3110KubeSchedulerSchedulerClusterrolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:operator:kube-scheduler:public-2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-scheduler
+subjects:
+- kind: ServiceAccount
+  name: openshift-kube-scheduler-sa
+  namespace: openshift-kube-scheduler
+`)
+
+func v3110KubeSchedulerSchedulerClusterrolebindingYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerSchedulerClusterrolebindingYaml, nil
+}
+
+func v3110KubeSchedulerSchedulerClusterrolebindingYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerSchedulerClusterrolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _v3110KubeSchedulerSvcYaml = []byte(`apiVersion: v1
 kind: Service
 metadata:
@@ -395,6 +412,7 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml": v3110KubeSchedulerPublicInfoRolebindingYaml,
 	"v3.11.0/kube-scheduler/public-info.yaml": v3110KubeSchedulerPublicInfoYaml,
 	"v3.11.0/kube-scheduler/sa.yaml": v3110KubeSchedulerSaYaml,
+	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml": v3110KubeSchedulerSchedulerClusterrolebindingYaml,
 	"v3.11.0/kube-scheduler/svc.yaml": v3110KubeSchedulerSvcYaml,
 }
 
@@ -448,6 +466,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"public-info-rolebinding.yaml": &bintree{v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
 			"public-info.yaml": &bintree{v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
 			"sa.yaml": &bintree{v3110KubeSchedulerSaYaml, map[string]*bintree{}},
+			"scheduler-clusterrolebinding.yaml": &bintree{v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
 			"svc.yaml": &bintree{v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},

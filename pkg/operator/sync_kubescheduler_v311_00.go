@@ -46,6 +46,12 @@ func syncKubeScheduler_v311_00_to_latest(c KubeSchedulerOperator, operatorConfig
 		errors = append(errors, fmt.Errorf("%q: %v", "svc", err))
 	}
 
+	requiredPublicRoleBinding2 := resourceread.ReadClusterRoleBindingV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml"))
+	_, _, err = resourceapply.ApplyClusterRoleBinding(c.rbacv1Client, requiredPublicRoleBinding2)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q: %v", "svc", err))
+	}
+
 	requiredService := resourceread.ReadServiceV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/svc.yaml"))
 	_, _, err = resourceapply.ApplyService(c.corev1Client, requiredService)
 	if err != nil {
