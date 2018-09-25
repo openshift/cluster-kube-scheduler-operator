@@ -8,5 +8,5 @@ roleRef:
   name: system:openshift:operator:kube-scheduler:public
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: openshift-kube-scheduler-sa
   namespace: openshift-kube-scheduler
