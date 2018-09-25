@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -404,16 +405,16 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"v3.11.0/kube-scheduler/cm.yaml": v3110KubeSchedulerCmYaml,
-	"v3.11.0/kube-scheduler/defaultconfig.yaml": v3110KubeSchedulerDefaultconfigYaml,
-	"v3.11.0/kube-scheduler/deployment.yaml": v3110KubeSchedulerDeploymentYaml,
-	"v3.11.0/kube-scheduler/ns.yaml": v3110KubeSchedulerNsYaml,
-	"v3.11.0/kube-scheduler/public-info-role.yaml": v3110KubeSchedulerPublicInfoRoleYaml,
-	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml": v3110KubeSchedulerPublicInfoRolebindingYaml,
-	"v3.11.0/kube-scheduler/public-info.yaml": v3110KubeSchedulerPublicInfoYaml,
-	"v3.11.0/kube-scheduler/sa.yaml": v3110KubeSchedulerSaYaml,
+	"v3.11.0/kube-scheduler/cm.yaml":                           v3110KubeSchedulerCmYaml,
+	"v3.11.0/kube-scheduler/defaultconfig.yaml":                v3110KubeSchedulerDefaultconfigYaml,
+	"v3.11.0/kube-scheduler/deployment.yaml":                   v3110KubeSchedulerDeploymentYaml,
+	"v3.11.0/kube-scheduler/ns.yaml":                           v3110KubeSchedulerNsYaml,
+	"v3.11.0/kube-scheduler/public-info-role.yaml":             v3110KubeSchedulerPublicInfoRoleYaml,
+	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":      v3110KubeSchedulerPublicInfoRolebindingYaml,
+	"v3.11.0/kube-scheduler/public-info.yaml":                  v3110KubeSchedulerPublicInfoYaml,
+	"v3.11.0/kube-scheduler/sa.yaml":                           v3110KubeSchedulerSaYaml,
 	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml": v3110KubeSchedulerSchedulerClusterrolebindingYaml,
-	"v3.11.0/kube-scheduler/svc.yaml": v3110KubeSchedulerSvcYaml,
+	"v3.11.0/kube-scheduler/svc.yaml":                          v3110KubeSchedulerSvcYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -455,19 +456,20 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"v3.11.0": &bintree{nil, map[string]*bintree{
-		"kube-scheduler": &bintree{nil, map[string]*bintree{
-			"cm.yaml": &bintree{v3110KubeSchedulerCmYaml, map[string]*bintree{}},
-			"defaultconfig.yaml": &bintree{v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
-			"deployment.yaml": &bintree{v3110KubeSchedulerDeploymentYaml, map[string]*bintree{}},
-			"ns.yaml": &bintree{v3110KubeSchedulerNsYaml, map[string]*bintree{}},
-			"public-info-role.yaml": &bintree{v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
-			"public-info-rolebinding.yaml": &bintree{v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
-			"public-info.yaml": &bintree{v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
-			"sa.yaml": &bintree{v3110KubeSchedulerSaYaml, map[string]*bintree{}},
-			"scheduler-clusterrolebinding.yaml": &bintree{v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
-			"svc.yaml": &bintree{v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
+	"v3.11.0": {nil, map[string]*bintree{
+		"kube-scheduler": {nil, map[string]*bintree{
+			"cm.yaml":                           {v3110KubeSchedulerCmYaml, map[string]*bintree{}},
+			"defaultconfig.yaml":                {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
+			"deployment.yaml":                   {v3110KubeSchedulerDeploymentYaml, map[string]*bintree{}},
+			"ns.yaml":                           {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
+			"public-info-role.yaml":             {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
+			"public-info-rolebinding.yaml":      {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
+			"public-info.yaml":                  {v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
+			"sa.yaml":                           {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
+			"scheduler-clusterrolebinding.yaml": {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
+			"svc.yaml":                          {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},
 }}
@@ -518,4 +520,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
