@@ -4,23 +4,10 @@ metadata:
   name: system:openshift:operator:kube-scheduler:public
 rules:
 - apiGroups:
-  - ""
+  - storage.k8s.io
   resources:
-  - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
-  - events
-  - configmaps
-  - secrets
+  - storageclasses
   verbs:
-  - "*"
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
-  verbs:
-  - "*"
+  - get
+  - list
+  - watch
