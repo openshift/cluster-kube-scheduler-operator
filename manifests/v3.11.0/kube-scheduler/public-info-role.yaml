@@ -1,16 +1,26 @@
+kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
 metadata:
-  namespace: openshift-kube-scheduler
   name: system:openshift:operator:kube-scheduler:public
 rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
   - configmaps
+  - secrets
   verbs:
-  - get
-  - list
-  - watch
-  resourceNames:
-  - public-info
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - "*"
