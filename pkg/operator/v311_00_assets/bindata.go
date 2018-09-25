@@ -76,7 +76,7 @@ func v3110KubeSchedulerCmYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: kubecontrolplane.config.openshift.io/v1
+var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: kubescheduler.operator.openshift.io/v1alpha1
 kind: KubeSchedulerConfig
 `)
 
@@ -122,7 +122,7 @@ spec:
       - name: scheduler
         image: ${IMAGE}
         imagePullPolicy: IfNotPresent
-        command: ["hyperkube", "openshift-kube-scheduler"]
+        command: ["hyperkube", "kube-scheduler"]
         args:
         - "--config=/var/run/configmaps/config/config.yaml"
         ports:
@@ -130,58 +130,10 @@ spec:
         volumeMounts:
         - mountPath: /var/run/configmaps/config
           name: config
-        - mountPath: /var/run/configmaps/aggregator-client-ca
-          name: aggregator-client-ca
-        - mountPath: /var/run/configmaps/client-ca
-          name: client-ca
-        - mountPath: /var/run/configmaps/etcd-serving-ca
-          name: etcd-serving-ca
-        - mountPath: /var/run/configmaps/kubelet-serving-ca
-          name: kubelet-serving-ca
-        - mountPath: /var/run/configmaps/sa-token-signing-certs
-          name: sa-token-signing-certs
-        - mountPath: /var/run/secrets/aggregator-client
-          name: aggregator-client
-        - mountPath: /var/run/secrets/etcd-client
-          name: etcd-client
-        - mountPath: /var/run/secrets/kubelet-client
-          name: kubelet-client
-        - mountPath: /var/run/secrets/serving-cert
-          name: serving-cert
       volumes:
       - name: config
         configMap:
           name: deployment-scheduler-config
-      - name: aggregator-client-ca
-        configMap:
-          name: aggregator-client-ca
-      - name: client-ca
-        configMap:
-          name: client-ca
-      - name: etcd-serving-ca
-        configMap:
-          name: etcd-serving-ca
-      - name: kubelet-serving-ca
-        configMap:
-          name: kubelet-serving-ca
-      - name: sa-token-signing-certs
-        configMap:
-          name: sa-token-signing-certs
-      - name: aggregator-client
-        secret:
-          secretName: aggregator-client
-      - name: etcd-client
-        secret:
-          secretName: etcd-client
-      - name: kubelet-client
-        secret:
-          secretName: kubelet-client
-      - name: serving-cert
-        secret:
-          secretName: serving-cert
-
-
-
 `)
 
 func v3110KubeSchedulerDeploymentYamlBytes() ([]byte, error) {
@@ -222,22 +174,32 @@ func v3110KubeSchedulerNsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerPublicInfoRoleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+var _v3110KubeSchedulerPublicInfoRoleYaml = []byte(`kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: openshift-kube-scheduler
   name: system:openshift:operator:kube-scheduler:public
 rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
   - configmaps
+  - secrets
   verbs:
-  - get
-  - list
-  - watch
-  resourceNames:
-  - public-info
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - "*"
 `)
 
 func v3110KubeSchedulerPublicInfoRoleYamlBytes() ([]byte, error) {
@@ -256,17 +218,17 @@ func v3110KubeSchedulerPublicInfoRoleYaml() (*asset, error) {
 }
 
 var _v3110KubeSchedulerPublicInfoRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  namespace: openshift-kube-scheduler
   name: system:openshift:operator:kube-scheduler:public
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: system:openshift:operator:kube-scheduler:public
 subjects:
-- kind: Group
-  name: system:authenticated
+- kind: ServiceAccount
+  name: openshift-kube-scheduler-sa
+  namespace: openshift-kube-scheduler
 `)
 
 func v3110KubeSchedulerPublicInfoRolebindingYamlBytes() ([]byte, error) {
