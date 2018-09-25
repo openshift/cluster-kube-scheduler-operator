@@ -1,2 +1,2 @@
-apiVersion: kubescheduler.operator.openshift.io/v1alpha1
-kind: KubeSchedulerConfig
+apiVersion: componentconfig/v1alpha1
+kind: KubeSchedulerConfiguration

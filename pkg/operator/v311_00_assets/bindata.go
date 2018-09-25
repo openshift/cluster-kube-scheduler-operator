@@ -76,8 +76,8 @@ func v3110KubeSchedulerCmYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: kubescheduler.operator.openshift.io/v1alpha1
-kind: KubeSchedulerConfig
+var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: componentconfig/v1alpha1
+kind: KubeSchedulerConfiguration
 `)
 
 func v3110KubeSchedulerDefaultconfigYamlBytes() ([]byte, error) {
