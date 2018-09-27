@@ -1,37 +1,37 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: kube-controller-manager
+  name: kube-scheduler
   namespace: kube-system
   labels:
     tier: "control-plane"
-    k8s-app: "kube-controller-manager"
+    k8s-app: "kube-scheduler"
     openshift.io/control-plane: "true"
-    openshift.io/component: "controller"
+    openshift.io/component: "scheduler"
   annotations:
     openshift.io/run-level: "0"
 spec:
   selector:
     matchLabels:
       tier: "control-plane"
-      k8s-app: "kube-controller-manager"
+      k8s-app: "kube-scheduler"
       openshift.io/control-plane: "true"
-      openshift.io/component: "controller"
+      openshift.io/component: "scheduler"
   template:
     metadata:
       labels:
         tier: "control-plane"
-        k8s-app: "kube-controller-manager"
+        k8s-app: "kube-scheduler"
         openshift.io/control-plane: "true"
-        openshift.io/component: "controller"
+        openshift.io/component: "scheduler"
     spec:
       containers:
-      - name: kube-controller-manager
+      - name: kube-scheduler
         image: {{ .Image }}
         imagePullPolicy: {{ .ImagePullPolicy }}
         command: ["/bin/bash", "-c"]
         args:
-        - exec hyperkube kube-controller-manager --openshift-config=/etc/kubernetes/config/{{ .ConfigFileName }} --kubeconfig=/etc/kubernetes/secrets/kubeconfig --master=https://kubernetes.default.svc
+        - exec hyperkube scheduler
         securityContext:
           runAsNonRoot: true
           runAsUser: 65534
