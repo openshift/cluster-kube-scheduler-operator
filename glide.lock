@@ -1,5 +1,5 @@
-hash: 7d754c13a9f21ca45a1360b83682b935db91dca52d2715b204fa36edc8811457
-updated: 2018-09-27T23:37:15.060506673-04:00
+hash: 6fbae0bd909b94eb8344ba8dc4e186eef9abe385e8de6cd934173f20f1a6dd3f
+updated: 2018-09-28T00:06:22.567257154-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -74,7 +74,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: cc577cdc22a21a372000477f72df3d4409197ea8
+  version: cd2684fbb4bd1631e962a459d87020ca290b2e4b
   subpackages:
   - apps
   - apps/v1
