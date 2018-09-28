@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: openshift-core-operators
+  name: openshift-cluster-kube-scheduler-operator
+  labels:
+    app: openshift-cluster-kube-scheduler-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openshift-cluster-kube-scheduler-operator
+  template:
+    metadata:
+      name: openshift-cluster-kube-scheduler-operator
+      labels:
+        app: openshift-cluster-kube-scheduler-operator
+    spec:
+      serviceAccountName: openshift-cluster-kube-scheduler-operator
+      containers:
+      - name: kube-scheduler-operator-container
+        image: docker.io/aveshagarwal/cluster-kube-scheduler-operator:latest
+        imagePullPolicy: IfNotPresent
+        command: ["cluster-kube-scheduler-operator", "operator"]
+        args:
+        - "--config=/var/run/configmaps/config/config.yaml"
+        - "-v=4"
+        volumeMounts:
+        - mountPath: /var/run/configmaps/config
+          name: config
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 440
+          name: openshift-cluster-kube-scheduler-operator-config
