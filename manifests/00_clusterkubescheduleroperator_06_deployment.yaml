@@ -19,7 +19,7 @@ spec:
       serviceAccountName: openshift-cluster-kube-scheduler-operator
       containers:
       - name: kube-scheduler-operator-container
-        image: docker.io/aveshagarwal/cluster-kube-scheduler-operator:latest
+        image: docker.io/openshift/origin-cluster-kube-scheduler-operator:latest
         imagePullPolicy: IfNotPresent
         command: ["cluster-kube-scheduler-operator", "operator"]
         args:
