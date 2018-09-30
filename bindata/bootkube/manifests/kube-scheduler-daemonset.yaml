@@ -31,7 +31,7 @@ spec:
         imagePullPolicy: {{ .ImagePullPolicy }}
         command: ["/bin/bash", "-c"]
         args:
-        - exec hyperkube scheduler
+        - exec hyperkube kube-scheduler --leader-elect=true
         securityContext:
           runAsNonRoot: true
           runAsUser: 65534
