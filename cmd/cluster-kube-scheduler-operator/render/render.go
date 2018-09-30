@@ -143,7 +143,7 @@ func (r *renderOpts) Run() error {
 	renderConfig.PostBootstrapKubeSchedulerConfig, err = r.configFromDefaultsPlusOverride(&renderConfig, filepath.Join(r.templatesDir, "config", "config-overrides.yaml"))
 
 	if err != nil {
-		return fmt.Errorf("failed to generate bootstrap config: %q: %v", filepath.Join(r.templatesDir, "config", "config-overrides.yaml"), err)
+		return fmt.Errorf("failed to generate post bootstrap config: %q: %v", filepath.Join(r.templatesDir, "config", "config-overrides.yaml"), err)
 	}
 
 	// load and render templates
