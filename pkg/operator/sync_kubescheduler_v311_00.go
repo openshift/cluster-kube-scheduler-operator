@@ -69,19 +69,19 @@ func syncKubeScheduler_v311_00_to_latest(c KubeSchedulerOperator, operatorConfig
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
 
-	forceDeployment := operatorConfig.ObjectMeta.Generation != operatorConfig.Status.ObservedGeneration
+	forceRollout := operatorConfig.ObjectMeta.Generation != operatorConfig.Status.ObservedGeneration
 	if saModified { // SA modification can cause new tokens
-		forceDeployment = true
+		forceRollout = true
 	}
 	if configMapModified {
-		forceDeployment = true
+		forceRollout = true
 	}
 
 	// our configmaps and secrets are in order, now it is time to create the DS
 	// TODO check basic preconditions here
-	actualDeployment, _, err := manageKubeSchedulerDeployment_v311_00_to_latest(c.appsv1Client, operatorConfig, previousAvailability, forceDeployment)
+	actualDS, _, err := manageKubeSchedulerDS_v311_00_to_latest(c.appsv1Client, operatorConfig, previousAvailability, forceRollout)
 	if err != nil {
-		errors = append(errors, fmt.Errorf("%q: %v", "deployment", err))
+		errors = append(errors, fmt.Errorf("%q: %v", "daemonset", err))
 	}
 
 	configData := ""
@@ -93,7 +93,7 @@ func syncKubeScheduler_v311_00_to_latest(c KubeSchedulerOperator, operatorConfig
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/public-info", err))
 	}
 
-	return resourcemerge.ApplyDeploymentGenerationAvailability(versionAvailability, actualDeployment, errors...), errors
+	return resourcemerge.ApplyDaemonSetGenerationAvailability(versionAvailability, actualDS, errors...), errors
 }
 
 func manageKubeSchedulerConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
@@ -106,12 +106,12 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(client coreclientv1.ConfigMa
 	return resourceapply.ApplyConfigMap(client, requiredConfigMap)
 }
 
-func manageKubeSchedulerDeployment_v311_00_to_latest(client appsclientv1.DeploymentsGetter, options *v1alpha1.KubeSchedulerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability, forceDeployment bool) (*appsv1.Deployment, bool, error) {
-	required := resourceread.ReadDeploymentV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/deployment.yaml"))
+func manageKubeSchedulerDS_v311_00_to_latest(client appsclientv1.DaemonSetsGetter, options *v1alpha1.KubeSchedulerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
+	required := resourceread.ReadDaemonSetV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/ds.yaml"))
 	required.Spec.Template.Spec.Containers[0].Image = options.Spec.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.Spec.Logging.Level))
 
-	return resourceapply.ApplyDeployment(client, required, resourcemerge.ExpectedDeploymentGeneration(required, previousAvailability), forceDeployment)
+	return resourceapply.ApplyDaemonSet(client, required, resourcemerge.ExpectedDaemonSetGeneration(required, previousAvailability), forceRollout)
 }
 
 func manageKubeSchedulerPublicConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, schedulerConfigString string, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
