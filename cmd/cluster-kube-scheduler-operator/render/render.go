@@ -23,13 +23,12 @@ const (
 
 // manifestOpts holds values to parametrize the manifests
 type manifestOpts struct {
-	namespace             string
-	image                 string
-	imagePullPolicy       string
-	configHostPath        string
-	configFileName        string
-	cloudProviderHostPath string
-	secretsHostPath       string
+	namespace       string
+	image           string
+	imagePullPolicy string
+	configHostPath  string
+	configFileName  string
+	secretsHostPath string
 }
 
 // renderOpts holds values to drive the render command.
@@ -70,8 +69,6 @@ func NewRenderCommand() *cobra.Command {
 		"A host path mounted into the kube-scheduler pods to hold secrets.")
 	cmd.Flags().StringVar(&renderOpts.manifest.configFileName, "manifest-config-file-name", "kube-scheduler-config.yaml",
 		"The config file name inside the manifest-config-host-path.")
-	cmd.Flags().StringVar(&renderOpts.manifest.cloudProviderHostPath, "manifest-cloud-provider-host-path", "/etc/kubernetes/cloud",
-		"A host path mounted into the kube-scheduler pods to hold cloud provider configuration.")
 
 	cmd.Flags().StringVar(&renderOpts.assetOutputDir, "asset-output-dir", "", "Output path for rendered manifests.")
 	cmd.Flags().StringVar(&renderOpts.assetInputDir, "asset-input-dir", "", "A path to directory with certificates and secrets.")
@@ -98,9 +95,6 @@ func (r *renderOpts) Validate() error {
 	}
 	if len(r.manifest.configFileName) == 0 {
 		return errors.New("missing required flag: --manifest-config-file-name")
-	}
-	if len(r.manifest.cloudProviderHostPath) == 0 {
-		return errors.New("missing required flag: --manifest-cloud-provider-host-path")
 	}
 	if len(r.manifest.secretsHostPath) == 0 {
 		return errors.New("missing required flag: --manifest-secrets-host-path")
@@ -136,13 +130,12 @@ func (r *renderOpts) Run() error {
 	}
 
 	renderConfig := Config{
-		Namespace:             r.manifest.namespace,
-		Image:                 r.manifest.image,
-		ImagePullPolicy:       r.manifest.imagePullPolicy,
-		ConfigHostPath:        r.manifest.configHostPath,
-		ConfigFileName:        r.manifest.configFileName,
-		CloudProviderHostPath: r.manifest.cloudProviderHostPath,
-		SecretsHostPath:       r.manifest.secretsHostPath,
+		Namespace:       r.manifest.namespace,
+		Image:           r.manifest.image,
+		ImagePullPolicy: r.manifest.imagePullPolicy,
+		ConfigHostPath:  r.manifest.configHostPath,
+		ConfigFileName:  r.manifest.configFileName,
+		SecretsHostPath: r.manifest.secretsHostPath,
 	}
 
 	// create post-poststrap configuration

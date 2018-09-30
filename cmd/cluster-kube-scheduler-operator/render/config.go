@@ -7,9 +7,6 @@ type Config struct {
 	// ConfigFileName is the filename of config file inside ConfigHostPath.
 	ConfigFileName string
 
-	// CloudProviderHostPath is a host path mounted into the apiserver pods to hold cloud provider configuration.
-	CloudProviderHostPath string
-
 	// SecretsHostPath holds certs and keys
 	SecretsHostPath string
 
