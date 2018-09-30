@@ -142,6 +142,10 @@ func (r *renderOpts) Run() error {
 	var err error
 	renderConfig.PostBootstrapKubeSchedulerConfig, err = r.configFromDefaultsPlusOverride(&renderConfig, filepath.Join(r.templatesDir, "config", "config-overrides.yaml"))
 
+	if err != nil {
+		return fmt.Errorf("failed to generate bootstrap config: %q: %v", filepath.Join(r.templatesDir, "config", "config-overrides.yaml"), err)
+	}
+
 	// load and render templates
 	if renderConfig.Assets, err = assets.LoadFilesRecursively(r.assetInputDir, nil); err != nil {
 		return fmt.Errorf("failed loading assets from %q: %v", r.assetInputDir, err)
@@ -159,7 +163,7 @@ func (r *renderOpts) Run() error {
 	// create bootstrap configuration
 	mergedConfig, err := r.configFromDefaultsPlusOverride(&renderConfig, filepath.Join(r.templatesDir, "config", "bootstrap-config-overrides.yaml"))
 	if err != nil {
-		return fmt.Errorf("failed to generated bootstrap config: %v", err)
+		return fmt.Errorf("failed to generate bootstrap config: %v", err)
 	}
 	if err := ioutil.WriteFile(r.configOutputFile, mergedConfig, 0644); err != nil {
 		return fmt.Errorf("failed to write merged config to %q: %v", r.configOutputFile, err)
