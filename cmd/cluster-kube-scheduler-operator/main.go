@@ -13,6 +13,7 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 
+	"github.com/openshift/cluster-kube-scheduler-operator/cmd/cluster-kube-scheduler-operator/render"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
 )
 
@@ -43,6 +44,7 @@ func NewSchedulerOperatorCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(operator.NewOperator())
+	cmd.AddCommand(render.NewRenderCommand())
 
 	return cmd
 }
