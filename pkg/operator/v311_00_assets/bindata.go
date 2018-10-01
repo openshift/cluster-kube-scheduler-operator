@@ -2,7 +2,7 @@
 // sources:
 // bindata/v3.11.0/kube-scheduler/cm.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig.yaml
-// bindata/v3.11.0/kube-scheduler/deployment.yaml
+// bindata/v3.11.0/kube-scheduler/ds.yaml
 // bindata/v3.11.0/kube-scheduler/ns.yaml
 // bindata/v3.11.0/kube-scheduler/public-info-role.yaml
 // bindata/v3.11.0/kube-scheduler/public-info-rolebinding.yaml
@@ -97,37 +97,34 @@ func v3110KubeSchedulerDefaultconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerDeploymentYaml = []byte(`apiVersion: apps/v1
-kind: Deployment
+var _v3110KubeSchedulerDsYaml = []byte(`apiVersion: apps/v1
+kind: DaemonSet
 metadata:
   namespace: openshift-kube-scheduler
   name: scheduler
   labels:
-    app: openshift-kube-scheduler
-    scheduler: "true"
+    tier: "control-plane"
+    k8s-app: "kube-scheduler"
+    openshift.io/control-plane: "true"
+    openshift.io/component: "scheduler"
+  annotations:
+    openshift.io/run-level: "0"
 spec:
-  strategy:
-    type: RollingUpdate
   selector:
     matchLabels:
-      app: openshift-kube-scheduler
-      scheduler: "true"
+      tier: "control-plane"
+      k8s-app: "kube-scheduler"
+      openshift.io/control-plane: "true"
+      openshift.io/component: "scheduler"
   template:
     metadata:
       name: openshift-kube-scheduler
       labels:
-        app: openshift-kube-scheduler
-        scheduler: "true"
+        tier: "control-plane"
+        k8s-app: "kube-scheduler"
+        openshift.io/control-plane: "true"
+        openshift.io/component: "scheduler"
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app: openshift-kube-scheduler
-            namespaces:
-            - openshift-kube-scheduler
-            topologyKey: kubernetes.io/hostname
       serviceAccountName: openshift-kube-scheduler-sa
       containers:
       - name: scheduler
@@ -157,19 +154,21 @@ spec:
       - name: config
         configMap:
           name: deployment-scheduler-config
+  updateStrategy:
+    type: RollingUpdate
 `)
 
-func v3110KubeSchedulerDeploymentYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerDeploymentYaml, nil
+func v3110KubeSchedulerDsYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerDsYaml, nil
 }
 
-func v3110KubeSchedulerDeploymentYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerDeploymentYamlBytes()
+func v3110KubeSchedulerDsYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerDsYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/ds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -428,7 +427,7 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/cm.yaml":                           v3110KubeSchedulerCmYaml,
 	"v3.11.0/kube-scheduler/defaultconfig.yaml":                v3110KubeSchedulerDefaultconfigYaml,
-	"v3.11.0/kube-scheduler/deployment.yaml":                   v3110KubeSchedulerDeploymentYaml,
+	"v3.11.0/kube-scheduler/ds.yaml":                           v3110KubeSchedulerDsYaml,
 	"v3.11.0/kube-scheduler/ns.yaml":                           v3110KubeSchedulerNsYaml,
 	"v3.11.0/kube-scheduler/public-info-role.yaml":             v3110KubeSchedulerPublicInfoRoleYaml,
 	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":      v3110KubeSchedulerPublicInfoRolebindingYaml,
@@ -483,7 +482,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"kube-scheduler": {nil, map[string]*bintree{
 			"cm.yaml":                           {v3110KubeSchedulerCmYaml, map[string]*bintree{}},
 			"defaultconfig.yaml":                {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
-			"deployment.yaml":                   {v3110KubeSchedulerDeploymentYaml, map[string]*bintree{}},
+			"ds.yaml":                           {v3110KubeSchedulerDsYaml, map[string]*bintree{}},
 			"ns.yaml":                           {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
 			"public-info-role.yaml":             {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
 			"public-info-rolebinding.yaml":      {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
