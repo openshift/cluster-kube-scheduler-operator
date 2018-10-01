@@ -42,9 +42,6 @@ spec:
         - mountPath: /etc/kubernetes/secrets
           name: secrets
           readOnly: true
-        - mountPath: /etc/kubernetes/cloud
-          name: etc-kubernetes-cloud
-          readOnly: true
         - mountPath: /etc/kubernetes/config
           name: config
           readOnly: true
@@ -58,9 +55,6 @@ spec:
       - hostPath:
           path: {{ .SecretsHostPath }}
         name: secrets
-      - hostPath:
-          path: {{ .CloudProviderHostPath }}
-        name: etc-kubernetes-cloud
       - hostPath:
           path: {{ .ConfigHostPath }}
         name: config
