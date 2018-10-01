@@ -101,10 +101,10 @@ func (r *renderOpts) Validate() error {
 	}
 
 	if len(r.assetInputDir) == 0 {
-		return errors.New("missing required flag: --asset-output-dir")
+		return errors.New("missing required flag: --asset-input-dir")
 	}
 	if len(r.assetOutputDir) == 0 {
-		return errors.New("missing required flag: --asset-input-dir")
+		return errors.New("missing required flag: --asset-output-dir")
 	}
 	if len(r.templatesDir) == 0 {
 		return errors.New("missing required flag: --templates-dir")
