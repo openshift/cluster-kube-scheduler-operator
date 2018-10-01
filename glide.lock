@@ -1,5 +1,5 @@
 hash: 7d754c13a9f21ca45a1360b83682b935db91dca52d2715b204fa36edc8811457
-updated: 2018-09-28T00:12:56.596957143-04:00
+updated: 2018-10-01T16:22:23.212017208-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -121,7 +121,7 @@ imports:
 - name: github.com/openshift/client-go
   version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
 - name: github.com/openshift/library-go
-  version: 91ddbc425e02ec6b43b523dacae4a85b4f180e6b
+  version: 519f26188961e3e6cb604da6caf6af69518c584d
   subpackages:
   - pkg/assets
   - pkg/config/client
