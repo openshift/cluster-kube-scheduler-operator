@@ -150,9 +150,7 @@ spec:
       nodeSelector:
         node-role.kubernetes.io/master: ""
       tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-        operator: Exists
+      - operator: Exists
       volumes:
       - name: config
         configMap:
