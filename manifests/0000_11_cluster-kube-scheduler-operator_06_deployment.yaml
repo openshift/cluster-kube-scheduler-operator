@@ -33,3 +33,7 @@ spec:
         configMap:
           defaultMode: 440
           name: openshift-cluster-kube-scheduler-operator-config
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - operator: Exists
