@@ -147,7 +147,7 @@ func (r *renderOpts) Run() error {
 	}
 
 	// load and render templates
-	if renderConfig.Assets, err = assets.LoadFilesRecursively(r.assetInputDir, nil); err != nil {
+	if renderConfig.Assets, err = assets.LoadFilesRecursively(r.assetInputDir); err != nil {
 		return fmt.Errorf("failed loading assets from %q: %v", r.assetInputDir, err)
 	}
 	for _, manifestDir := range []string{"bootstrap-manifests", "manifests"} {
