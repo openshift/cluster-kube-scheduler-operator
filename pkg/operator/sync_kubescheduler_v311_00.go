@@ -106,7 +106,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(client coreclientv1.ConfigMa
 	return resourceapply.ApplyConfigMap(client, requiredConfigMap)
 }
 
-func manageKubeSchedulerDS_v311_00_to_latest(client appsclientv1.DaemonSetsGetter, options *v1alpha1.KubeSchedulerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
+func manageKubeSchedulerDS_v311_00_to_latest(client appsclientv1.DaemonSetsGetter, options *v1alpha1.KubeSchedulerOperatorConfig, previousAvailability *operatorsv1alpha1.VersionAvailability, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
 	required := resourceread.ReadDaemonSetV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/ds.yaml"))
 	required.Spec.Template.Spec.Containers[0].Image = options.Spec.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.Spec.Logging.Level))
