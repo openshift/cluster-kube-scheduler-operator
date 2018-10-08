@@ -124,7 +124,7 @@ func (c KubeSchedulerOperator) sync() error {
 	errors := []error{}
 	switch {
 	case v311_00_to_unknown.BetweenOrEmpty(currentActualVerion) && v311_00_to_unknown.Between(&desiredVersion):
-		var versionAvailability operatorsv1alpha1.VersionAvailablity
+		var versionAvailability operatorsv1alpha1.VersionAvailability
 		operatorConfig.Status.TaskSummary = "sync-[3.11.0,3.12.0)"
 		operatorConfig.Status.TargetAvailability = nil
 		versionAvailability, errors = syncKubeScheduler_v311_00_to_latest(c, operatorConfig, operatorConfig.Status.CurrentAvailability)
