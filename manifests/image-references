@@ -5,4 +5,8 @@ spec:
   - name: cluster-kube-scheduler-operator
     from:
       kind: "DockerImage"
-      name: "openshift/origin-cluster-kube-scheduler-operator:latest"
+      name: "docker.io/openshift/origin-cluster-kube-scheduler-operator:latest"
+  - name: hyperkube
+    from:
+      kind: DockerImage
+      name: quay.io/openshift/origin-hyperkube:v4.0
