@@ -58,7 +58,7 @@ var _v3110KubeSchedulerCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: openshift-kube-scheduler
-  name: deployment-scheduler-config
+  name: deployment-kube-scheduler-config
 data:
   config.yaml:
 `)
@@ -154,7 +154,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: deployment-scheduler-config
+          name: deployment-kube-scheduler-config
 `)
 
 func v3110KubeSchedulerDeploymentYamlBytes() ([]byte, error) {
