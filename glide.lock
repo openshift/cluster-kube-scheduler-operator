@@ -1,5 +1,5 @@
 hash: 7d754c13a9f21ca45a1360b83682b935db91dca52d2715b204fa36edc8811457
-updated: 2018-10-16T16:14:04.381222283-04:00
+updated: 2018-10-18T12:47:49.514153595-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -121,7 +121,7 @@ imports:
 - name: github.com/openshift/client-go
   version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
 - name: github.com/openshift/library-go
-  version: 7d558a24b22aea45570fd79975bdb0c6b8f3cf41
+  version: dd6554843a719fcb151deb612e2116371adedcb6
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -309,6 +309,7 @@ imports:
   subpackages:
   - discovery
   - discovery/fake
+  - dynamic
   - informers
   - informers/admissionregistration
   - informers/admissionregistration/v1alpha1
