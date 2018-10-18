@@ -5,4 +5,4 @@ metadata:
   namespace: kube-system
 data:
   config.yaml: |
-    {{ .PostBootstrapKubeSchedulerConfig | indent 4 }}
+    {{ .PostBootstrapConfig | indent 4 }}
