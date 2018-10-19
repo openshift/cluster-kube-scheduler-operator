@@ -10,5 +10,7 @@ spec:
     kind: KubeSchedulerOperatorConfig
     plural: kubescheduleroperatorconfigs
     singular: kubescheduleroperatorconfig
+    categories:
+    - coreoperators    
   subresources:
     status: {}

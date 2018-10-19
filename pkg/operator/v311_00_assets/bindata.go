@@ -4,6 +4,7 @@
 // bindata/v3.11.0/kube-scheduler/defaultconfig.yaml
 // bindata/v3.11.0/kube-scheduler/deployment.yaml
 // bindata/v3.11.0/kube-scheduler/ns.yaml
+// bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/public-info-role.yaml
 // bindata/v3.11.0/kube-scheduler/public-info-rolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/public-info.yaml
@@ -191,6 +192,34 @@ func v3110KubeSchedulerNsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/ns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3110KubeSchedulerOperatorConfigYaml = []byte(`apiVersion: kubescheduler.operator.openshift.io/v1alpha1
+kind: KubeSchedulerOperatorConfig
+metadata:
+  name: instance
+spec:
+  managementState: Managed
+  imagePullSpec: openshift/origin-hyperkube:latest
+  version: 3.11.0
+  logging:
+    level: 4
+  replicas: 2
+`)
+
+func v3110KubeSchedulerOperatorConfigYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerOperatorConfigYaml, nil
+}
+
+func v3110KubeSchedulerOperatorConfigYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerOperatorConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/operator-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -428,6 +457,7 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/defaultconfig.yaml":                v3110KubeSchedulerDefaultconfigYaml,
 	"v3.11.0/kube-scheduler/deployment.yaml":                   v3110KubeSchedulerDeploymentYaml,
 	"v3.11.0/kube-scheduler/ns.yaml":                           v3110KubeSchedulerNsYaml,
+	"v3.11.0/kube-scheduler/operator-config.yaml":              v3110KubeSchedulerOperatorConfigYaml,
 	"v3.11.0/kube-scheduler/public-info-role.yaml":             v3110KubeSchedulerPublicInfoRoleYaml,
 	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":      v3110KubeSchedulerPublicInfoRolebindingYaml,
 	"v3.11.0/kube-scheduler/public-info.yaml":                  v3110KubeSchedulerPublicInfoYaml,
@@ -483,6 +513,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"defaultconfig.yaml":                {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
 			"deployment.yaml":                   {v3110KubeSchedulerDeploymentYaml, map[string]*bintree{}},
 			"ns.yaml":                           {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
+			"operator-config.yaml":              {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
 			"public-info-role.yaml":             {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
 			"public-info-rolebinding.yaml":      {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
 			"public-info.yaml":                  {v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},

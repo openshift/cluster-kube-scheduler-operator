@@ -29,38 +29,15 @@ spec:
       - name: kube-scheduler
         image: {{ .Image }}
         imagePullPolicy: {{ .ImagePullPolicy }}
-        command: ["/bin/bash", "-c"]
+        command: ["hyperkube", "kube-scheduler"]
         args:
-        - exec hyperkube kube-scheduler --leader-elect=true
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 65534
-        volumeMounts:
-        - mountPath: /etc/ssl/certs
-          name: ssl-certs-host
-          readOnly: true
-        - mountPath: /etc/kubernetes/secrets
-          name: secrets
-          readOnly: true
-        - mountPath: /etc/kubernetes/config
-          name: config
-          readOnly: true
+        - --leader-elect=true
       nodeSelector:
         node-role.kubernetes.io/master: ""
       tolerations:
       - key: node-role.kubernetes.io/master
         operator: Exists
         effect: NoSchedule
-      volumes:
-      - hostPath:
-          path: {{ .SecretsHostPath }}
-        name: secrets
-      - hostPath:
-          path: {{ .ConfigHostPath }}
-        name: config
-      - hostPath:
-          path: /etc/ssl/certs
-        name: ssl-certs-host
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1

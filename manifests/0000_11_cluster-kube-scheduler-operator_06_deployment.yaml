@@ -19,7 +19,7 @@ spec:
       serviceAccountName: openshift-cluster-kube-scheduler-operator
       containers:
       - name: kube-scheduler-operator-container
-        image: docker.io/openshift/origin-cluster-kube-scheduler-operator:latest
+        image: docker.io/openshift/origin-cluster-kube-scheduler-operator:v4.0
         imagePullPolicy: IfNotPresent
         command: ["cluster-kube-scheduler-operator", "operator"]
         args:
@@ -28,6 +28,9 @@ spec:
         volumeMounts:
         - mountPath: /var/run/configmaps/config
           name: config
+        env:
+        - name: IMAGE
+          value: quay.io/openshift/origin-hyperkube:v4.0
       volumes:
       - name: config
         configMap:
