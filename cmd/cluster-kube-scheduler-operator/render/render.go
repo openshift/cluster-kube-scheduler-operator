@@ -3,7 +3,9 @@ package render
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -12,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
+	"github.com/openshift/library-go/pkg/assets"
 	genericrender "github.com/openshift/library-go/pkg/operator/render"
 	genericrenderoptions "github.com/openshift/library-go/pkg/operator/render/options"
 )
@@ -24,6 +27,8 @@ const (
 type renderOpts struct {
 	manifest genericrenderoptions.ManifestOptions
 	generic  genericrenderoptions.GenericOptions
+
+	disablePhase2 bool
 }
 
 // NewRenderCommand creates a render command.
@@ -53,6 +58,11 @@ func NewRenderCommand() *cobra.Command {
 func (r *renderOpts) AddFlags(fs *pflag.FlagSet) {
 	r.manifest.AddFlags(fs, "scheduler")
 	r.generic.AddFlags(fs, schema.GroupVersionKind{Group: "componentconfig", Version: "v1alpha1", Kind: "KubeSchedulerConfiguration"})
+
+	// TODO: remove after the transition in the installer to a phase-2 free bootstrapping
+	fs.BoolVar(&r.disablePhase2, "disable-phase-2", r.disablePhase2, "Disable rendering of the phase 2 daemonset and dependencies.")
+	fs.MarkHidden("disable-phase-2")
+	fs.MarkDeprecated("disable-phase-2", "Only used temporarily to synchronize roll out of the phase 2 removal.")
 }
 
 // Validate verifies the inputs.
@@ -103,7 +113,21 @@ func (r *renderOpts) Run() error {
 		return err
 	}
 
-	return genericrender.WriteFiles(&r.generic, &renderConfig.FileConfig, renderConfig)
+	// TODO: remove after the transition in the installer to a phase-2 free bootstrapping
+	var filters []assets.FileInfoPredicate
+	if r.disablePhase2 {
+		filters = append(filters, func(info os.FileInfo) bool {
+			if strings.HasPrefix(info.Name(), "kube-system-") {
+				return false
+			}
+			if info.Name() == "kube-scheduler-daemonset.yaml" {
+				return false
+			}
+			return true
+		})
+	}
+
+	return genericrender.WriteFiles(&r.generic, &renderConfig.FileConfig, renderConfig, filters...)
 }
 
 func mustReadTemplateFile(fname string) genericrenderoptions.Template {
