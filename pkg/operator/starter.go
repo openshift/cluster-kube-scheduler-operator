@@ -80,7 +80,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		targetNamespaceName,
 		deploymentConfigMaps,
 		deploymentSecrets,
-		[]string{"cluster-kube-controller-manager-operator", "installer"},
+		[]string{"cluster-kube-scheduler-operator", "installer"},
 		kubeInformersNamespace,
 		staticPodOperatorClient,
 		kubeClient,
@@ -88,14 +88,6 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	nodeController := staticpodcontroller.NewNodeController(
 		staticPodOperatorClient,
 		kubeInformersClusterScoped,
-	)
-
-	configObserver := NewConfigObserver(
-		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
-		kubeInformersNamespaced,
-		operatorConfigClient.KubeschedulerV1alpha1(),
-		kubeClient,
-		clientConfig,
 	)
 
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
