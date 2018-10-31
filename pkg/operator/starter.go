@@ -93,7 +93,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		"openshift-kube-scheduler",
 		"openshift-kube-scheduler",
 		dynamicClient,
-		&operatorStatusProvider{informers: operatorConfigInformers},
+		staticPodOperatorClient,
 	)
 
 	operatorConfigInformers.Start(stopCh)
