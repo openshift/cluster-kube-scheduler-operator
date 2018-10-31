@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openshift-kube-scheduler
+  namespace: openshift-kube-scheduler
+  labels:
+    app: openshift-kube-scheduler
+    scheduler: "true"
+spec:
+  containers:
+  - name: scheduler
+    image: ${IMAGE}
+    imagePullPolicy: Always
+    terminationMessagePolicy: FallbackToLogsOnError
+    command: ["hyperkube", "kube-scheduler"]
+    args:
+    - "--config=/etc/kubernetes/static-pod-resources/configmaps/deployment-kube-scheduler-config/config.yaml"
+    volumeMounts:
+    - mountPath: /etc/kubernetes/static-pod-resources
+      name: resource-dir
+  hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-DEPLOYMENT_ID
+    name: resource-dir

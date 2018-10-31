@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/cluster-kube-scheduler-operator/cmd/cluster-kube-scheduler-operator/render"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
+	"github.com/openshift/library-go/pkg/operator/staticpod/installerpod"
 )
 
 func main() {
@@ -45,6 +46,7 @@ func NewSchedulerOperatorCommand() *cobra.Command {
 
 	cmd.AddCommand(operator.NewOperator())
 	cmd.AddCommand(render.NewRenderCommand())
+	cmd.AddCommand(installerpod.NewInstaller())
 
 	return cmd
 }

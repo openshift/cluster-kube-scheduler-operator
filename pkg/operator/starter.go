@@ -9,15 +9,19 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
 	operatorconfigclient "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned"
 	operatorclientinformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
+	"github.com/openshift/library-go/pkg/operator/staticpod/staticpodcontroller"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
+)
+
+const (
+	targetNamespaceName = "openshift-kube-scheduler"
+	workQueueKey        = "key"
 )
 
 func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
@@ -36,7 +40,12 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	}
 
 	operatorConfigInformers := operatorclientinformers.NewSharedInformerFactory(operatorConfigClient, 10*time.Minute)
-	kubeInformersNamespaced := informers.NewFilteredSharedInformerFactory(kubeClient, 10*time.Minute, targetNamespaceName, nil)
+	kubeInformersClusterScoped := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+	kubeInformersNamespace := informers.NewFilteredSharedInformerFactory(kubeClient, 10*time.Minute, targetNamespaceName, nil)
+	staticPodOperatorClient := &staticPodOperatorClient{
+		informers: operatorConfigInformers,
+		client:    operatorConfigClient.Kubescheduler(),
+	}
 
 	v1alpha1helpers.EnsureOperatorConfigExists(
 		dynamicClient,
@@ -45,13 +54,40 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		v1alpha1helpers.GetImageEnv,
 	)
 
-	operator := NewKubeSchedulerOperator(
+	configObserver := NewConfigObserver(
 		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
-		kubeInformersNamespaced,
+		kubeInformersNamespace,
 		operatorConfigClient.KubeschedulerV1alpha1(),
-		kubeClient.AppsV1(),
-		kubeClient.CoreV1(),
-		kubeClient.RbacV1(),
+		kubeClient,
+		clientConfig,
+	)
+	targetConfigReconciler := NewTargetConfigReconciler(
+		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
+		kubeInformersNamespace,
+		operatorConfigClient.KubeschedulerV1alpha1(),
+		kubeClient,
+	)
+
+	deploymentController := staticpodcontroller.NewDeploymentController(
+		targetNamespaceName,
+		deploymentConfigMaps,
+		deploymentSecrets,
+		kubeInformersNamespace,
+		staticPodOperatorClient,
+		kubeClient,
+	)
+	installerController := staticpodcontroller.NewInstallerController(
+		targetNamespaceName,
+		deploymentConfigMaps,
+		deploymentSecrets,
+		[]string{"cluster-kube-controller-manager-operator", "installer"},
+		kubeInformersNamespace,
+		staticPodOperatorClient,
+		kubeClient,
+	)
+	nodeController := staticpodcontroller.NewNodeController(
+		staticPodOperatorClient,
+		kubeInformersClusterScoped,
 	)
 
 	configObserver := NewConfigObserver(
@@ -70,9 +106,13 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	)
 
 	operatorConfigInformers.Start(stopCh)
-	kubeInformersNamespaced.Start(stopCh)
+	kubeInformersClusterScoped.Start(stopCh)
+	kubeInformersNamespace.Start(stopCh)
 
-	go operator.Run(1, stopCh)
+	go targetConfigReconciler.Run(1, stopCh)
+	go deploymentController.Run(1, stopCh)
+	go installerController.Run(1, stopCh)
+	go nodeController.Run(1, stopCh)
 	go configObserver.Run(1, stopCh)
 	go clusterOperatorStatus.Run(1, stopCh)
 
@@ -95,4 +135,17 @@ func (p *operatorStatusProvider) CurrentStatus() (operatorv1alpha1.OperatorStatu
 	}
 
 	return instance.Status.OperatorStatus, nil
+}
+
+// deploymentConfigMaps is a list of configmaps that are directly copied for the current values.  A different actor/controller modifies these.
+// the first element should be the configmap that contains the static pod manifest
+var deploymentConfigMaps = []string{
+	"kube-controller-manager-pod",
+	"deployment-kube-controller-manager-config",
+	"client-ca",
+}
+
+// deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
+var deploymentSecrets = []string{
+	"serving-cert",
 }
