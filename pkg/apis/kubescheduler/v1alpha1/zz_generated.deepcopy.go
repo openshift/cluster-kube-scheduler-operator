@@ -98,7 +98,8 @@ func (in *KubeSchedulerOperatorConfigList) DeepCopyObject() runtime.Object {
 func (in *KubeSchedulerOperatorConfigSpec) DeepCopyInto(out *KubeSchedulerOperatorConfigSpec) {
 	*out = *in
 	out.OperatorSpec = in.OperatorSpec
-	in.KubeSchedulerConfig.DeepCopyInto(&out.KubeSchedulerConfig)
+	in.UserConfig.DeepCopyInto(&out.UserConfig)
+	in.ObservedConfig.DeepCopyInto(&out.ObservedConfig)
 	return
 }
 
