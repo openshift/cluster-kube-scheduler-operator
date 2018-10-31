@@ -89,7 +89,6 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		staticPodOperatorClient,
 		kubeInformersClusterScoped,
 	)
-
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-kube-scheduler",
 		"openshift-kube-scheduler",
@@ -112,28 +111,11 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	return fmt.Errorf("stopped")
 }
 
-type operatorStatusProvider struct {
-	informers operatorclientinformers.SharedInformerFactory
-}
-
-func (p *operatorStatusProvider) Informer() cache.SharedIndexInformer {
-	return p.informers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs().Informer()
-}
-
-func (p *operatorStatusProvider) CurrentStatus() (operatorv1alpha1.OperatorStatus, error) {
-	instance, err := p.informers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs().Lister().Get("instance")
-	if err != nil {
-		return operatorv1alpha1.OperatorStatus{}, err
-	}
-
-	return instance.Status.OperatorStatus, nil
-}
-
 // deploymentConfigMaps is a list of configmaps that are directly copied for the current values.  A different actor/controller modifies these.
 // the first element should be the configmap that contains the static pod manifest
 var deploymentConfigMaps = []string{
-	"kube-controller-manager-pod",
-	"deployment-kube-controller-manager-config",
+	"kube-scheduler-pod",
+	"deployment-kube-scheduler-config",
 	"client-ca",
 }
 
