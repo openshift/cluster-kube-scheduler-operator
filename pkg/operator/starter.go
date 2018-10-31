@@ -54,6 +54,14 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		kubeClient.RbacV1(),
 	)
 
+	configObserver := NewConfigObserver(
+		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
+		kubeInformersNamespaced,
+		operatorConfigClient.KubeschedulerV1alpha1(),
+		kubeClient,
+		clientConfig,
+	)
+
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-kube-scheduler",
 		"openshift-kube-scheduler",
@@ -65,6 +73,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeInformersNamespaced.Start(stopCh)
 
 	go operator.Run(1, stopCh)
+	go configObserver.Run(1, stopCh)
 	go clusterOperatorStatus.Run(1, stopCh)
 
 	<-stopCh
