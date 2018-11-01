@@ -5,8 +5,6 @@ import (
 	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
@@ -120,21 +118,11 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, operatorC
 }
 
 func manageKubeSchedulerPublicConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, schedulerConfigString string, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
-	uncastUnstructured, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(schedulerConfigString))
-	if err != nil {
-		return nil, false, err
-	}
-	schedulerConfig := uncastUnstructured.(runtime.Unstructured)
-
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/public-info.yaml"))
 	if operatorConfig.Status.CurrentAvailability != nil {
 		configMap.Data["version"] = operatorConfig.Status.CurrentAvailability.Version
 	} else {
 		configMap.Data["version"] = ""
-	}
-	configMap.Data["projectConfig.defaultNodeSelector"], _, err = unstructured.NestedString(schedulerConfig.UnstructuredContent(), "projectConfig", "defaultNodeSelector")
-	if err != nil {
-		return nil, false, err
 	}
 
 	return resourceapply.ApplyConfigMap(client, configMap)
