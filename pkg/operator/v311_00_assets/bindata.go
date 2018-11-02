@@ -244,7 +244,6 @@ spec:
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["hyperkube", "kube-scheduler"]
     args:
-    - --config=/etc/kubernetes/static-pod-resources/configmaps/deployment-kube-scheduler-config/config.yaml
     - --kubeconfig=/etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
