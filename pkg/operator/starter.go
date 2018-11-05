@@ -116,11 +116,9 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 var deploymentConfigMaps = []string{
 	"kube-scheduler-pod",
 	"deployment-kube-scheduler-config",
-	"client-ca",
 }
 
 // deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
 var deploymentSecrets = []string{
-	"serving-cert",
 	"scheduler-kubeconfig",
 }
