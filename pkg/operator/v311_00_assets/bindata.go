@@ -65,6 +65,10 @@ metadata:
   name: deployment-kube-scheduler-config
 data:
   config.yaml:
+    apiVersion: componentconfig/v1alpha1
+    kind: KubeSchedulerConfiguration
+    clientConnection:
+      kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
 `)
 
 func v3110KubeSchedulerCmYamlBytes() ([]byte, error) {
@@ -245,7 +249,6 @@ spec:
     command: ["hyperkube", "kube-scheduler"]
     args:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/deployment-kube-scheduler-config/config.yaml
-    - --kubeconfig=/etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
