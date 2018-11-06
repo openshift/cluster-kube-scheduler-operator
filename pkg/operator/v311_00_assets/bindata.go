@@ -64,7 +64,7 @@ metadata:
   namespace: openshift-kube-scheduler
   name: deployment-kube-scheduler-config
 data:
-  config.yaml:
+  config.yaml: |
     apiVersion: componentconfig/v1alpha1
     kind: KubeSchedulerConfiguration
     clientConnection:
