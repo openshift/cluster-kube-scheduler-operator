@@ -2,8 +2,6 @@
 // sources:
 // bindata/v3.11.0/kube-scheduler/cm.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig.yaml
-// bindata/v3.11.0/kube-scheduler/installer-cluster-rolebinding.yaml
-// bindata/v3.11.0/kube-scheduler/installer-sa.yaml
 // bindata/v3.11.0/kube-scheduler/ns.yaml
 // bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/pod-cm.yaml
@@ -101,56 +99,6 @@ func v3110KubeSchedulerDefaultconfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/defaultconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerInstallerClusterRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: system:openshift:operator:cluster-kube-scheduler-installer
-roleRef:
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  namespace: openshift-kube-scheduler
-  name: installer-sa
-`)
-
-func v3110KubeSchedulerInstallerClusterRolebindingYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerInstallerClusterRolebindingYaml, nil
-}
-
-func v3110KubeSchedulerInstallerClusterRolebindingYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerInstallerClusterRolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/installer-cluster-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerInstallerSaYaml = []byte(`apiVersion: v1
-kind: ServiceAccount
-metadata:
-  namespace: openshift-kube-scheduler
-  name: installer-sa
-`)
-
-func v3110KubeSchedulerInstallerSaYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerInstallerSaYaml, nil
-}
-
-func v3110KubeSchedulerInstallerSaYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerInstallerSaYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/installer-sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -503,20 +451,18 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"v3.11.0/kube-scheduler/cm.yaml":                            v3110KubeSchedulerCmYaml,
-	"v3.11.0/kube-scheduler/defaultconfig.yaml":                 v3110KubeSchedulerDefaultconfigYaml,
-	"v3.11.0/kube-scheduler/installer-cluster-rolebinding.yaml": v3110KubeSchedulerInstallerClusterRolebindingYaml,
-	"v3.11.0/kube-scheduler/installer-sa.yaml":                  v3110KubeSchedulerInstallerSaYaml,
-	"v3.11.0/kube-scheduler/ns.yaml":                            v3110KubeSchedulerNsYaml,
-	"v3.11.0/kube-scheduler/operator-config.yaml":               v3110KubeSchedulerOperatorConfigYaml,
-	"v3.11.0/kube-scheduler/pod-cm.yaml":                        v3110KubeSchedulerPodCmYaml,
-	"v3.11.0/kube-scheduler/pod.yaml":                           v3110KubeSchedulerPodYaml,
-	"v3.11.0/kube-scheduler/public-info-role.yaml":              v3110KubeSchedulerPublicInfoRoleYaml,
-	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":       v3110KubeSchedulerPublicInfoRolebindingYaml,
-	"v3.11.0/kube-scheduler/public-info.yaml":                   v3110KubeSchedulerPublicInfoYaml,
-	"v3.11.0/kube-scheduler/sa.yaml":                            v3110KubeSchedulerSaYaml,
-	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml":  v3110KubeSchedulerSchedulerClusterrolebindingYaml,
-	"v3.11.0/kube-scheduler/svc.yaml":                           v3110KubeSchedulerSvcYaml,
+	"v3.11.0/kube-scheduler/cm.yaml":                           v3110KubeSchedulerCmYaml,
+	"v3.11.0/kube-scheduler/defaultconfig.yaml":                v3110KubeSchedulerDefaultconfigYaml,
+	"v3.11.0/kube-scheduler/ns.yaml":                           v3110KubeSchedulerNsYaml,
+	"v3.11.0/kube-scheduler/operator-config.yaml":              v3110KubeSchedulerOperatorConfigYaml,
+	"v3.11.0/kube-scheduler/pod-cm.yaml":                       v3110KubeSchedulerPodCmYaml,
+	"v3.11.0/kube-scheduler/pod.yaml":                          v3110KubeSchedulerPodYaml,
+	"v3.11.0/kube-scheduler/public-info-role.yaml":             v3110KubeSchedulerPublicInfoRoleYaml,
+	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":      v3110KubeSchedulerPublicInfoRolebindingYaml,
+	"v3.11.0/kube-scheduler/public-info.yaml":                  v3110KubeSchedulerPublicInfoYaml,
+	"v3.11.0/kube-scheduler/sa.yaml":                           v3110KubeSchedulerSaYaml,
+	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml": v3110KubeSchedulerSchedulerClusterrolebindingYaml,
+	"v3.11.0/kube-scheduler/svc.yaml":                          v3110KubeSchedulerSvcYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -562,20 +508,18 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"v3.11.0": {nil, map[string]*bintree{
 		"kube-scheduler": {nil, map[string]*bintree{
-			"cm.yaml":                            {v3110KubeSchedulerCmYaml, map[string]*bintree{}},
-			"defaultconfig.yaml":                 {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
-			"installer-cluster-rolebinding.yaml": {v3110KubeSchedulerInstallerClusterRolebindingYaml, map[string]*bintree{}},
-			"installer-sa.yaml":                  {v3110KubeSchedulerInstallerSaYaml, map[string]*bintree{}},
-			"ns.yaml":                            {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
-			"operator-config.yaml":               {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
-			"pod-cm.yaml":                        {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
-			"pod.yaml":                           {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
-			"public-info-role.yaml":              {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
-			"public-info-rolebinding.yaml":       {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
-			"public-info.yaml":                   {v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
-			"sa.yaml":                            {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
-			"scheduler-clusterrolebinding.yaml":  {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
-			"svc.yaml":                           {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
+			"cm.yaml":                           {v3110KubeSchedulerCmYaml, map[string]*bintree{}},
+			"defaultconfig.yaml":                {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
+			"ns.yaml":                           {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
+			"operator-config.yaml":              {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
+			"pod-cm.yaml":                       {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
+			"pod.yaml":                          {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
+			"public-info-role.yaml":             {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
+			"public-info-rolebinding.yaml":      {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
+			"public-info.yaml":                  {v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
+			"sa.yaml":                           {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
+			"scheduler-clusterrolebinding.yaml": {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
+			"svc.yaml":                          {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},
 }}

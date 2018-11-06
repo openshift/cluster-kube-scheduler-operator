@@ -30,8 +30,6 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, op
 		"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
 		"v3.11.0/kube-scheduler/svc.yaml",
 		"v3.11.0/kube-scheduler/sa.yaml",
-		"v3.11.0/kube-scheduler/installer-sa.yaml",
-		"v3.11.0/kube-scheduler/installer-cluster-rolebinding.yaml",
 	)
 	for _, currResult := range directResourceResults {
 		if currResult.Error != nil {

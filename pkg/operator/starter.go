@@ -14,7 +14,8 @@ import (
 	operatorconfigclient "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned"
 	operatorclientinformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
-	"github.com/openshift/library-go/pkg/operator/staticpod/staticpodcontroller"
+
+	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
 )
@@ -68,27 +69,17 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		kubeClient,
 	)
 
-	deploymentController := staticpodcontroller.NewDeploymentController(
+	staticPodControllers := staticpod.NewControllers(
 		targetNamespaceName,
-		deploymentConfigMaps,
-		deploymentSecrets,
-		kubeInformersNamespace,
-		staticPodOperatorClient,
-		kubeClient,
-	)
-	installerController := staticpodcontroller.NewInstallerController(
-		targetNamespaceName,
-		deploymentConfigMaps,
-		deploymentSecrets,
 		[]string{"cluster-kube-scheduler-operator", "installer"},
-		kubeInformersNamespace,
+		deploymentConfigMaps,
+		deploymentSecrets,
 		staticPodOperatorClient,
 		kubeClient,
-	)
-	nodeController := staticpodcontroller.NewNodeController(
-		staticPodOperatorClient,
+		kubeInformersNamespace,
 		kubeInformersClusterScoped,
 	)
+
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-kube-scheduler",
 		"openshift-kube-scheduler",
@@ -100,10 +91,8 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeInformersClusterScoped.Start(stopCh)
 	kubeInformersNamespace.Start(stopCh)
 
+	go staticPodControllers.Run(stopCh)
 	go targetConfigReconciler.Run(1, stopCh)
-	go deploymentController.Run(1, stopCh)
-	go installerController.Run(1, stopCh)
-	go nodeController.Run(1, stopCh)
 	go configObserver.Run(1, stopCh)
 	go clusterOperatorStatus.Run(1, stopCh)
 
