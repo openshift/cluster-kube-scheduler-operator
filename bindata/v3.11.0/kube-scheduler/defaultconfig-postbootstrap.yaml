@@ -1,0 +1,4 @@
+apiVersion: componentconfig/v1alpha1
+kind: KubeSchedulerConfiguration
+clientConnection:
+  kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
