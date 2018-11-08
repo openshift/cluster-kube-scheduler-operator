@@ -113,6 +113,13 @@ func (r *renderOpts) Run() error {
 		return err
 	}
 
+	// add additional kubeconfig asset
+	if kubeConfig, err := r.readBootstrapSecretsKubeconfig(); err != nil {
+		return fmt.Errorf("failed to read %s/kubeconfig: %v", r.manifest.SecretsHostPath, err)
+	} else {
+		renderConfig.Assets["kubeconfig"] = kubeConfig
+	}
+
 	// TODO: remove after the transition in the installer to a phase-2 free bootstrapping
 	var filters []assets.FileInfoPredicate
 	if r.disablePhase2 {
@@ -128,6 +135,10 @@ func (r *renderOpts) Run() error {
 	}
 
 	return genericrender.WriteFiles(&r.generic, &renderConfig.FileConfig, renderConfig, filters...)
+}
+
+func (r *renderOpts) readBootstrapSecretsKubeconfig() ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(r.generic.AssetInputDir, "..", "auth", "kubeconfig"))
 }
 
 func mustReadTemplateFile(fname string) genericrenderoptions.Template {
