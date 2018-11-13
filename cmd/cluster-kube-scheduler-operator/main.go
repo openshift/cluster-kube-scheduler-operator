@@ -13,7 +13,7 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 
-	"github.com/openshift/cluster-kube-scheduler-operator/cmd/cluster-kube-scheduler-operator/render"
+	"github.com/openshift/cluster-kube-scheduler-operator/cmd/render"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
 	"github.com/openshift/library-go/pkg/operator/staticpod/installerpod"
 )
