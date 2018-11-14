@@ -18,7 +18,6 @@ spec:
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
-  hostNetwork: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-DEPLOYMENT_ID
