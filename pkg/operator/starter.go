@@ -71,6 +71,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 
 	staticPodControllers := staticpod.NewControllers(
 		targetNamespaceName,
+		"openshift-kube-scheduler",
 		[]string{"cluster-kube-scheduler-operator", "installer"},
 		deploymentConfigMaps,
 		deploymentSecrets,

@@ -5,6 +5,7 @@ metadata:
   namespace: openshift-kube-scheduler
   labels:
     app: openshift-kube-scheduler
+    deployment-id: "DEPLOYMENT_ID"
     scheduler: "true"
 spec:
   containers:
