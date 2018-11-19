@@ -205,8 +205,8 @@ metadata:
   namespace: openshift-kube-scheduler
   labels:
     app: openshift-kube-scheduler
-    deployment-id: "DEPLOYMENT_ID"
     scheduler: "true"
+    revision: "REVISION"
 spec:
   containers:
   - name: scheduler
@@ -222,7 +222,7 @@ spec:
   hostNetwork: true
   volumes:
   - hostPath:
-      path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-DEPLOYMENT_ID
+      path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION
     name: resource-dir
 `)
 
