@@ -1,5 +1,5 @@
 hash: 7d754c13a9f21ca45a1360b83682b935db91dca52d2715b204fa36edc8811457
-updated: 2018-11-06T18:09:50.509966822-05:00
+updated: 2018-11-19T14:35:05.905574395-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -187,7 +187,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 22c4ad19c5f2de1ffe266456e0a31e8fd1069f44
+  version: 7019e79772a9bfa1ade7b231de705293b9c12401
   subpackages:
   - apps
   - apps/v1
@@ -211,6 +211,7 @@ imports:
   - openshiftcontrolplane
   - openshiftcontrolplane/v1
   - operator
+  - operator/v1
   - operator/v1alpha1
   - osin
   - osin/v1
@@ -232,9 +233,9 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 90ddfba1bba0c0c6279412e3060aad5ac199092e
+  version: 960f72aa32a8e9b4dd769b90ff1cb5bd4c898eec
 - name: github.com/openshift/library-go
-  version: 85241b52707ef2beb85ad9254a176448c58ee021
+  version: b468f2b93d32f4506f0b4a998ca2ae4fc4a6871c
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -242,6 +243,7 @@ imports:
   - pkg/config/leaderelection
   - pkg/config/serving
   - pkg/controller/controllercmd
+  - pkg/controller/fileobserver
   - pkg/controller/metrics
   - pkg/crypto
   - pkg/operator/render
@@ -253,12 +255,13 @@ imports:
   - pkg/operator/staticpod/controller/backingresource
   - pkg/operator/staticpod/controller/backingresource/bindata
   - pkg/operator/staticpod/controller/common
-  - pkg/operator/staticpod/controller/deployment
   - pkg/operator/staticpod/controller/installer
   - pkg/operator/staticpod/controller/node
+  - pkg/operator/staticpod/controller/revision
   - pkg/operator/staticpod/installerpod
   - pkg/operator/status
   - pkg/operator/v1alpha1helpers
+  - pkg/operator/v1helpers
   - pkg/operator/versioning
   - pkg/serviceability
 - name: github.com/pborman/uuid

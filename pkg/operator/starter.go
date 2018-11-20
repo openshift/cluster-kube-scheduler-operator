@@ -2,6 +2,7 @@ package operator
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -45,7 +46,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeInformersNamespace := informers.NewFilteredSharedInformerFactory(kubeClient, 10*time.Minute, targetNamespaceName, nil)
 	staticPodOperatorClient := &staticPodOperatorClient{
 		informers: operatorConfigInformers,
-		client:    operatorConfigClient.Kubescheduler(),
+		client:    operatorConfigClient.KubeschedulerV1alpha1(),
 	}
 
 	v1alpha1helpers.EnsureOperatorConfigExists(
@@ -59,10 +60,9 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
 		kubeInformersNamespace,
 		operatorConfigClient.KubeschedulerV1alpha1(),
-		kubeClient,
-		clientConfig,
 	)
 	targetConfigReconciler := NewTargetConfigReconciler(
+		os.Getenv("IMAGE"),
 		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
 		kubeInformersNamespace,
 		operatorConfigClient.KubeschedulerV1alpha1(),
@@ -71,6 +71,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 
 	staticPodControllers := staticpod.NewControllers(
 		targetNamespaceName,
+		"openshift-kube-scheduler",
 		[]string{"cluster-kube-scheduler-operator", "installer"},
 		deploymentConfigMaps,
 		deploymentSecrets,
