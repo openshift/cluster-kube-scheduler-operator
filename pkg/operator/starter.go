@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -17,6 +18,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
@@ -27,7 +29,7 @@ const (
 	workQueueKey        = "key"
 )
 
-func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
+func RunOperator(_ *unstructured.Unstructured, clientConfig *rest.Config, eventRecorder events.Recorder, stopCh <-chan struct{}) error {
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
@@ -61,6 +63,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		staticPodOperatorClient,
 		operatorConfigInformers,
 		kubeInformersNamespace,
+		eventRecorder,
 	)
 
 	targetConfigReconciler := NewTargetConfigReconciler(
@@ -69,6 +72,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		kubeInformersNamespace,
 		operatorConfigClient.KubeschedulerV1alpha1(),
 		kubeClient,
+		eventRecorder,
 	)
 
 	staticPodControllers := staticpod.NewControllers(
@@ -81,6 +85,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		kubeClient,
 		kubeInformersNamespace,
 		kubeInformersClusterScoped,
+		eventRecorder,
 	)
 
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
