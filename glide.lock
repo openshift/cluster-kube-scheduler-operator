@@ -1,5 +1,5 @@
 hash: 7d754c13a9f21ca45a1360b83682b935db91dca52d2715b204fa36edc8811457
-updated: 2018-11-19T14:35:05.905574395-05:00
+updated: 2018-11-26T16:35:35.223392476-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -7,8 +7,6 @@ imports:
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
   - quantile
-- name: github.com/blang/semver
-  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: ee1a9a0726d2ae45f54118cac878c990d4016ded
 - name: github.com/coreos/etcd
@@ -187,7 +185,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 7019e79772a9bfa1ade7b231de705293b9c12401
+  version: ffac7eec5e7f87c6a9fcbc766e3b024ed3ef39ea
   subpackages:
   - apps
   - apps/v1
@@ -235,7 +233,7 @@ imports:
 - name: github.com/openshift/client-go
   version: 960f72aa32a8e9b4dd769b90ff1cb5bd4c898eec
 - name: github.com/openshift/library-go
-  version: b468f2b93d32f4506f0b4a998ca2ae4fc4a6871c
+  version: 9b8680d6de067014a0987f385f0397eb41d96b44
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -246,6 +244,8 @@ imports:
   - pkg/controller/fileobserver
   - pkg/controller/metrics
   - pkg/crypto
+  - pkg/operator/configobserver
+  - pkg/operator/events
   - pkg/operator/render
   - pkg/operator/render/options
   - pkg/operator/resource/resourceapply
@@ -262,7 +262,6 @@ imports:
   - pkg/operator/status
   - pkg/operator/v1alpha1helpers
   - pkg/operator/v1helpers
-  - pkg/operator/versioning
   - pkg/serviceability
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
