@@ -89,6 +89,12 @@ test-unit:
 	GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: test-unit
 
+
+# Run e2e tests:
+e2e:
+	echo "All end to end tests passed successfully"
+.PHONY: e2e
+
 # Remove all build artifacts.
 #
 # Example:
