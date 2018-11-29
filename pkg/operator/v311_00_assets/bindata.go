@@ -7,9 +7,6 @@
 // bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/pod-cm.yaml
 // bindata/v3.11.0/kube-scheduler/pod.yaml
-// bindata/v3.11.0/kube-scheduler/public-info-role.yaml
-// bindata/v3.11.0/kube-scheduler/public-info-rolebinding.yaml
-// bindata/v3.11.0/kube-scheduler/public-info.yaml
 // bindata/v3.11.0/kube-scheduler/sa.yaml
 // bindata/v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/svc.yaml
@@ -241,99 +238,6 @@ func v3110KubeSchedulerPodYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerPublicInfoRoleYaml = []byte(`kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: system:openshift:operator:kube-scheduler:public
-rules:
-- apiGroups:
-  - storage.k8s.io
-  resources:
-  - storageclasses
-  verbs:
-  - get
-  - list
-  - watch
-`)
-
-func v3110KubeSchedulerPublicInfoRoleYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerPublicInfoRoleYaml, nil
-}
-
-func v3110KubeSchedulerPublicInfoRoleYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerPublicInfoRoleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/public-info-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerPublicInfoRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: system:openshift:operator:kube-scheduler:public
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:openshift:operator:kube-scheduler:public
-subjects:
-- kind: ServiceAccount
-  name: openshift-kube-scheduler-sa
-  namespace: openshift-kube-scheduler
-`)
-
-func v3110KubeSchedulerPublicInfoRolebindingYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerPublicInfoRolebindingYaml, nil
-}
-
-func v3110KubeSchedulerPublicInfoRolebindingYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerPublicInfoRolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/public-info-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerPublicInfoYaml = []byte(`apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: openshift-kube-scheduler
-  name: public-info
-data:
-  # version is the current of the kube-scheduler.  It is updated *after* it is being served consistently.
-  version:
-  # imagePolicyConfig.internalRegistryHostname is internal registry used for imagePolicyAdmission
-  # TODO this probably won't make it to 4.0, we're likely to stuff the entire imagePolicyAdmission config in here
-  imagePolicyConfig.internalRegistryHostname:
-  # imagePolicyConfig.externalRegistryHostname is external registry used for imagePolicyAdmission
-  # TODO this probably won't make it to 4.0, we're likely to stuff the entire imagePolicyAdmission config in here
-  imagePolicyConfig.externalRegistryHostname:
-  # defaultNodeSelector is used when no specific node selector is on a namespace
-  # TODO we'd really like to see this collapsed onto upstream values
-  projectConfig.defaultNodeSelector:
-`)
-
-func v3110KubeSchedulerPublicInfoYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerPublicInfoYaml, nil
-}
-
-func v3110KubeSchedulerPublicInfoYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerPublicInfoYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/public-info.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _v3110KubeSchedulerSaYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -477,9 +381,6 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/operator-config.yaml":              v3110KubeSchedulerOperatorConfigYaml,
 	"v3.11.0/kube-scheduler/pod-cm.yaml":                       v3110KubeSchedulerPodCmYaml,
 	"v3.11.0/kube-scheduler/pod.yaml":                          v3110KubeSchedulerPodYaml,
-	"v3.11.0/kube-scheduler/public-info-role.yaml":             v3110KubeSchedulerPublicInfoRoleYaml,
-	"v3.11.0/kube-scheduler/public-info-rolebinding.yaml":      v3110KubeSchedulerPublicInfoRolebindingYaml,
-	"v3.11.0/kube-scheduler/public-info.yaml":                  v3110KubeSchedulerPublicInfoYaml,
 	"v3.11.0/kube-scheduler/sa.yaml":                           v3110KubeSchedulerSaYaml,
 	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml": v3110KubeSchedulerSchedulerClusterrolebindingYaml,
 	"v3.11.0/kube-scheduler/svc.yaml":                          v3110KubeSchedulerSvcYaml,
@@ -535,9 +436,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"operator-config.yaml":              {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
 			"pod-cm.yaml":                       {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
 			"pod.yaml":                          {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
-			"public-info-role.yaml":             {v3110KubeSchedulerPublicInfoRoleYaml, map[string]*bintree{}},
-			"public-info-rolebinding.yaml":      {v3110KubeSchedulerPublicInfoRolebindingYaml, map[string]*bintree{}},
-			"public-info.yaml":                  {v3110KubeSchedulerPublicInfoYaml, map[string]*bintree{}},
 			"sa.yaml":                           {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
 			"scheduler-clusterrolebinding.yaml": {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
 			"svc.yaml":                          {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
