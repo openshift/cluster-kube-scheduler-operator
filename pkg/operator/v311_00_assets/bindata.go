@@ -61,7 +61,7 @@ var _v3110KubeSchedulerCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: openshift-kube-scheduler
-  name: deployment-kube-scheduler-config
+  name: config
 data:
   config.yaml:
 `)
@@ -215,7 +215,7 @@ spec:
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["hyperkube", "kube-scheduler"]
     args:
-    - --config=/etc/kubernetes/static-pod-resources/configmaps/deployment-kube-scheduler-config/config.yaml
+    - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir

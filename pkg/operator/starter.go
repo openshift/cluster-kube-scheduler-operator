@@ -105,7 +105,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 // the first element should be the configmap that contains the static pod manifest
 var deploymentConfigMaps = []string{
 	"kube-scheduler-pod",
-	"deployment-kube-scheduler-config",
+	"config",
 }
 
 // deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
