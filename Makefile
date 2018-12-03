@@ -92,7 +92,7 @@ test-unit:
 
 # Run e2e tests:
 e2e:
-	echo "All end to end tests passed successfully"
+	go test -v ./test/e2e/...
 .PHONY: e2e
 
 # Remove all build artifacts.
