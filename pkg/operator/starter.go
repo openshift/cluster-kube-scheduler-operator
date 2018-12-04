@@ -5,12 +5,10 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
 	operatorconfigclient "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned"
@@ -18,7 +16,8 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 
-	"github.com/openshift/library-go/pkg/operator/events"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
@@ -29,17 +28,22 @@ const (
 	workQueueKey        = "key"
 )
 
-func RunOperator(_ *unstructured.Unstructured, clientConfig *rest.Config, eventRecorder events.Recorder, stopCh <-chan struct{}) error {
-	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+func RunOperator(ctx *controllercmd.ControllerContext) error {
+	kubeClient, err := kubernetes.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
-	operatorConfigClient, err := operatorconfigclient.NewForConfig(clientConfig)
+	operatorConfigClient, err := operatorconfigclient.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	dynamicClient, err := dynamic.NewForConfig(ctx.KubeConfig)
+	if err != nil {
+		return err
+	}
+
+	configClient, err := configv1client.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -63,7 +67,7 @@ func RunOperator(_ *unstructured.Unstructured, clientConfig *rest.Config, eventR
 		staticPodOperatorClient,
 		operatorConfigInformers,
 		kubeInformersNamespace,
-		eventRecorder,
+		ctx.EventRecorder,
 	)
 
 	targetConfigReconciler := NewTargetConfigReconciler(
@@ -72,7 +76,7 @@ func RunOperator(_ *unstructured.Unstructured, clientConfig *rest.Config, eventR
 		kubeInformersNamespace,
 		operatorConfigClient.KubeschedulerV1alpha1(),
 		kubeClient,
-		eventRecorder,
+		ctx.EventRecorder,
 	)
 
 	staticPodControllers := staticpod.NewControllers(
@@ -85,26 +89,26 @@ func RunOperator(_ *unstructured.Unstructured, clientConfig *rest.Config, eventR
 		kubeClient,
 		kubeInformersNamespace,
 		kubeInformersClusterScoped,
-		eventRecorder,
+		ctx.EventRecorder,
 	)
 
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-cluster-kube-scheduler-operator",
-		"openshift-cluster-kube-scheduler-operator",
-		dynamicClient,
+		configClient.ConfigV1(),
 		staticPodOperatorClient,
+		ctx.EventRecorder,
 	)
 
-	operatorConfigInformers.Start(stopCh)
-	kubeInformersClusterScoped.Start(stopCh)
-	kubeInformersNamespace.Start(stopCh)
+	operatorConfigInformers.Start(ctx.StopCh)
+	kubeInformersClusterScoped.Start(ctx.StopCh)
+	kubeInformersNamespace.Start(ctx.StopCh)
 
-	go staticPodControllers.Run(stopCh)
-	go targetConfigReconciler.Run(1, stopCh)
-	go configObserver.Run(1, stopCh)
-	go clusterOperatorStatus.Run(1, stopCh)
+	go staticPodControllers.Run(ctx.StopCh)
+	go targetConfigReconciler.Run(1, ctx.StopCh)
+	go configObserver.Run(1, ctx.StopCh)
+	go clusterOperatorStatus.Run(1, ctx.StopCh)
 
-	<-stopCh
+	<-ctx.StopCh
 	return fmt.Errorf("stopped")
 }
 
