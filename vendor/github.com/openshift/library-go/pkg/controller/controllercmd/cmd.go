@@ -26,16 +26,6 @@ import (
 	_ "github.com/openshift/library-go/pkg/controller/metrics"
 )
 
-var (
-	configScheme = runtime.NewScheme()
-)
-
-func init() {
-	if err := operatorv1alpha1.Install(configScheme); err != nil {
-		panic(err)
-	}
-}
-
 // ControllerCommandConfig holds values required to construct a command to run.
 type ControllerCommandConfig struct {
 	componentName string
@@ -179,6 +169,5 @@ func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error 
 		WithLeaderElection(config.LeaderElection, "", c.componentName+"-lock").
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
 		WithRestartOnChange(exitOnChangeReactorCh, observedFiles...).
-		Run(unstructuredConfig, stopCh)
-
+		Run(unstructuredConfig, stopChannelCombined)
 }
