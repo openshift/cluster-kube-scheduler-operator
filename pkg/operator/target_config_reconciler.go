@@ -20,6 +20,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	operatorconfigclientv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned/typed/kubescheduler/v1alpha1"
 	operatorconfiginformerv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions/kubescheduler/v1alpha1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -28,7 +29,8 @@ type TargetConfigReconciler struct {
 
 	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface
 
-	kubeClient kubernetes.Interface
+	kubeClient    kubernetes.Interface
+	eventRecorder events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -40,11 +42,13 @@ func NewTargetConfigReconciler(
 	namespacedKubeInformers informers.SharedInformerFactory,
 	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface,
 	kubeClient kubernetes.Interface,
+	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
 		targetImagePullSpec:  targetImagePullSpec,
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
+		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
 	}
@@ -80,7 +84,7 @@ func (c TargetConfigReconciler) sync() error {
 		return nil
 	}
 
-	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, operatorConfig)
+	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorConfig)
 	if requeue && err == nil {
 		return fmt.Errorf("synthetic requeue request")
 	}

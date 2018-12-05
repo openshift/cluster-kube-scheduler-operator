@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -29,6 +30,8 @@ import (
 
 const installerControllerWorkQueueKey = "key"
 
+// InstallerController is a controller that watches the currentRevision and targetRevision fields for each node and spawn
+// installer pods to update the static pods on the master nodes.
 type InstallerController struct {
 	targetNamespace, staticPodName string
 	// configMaps is the list of configmaps that are directly copied.A different actor/controller modifies these.
@@ -42,6 +45,8 @@ type InstallerController struct {
 	operatorConfigClient common.OperatorClient
 
 	kubeClient kubernetes.Interface
+
+	eventRecorder events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -64,6 +69,7 @@ const (
 
 const revisionLabel = "revision"
 
+// NewBackingResourceController creates a new installer controller.
 func NewInstallerController(
 	targetNamespace, staticPodName string,
 	configMaps []string,
@@ -72,6 +78,7 @@ func NewInstallerController(
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient common.OperatorClient,
 	kubeClient kubernetes.Interface,
+	eventRecorder events.Recorder,
 ) *InstallerController {
 	c := &InstallerController{
 		targetNamespace: targetNamespace,
@@ -82,6 +89,7 @@ func NewInstallerController(
 
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
+		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "InstallerController"),
 
@@ -116,34 +124,50 @@ func (c *InstallerController) getStaticPodState(nodeName string) (state staticPo
 	return staticPodStatePending, "", nil, nil
 }
 
-func (c *InstallerController) nodeToStartRevisionWith(nodes []operatorv1.NodeStatus) (int, error) {
+// nodeToStartRevisionWith returns a node index i and guarantees for every node < i that it is
+// - not updating
+// - ready
+// - at the revision claimed in CurrentRevision.
+func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state staticPodState, revision string, errors []string, err error), nodes []operatorv1.NodeStatus) (int, error) {
+	if len(nodes) == 0 {
+		return 0, fmt.Errorf("nodes array cannot be empty")
+	}
+
 	// find upgrading node as this will be the first to start new revision (to minimize number of down nodes)
-	startNode := 0
-	foundUpgradingNode := false
 	for i := range nodes {
 		if nodes[i].TargetRevision != 0 {
-			startNode = i
-			foundUpgradingNode = true
-			break
+			return i, nil
 		}
 	}
 
-	// otherwise try to find a node that is not ready regarding its currently reported revision
-	if !foundUpgradingNode {
-		for i := range nodes {
-			currNodeState := &nodes[i]
-			state, revision, _, err := c.getStaticPodState(currNodeState.NodeName)
-			if err != nil {
-				return 0, err
-			}
-			if state != staticPodStateReady || revision != strconv.Itoa(int(currNodeState.CurrentRevision)) {
-				startNode = i
-				break
-			}
+	// otherwise try to find a node that is not ready
+	for i := range nodes {
+		currNodeState := &nodes[i]
+		state, _, _, err := getStaticPodState(currNodeState.NodeName)
+		if err != nil && apierrors.IsNotFound(err) {
+			return i, nil
+		}
+		if err != nil {
+			return 0, err
+		}
+		if state != staticPodStateReady {
+			return i, nil
 		}
 	}
 
-	return startNode, nil
+	// last but not least, find a node that is has the wrong revision
+	for i := range nodes {
+		currNodeState := &nodes[i]
+		_, revision, _, err := getStaticPodState(currNodeState.NodeName)
+		if err != nil {
+			return 0, err
+		}
+		if revision != strconv.Itoa(int(currNodeState.CurrentRevision)) {
+			return i, nil
+		}
+	}
+
+	return 0, nil
 }
 
 // manageInstallationPods takes care of creating content for the static pods to install.
@@ -156,7 +180,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 	}
 
 	// start with node which is in worst state (instead of terminating healthy pods first)
-	startNode, err := c.nodeToStartRevisionWith(operatorStatus.NodeStatuses)
+	startNode, err := nodeToStartRevisionWith(c.getStaticPodState, operatorStatus.NodeStatuses)
 	if err != nil {
 		return true, err
 	}
@@ -175,6 +199,8 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		// if we are in a transition, check to see if our installer pod completed
 		if currNodeState.TargetRevision > currNodeState.CurrentRevision {
 			if err := c.ensureInstallerPod(currNodeState.NodeName, operatorSpec, currNodeState.TargetRevision); err != nil {
+				c.eventRecorder.Warningf("InstallerPodFailed", "Failed to create installer pod for revision %d on node %q: %v",
+					currNodeState.TargetRevision, currNodeState.NodeName, err)
 				return true, err
 			}
 
@@ -189,10 +215,14 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 			if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 				glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
 				operatorStatus.NodeStatuses[i] = *newCurrNodeState
-				if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-					_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
-					return false, updateError
+				updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
+				if updateError == nil {
+					if currNodeState.CurrentRevision != newCurrNodeState.CurrentRevision {
+						c.eventRecorder.Eventf("NodeCurrentRevisionChanged", "Updated node %q from revision %d to %d", currNodeState.NodeName,
+							currNodeState.CurrentRevision, newCurrNodeState.CurrentRevision)
+					}
 				}
+				return false, updateError
 			} else {
 				glog.V(2).Infof("%q is in transition to %d, but has not made progress", currNodeState.NodeName, currNodeState.TargetRevision)
 			}
@@ -216,10 +246,15 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 			glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
 			operatorStatus.NodeStatuses[i] = *newCurrNodeState
-			if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-				_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
-				return false, updateError
+			updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
+			if updateError == nil {
+				if currNodeState.TargetRevision != newCurrNodeState.TargetRevision && newCurrNodeState.TargetRevision != 0 {
+					c.eventRecorder.Eventf("NodeTargetRevisionChanged", "Updating node %q from revision %d to %d", currNodeState.NodeName,
+						currNodeState.CurrentRevision, newCurrNodeState.TargetRevision)
+				}
 			}
+
+			return false, updateError
 		}
 		break
 	}
@@ -228,14 +263,68 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		Type:   "InstallerControllerFailing",
 		Status: operatorv1.ConditionFalse,
 	})
-	if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-		_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
-		if updateError != nil {
-			return true, updateError
-		}
+	updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
+	if updateError != nil {
+		return true, updateError
 	}
 
 	return false, nil
+}
+
+// updateStatus inspects the old and new status, sets the correct available and progressing conditions, and then issue the update if required.
+func (c *InstallerController) updateStatus(resourceVersion string, oldStatus, newStatus *operatorv1.StaticPodOperatorStatus) error {
+	setConditions(newStatus)
+
+	if !reflect.DeepEqual(oldStatus, newStatus) {
+		_, err := c.operatorConfigClient.UpdateStatus(resourceVersion, newStatus)
+		return err
+	}
+
+	return nil
+}
+
+// setConditions sets the Available and Progressing conditions
+func setConditions(newStatus *operatorv1.StaticPodOperatorStatus) {
+	// Available means that we have at least one pod at the latest level
+	numAvailable := 0
+	numProgressing := 0
+	for _, currNodeStatus := range newStatus.NodeStatuses {
+		if newStatus.LatestAvailableRevision == currNodeStatus.CurrentRevision {
+			numAvailable += 1
+		} else {
+			numProgressing += 1
+		}
+	}
+	if numAvailable > 0 {
+		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
+			Type:    operatorv1.OperatorStatusTypeAvailable,
+			Status:  operatorv1.ConditionTrue,
+			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+		})
+	} else {
+		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
+			Type:    operatorv1.OperatorStatusTypeAvailable,
+			Status:  operatorv1.ConditionFalse,
+			Reason:  "ZeroNodesAtLatestRevision",
+			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+		})
+	}
+
+	// Progressing means that the any node is not at the latest available revision
+	if numProgressing > 0 {
+		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
+			Type:    operatorv1.OperatorStatusTypeProgressing,
+			Status:  operatorv1.ConditionTrue,
+			Message: fmt.Sprintf("%d of %d nodes are not at revision %d", numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+		})
+	} else {
+		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
+			Type:    operatorv1.OperatorStatusTypeProgressing,
+			Status:  operatorv1.ConditionFalse,
+			Reason:  "AllNodesAtLatestRevision",
+			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+		})
+	}
 }
 
 // newNodeStateForInstallInProgress returns the new NodeState or error
