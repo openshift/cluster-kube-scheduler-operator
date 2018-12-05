@@ -213,6 +213,9 @@ spec:
     command: ["hyperkube", "kube-scheduler"]
     args:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
+    resources:
+      requests:
+        memory: 50Mi
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
