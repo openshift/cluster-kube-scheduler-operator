@@ -220,6 +220,9 @@ spec:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
   hostNetwork: true
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: "Exists"
   volumes:
   - hostPath:
       path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION
