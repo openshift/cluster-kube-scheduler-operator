@@ -6,8 +6,10 @@ import (
 
 	operatorconfiginformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
+
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type ConfigObserver struct {
@@ -15,7 +17,7 @@ type ConfigObserver struct {
 }
 
 func NewConfigObserver(
-	operatorClient configobserver.OperatorClient,
+	operatorClient v1helpers.OperatorClient,
 	operatorConfigInformers operatorconfiginformers.SharedInformerFactory,
 	kubeInformersForOpenShiftKubeSchedulerNamespace informers.SharedInformerFactory,
 	eventRecorder events.Recorder,
