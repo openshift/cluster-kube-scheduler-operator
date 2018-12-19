@@ -25,8 +25,6 @@ const (
 type renderOpts struct {
 	manifest genericrenderoptions.ManifestOptions
 	generic  genericrenderoptions.GenericOptions
-
-	disablePhase2 bool
 }
 
 // NewRenderCommand creates a render command.
@@ -56,11 +54,6 @@ func NewRenderCommand() *cobra.Command {
 func (r *renderOpts) AddFlags(fs *pflag.FlagSet) {
 	r.manifest.AddFlags(fs, "scheduler")
 	r.generic.AddFlags(fs, schema.GroupVersionKind{Group: "componentconfig", Version: "v1alpha1", Kind: "KubeSchedulerConfiguration"})
-
-	// TODO: remove when the installer stops using it
-	fs.BoolVar(&r.disablePhase2, "disable-phase-2", r.disablePhase2, "Disable rendering of the phase 2 daemonset and dependencies.")
-	fs.MarkHidden("disable-phase-2")
-	fs.MarkDeprecated("disable-phase-2", "Only used temporarily to synchronize roll out of the phase 2 removal.")
 }
 
 // Validate verifies the inputs.
