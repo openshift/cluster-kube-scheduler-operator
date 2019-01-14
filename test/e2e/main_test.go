@@ -37,7 +37,7 @@ func waitForOperator() error {
 	}
 
 	err = wait.PollImmediate(1*time.Second, 10*time.Minute, func() (bool, error) {
-		d, err := kclient.AppsV1().Deployments("openshift-cluster-kube-scheduler-operator").Get("openshift-cluster-kube-scheduler-operator", metav1.GetOptions{})
+		d, err := kclient.AppsV1().Deployments("openshift-kube-scheduler-operator").Get("openshift-kube-scheduler-operator", metav1.GetOptions{})
 		if err != nil {
 			fmt.Printf("error waiting for operator deployment to exist: %v\n", err)
 			return false, nil
