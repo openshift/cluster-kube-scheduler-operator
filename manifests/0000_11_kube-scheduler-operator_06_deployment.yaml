@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: openshift-cluster-kube-scheduler-operator
-  name: openshift-cluster-kube-scheduler-operator
+  namespace: openshift-kube-scheduler-operator
+  name: openshift-kube-scheduler-operator
   labels:
-    app: openshift-cluster-kube-scheduler-operator
+    app: openshift-kube-scheduler-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: openshift-cluster-kube-scheduler-operator
+      app: openshift-kube-scheduler-operator
   template:
     metadata:
-      name: openshift-cluster-kube-scheduler-operator
+      name: openshift-kube-scheduler-operator
       labels:
-        app: openshift-cluster-kube-scheduler-operator
+        app: openshift-kube-scheduler-operator
     spec:
-      serviceAccountName: openshift-cluster-kube-scheduler-operator
+      serviceAccountName: openshift-kube-scheduler-operator
       containers:
       - name: kube-scheduler-operator-container
         image: docker.io/openshift/origin-cluster-kube-scheduler-operator:v4.0
@@ -44,7 +44,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: openshift-cluster-kube-scheduler-operator-config
+          name: openshift-kube-scheduler-operator-config
       nodeSelector:
         node-role.kubernetes.io/master: ""
       priorityClassName: system-cluster-critical

@@ -7,5 +7,5 @@ roleRef:
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  namespace: openshift-cluster-kube-scheduler-operator
-  name: openshift-cluster-kube-scheduler-operator
+  namespace: openshift-kube-scheduler-operator
+  name: openshift-kube-scheduler-operator
