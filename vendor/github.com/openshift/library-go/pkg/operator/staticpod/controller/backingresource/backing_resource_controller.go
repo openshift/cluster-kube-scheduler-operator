@@ -3,9 +3,9 @@ package backingresource
 import (
 	"fmt"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"time"
+
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"github.com/golang/glog"
 
@@ -23,13 +23,12 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/backingresource/bindata"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
-	controllerWorkQueueKey = "key"
-	manifestDir            = "pkg/operator/staticpod/controller/backingresource"
+	operatorStatusBackingResourceControllerFailing = "BackingResourceControllerFailing"
+	controllerWorkQueueKey                         = "key"
+	manifestDir                                    = "pkg/operator/staticpod/controller/backingresource"
 )
 
 // BackingResourceController is a controller that watches the operator config and updates
@@ -37,7 +36,7 @@ const (
 // (templated with the config) if they differ.
 type BackingResourceController struct {
 	targetNamespace      string
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.OperatorClient
 
 	saListerSynced cache.InformerSynced
 	saLister       corelisterv1.ServiceAccountLister
@@ -55,7 +54,7 @@ type BackingResourceController struct {
 // NewBackingResourceController creates a new backing resource controller.
 func NewBackingResourceController(
 	targetNamespace string,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
@@ -83,20 +82,6 @@ func NewBackingResourceController(
 	return c
 }
 
-// resetFailingConditionForReason reset the failing operator condition status to false for the specified reason.
-func (c BackingResourceController) resetFailingConditionForReason(status *operatorv1.StaticPodOperatorStatus, resourceVersion, reason string) error {
-	failingCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeFailing)
-	if failingCondition == nil || failingCondition.Reason != reason {
-		return nil
-	}
-
-	failingCondition.Status = operatorv1.ConditionFalse
-	v1helpers.SetOperatorCondition(&status.Conditions, *failingCondition)
-
-	_, err := c.operatorConfigClient.UpdateStatus(resourceVersion, status)
-	return err
-}
-
 func (c BackingResourceController) mustTemplateAsset(name string) ([]byte, error) {
 	config := struct {
 		TargetNamespace string
@@ -107,12 +92,11 @@ func (c BackingResourceController) mustTemplateAsset(name string) ([]byte, error
 }
 
 func (c BackingResourceController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.Get()
+	operatorSpec, _, _, err := c.operatorConfigClient.GetOperatorState()
 	if err != nil {
 		return err
 	}
 
-	operatorStatus := originalOperatorStatus.DeepCopy()
 	switch operatorSpec.ManagementState {
 	case operatorv1.Unmanaged:
 		return nil
@@ -121,38 +105,36 @@ func (c BackingResourceController) sync() error {
 		return nil
 	}
 
-	errors := []string{}
 	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, c.mustTemplateAsset,
 		"manifests/installer-sa.yaml",
 		"manifests/installer-cluster-rolebinding.yaml",
 	)
 
+	errs := []error{}
 	for _, currResult := range directResourceResults {
 		if currResult.Error != nil {
-			errors = append(errors, fmt.Sprintf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
+			errs = append(errs, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
+		}
+	}
+	err = v1helpers.NewMultiLineAggregate(errs)
+
+	// update failing condition
+	cond := operatorv1.OperatorCondition{
+		Type:   operatorStatusBackingResourceControllerFailing,
+		Status: operatorv1.ConditionFalse,
+	}
+	if err != nil {
+		cond.Status = operatorv1.ConditionTrue
+		cond.Reason = "Error"
+		cond.Message = err.Error()
+	}
+	if _, _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
+		if err == nil {
+			return updateError
 		}
 	}
 
-	// No errors, means we succeeded. Reset the state of the failing condition (if exists) as a result.
-	// TODO: This will be replaced by something smarter in near future.
-	if len(errors) == 0 {
-		return c.resetFailingConditionForReason(operatorStatus, resourceVersion, "CreateBackingResourcesError")
-	}
-
-	v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
-		Type:    operatorv1.OperatorStatusTypeFailing,
-		Status:  operatorv1.ConditionTrue,
-		Reason:  "CreateBackingResourcesError",
-		Message: strings.Join(errors, ","),
-	})
-
-	if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-		if _, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus); updateError != nil {
-			glog.Error(updateError)
-		}
-	}
-	return fmt.Errorf("synthetic requeue (errs: %q)", strings.Join(errors, ","))
-
+	return err
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.

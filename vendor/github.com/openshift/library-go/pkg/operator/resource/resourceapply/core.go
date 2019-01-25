@@ -1,6 +1,10 @@
 package resourceapply
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,13 +64,36 @@ func ApplyService(client coreclientv1.ServicesGetter, recorder events.Recorder, 
 	}
 
 	if selectorSame && typeSame && !*modified {
-		return nil, false, nil
+		return existing, false, nil
 	}
 
 	existing.Spec.Selector = required.Spec.Selector
 	existing.Spec.Type = required.Spec.Type // if this is different, the update will fail.  Status will indicate it.
 
 	actual, err := client.Services(required.Namespace).Update(existing)
+	reportUpdateEvent(recorder, required, err)
+	return actual, true, err
+}
+
+// ApplyPod merges objectmeta, does not worry about anything else
+func ApplyPod(client coreclientv1.PodsGetter, recorder events.Recorder, required *corev1.Pod) (*corev1.Pod, bool, error) {
+	existing, err := client.Pods(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		actual, err := client.Pods(required.Namespace).Create(required)
+		reportCreateEvent(recorder, required, err)
+		return actual, true, err
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	modified := resourcemerge.BoolPtr(false)
+	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	if !*modified {
+		return existing, false, nil
+	}
+
+	actual, err := client.Pods(required.Namespace).Update(existing)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -108,14 +135,33 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 
 	modified := resourcemerge.BoolPtr(false)
 	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	dataSame := equality.Semantic.DeepEqual(existing.Data, required.Data)
+
+	var modifiedKeys []string
+	for existingKey, existingValue := range existing.Data {
+		if requiredValue, ok := required.Data[existingKey]; !ok || (existingValue != requiredValue) {
+			modifiedKeys = append(modifiedKeys, "data."+existingKey)
+		}
+	}
+	for requiredKey := range required.Data {
+		if _, ok := existing.Data[requiredKey]; !ok {
+			modifiedKeys = append(modifiedKeys, "data."+requiredKey)
+		}
+	}
+
+	dataSame := len(modifiedKeys) == 0
 	if dataSame && !*modified {
 		return existing, false, nil
 	}
 	existing.Data = required.Data
 
 	actual, err := client.ConfigMaps(required.Namespace).Update(existing)
-	reportUpdateEvent(recorder, required, err)
+
+	var details string
+	if !dataSame {
+		sort.Sort(sort.StringSlice(modifiedKeys))
+		details = fmt.Sprintf("cause by changes in %v", strings.Join(modifiedKeys, ","))
+	}
+	reportUpdateEvent(recorder, required, err, details)
 	return actual, true, err
 }
 
@@ -144,7 +190,7 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	return actual, true, err
 }
 
-func SyncConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string) (*corev1.ConfigMap, bool, error) {
+func SyncConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference) (*corev1.ConfigMap, bool, error) {
 	source, err := client.ConfigMaps(sourceNamespace).Get(sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
@@ -163,12 +209,12 @@ func SyncConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Recorde
 		source.Namespace = targetNamespace
 		source.Name = targetName
 		source.ResourceVersion = ""
-		source.OwnerReferences = []metav1.OwnerReference{}
+		source.OwnerReferences = ownerRefs
 		return ApplyConfigMap(client, recorder, source)
 	}
 }
 
-func SyncSecret(client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string) (*corev1.Secret, bool, error) {
+func SyncSecret(client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference) (*corev1.Secret, bool, error) {
 	source, err := client.Secrets(sourceNamespace).Get(sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
@@ -187,7 +233,7 @@ func SyncSecret(client coreclientv1.SecretsGetter, recorder events.Recorder, sou
 		source.Namespace = targetNamespace
 		source.Name = targetName
 		source.ResourceVersion = ""
-		source.OwnerReferences = []metav1.OwnerReference{}
+		source.OwnerReferences = ownerRefs
 		return ApplySecret(client, recorder, source)
 	}
 }

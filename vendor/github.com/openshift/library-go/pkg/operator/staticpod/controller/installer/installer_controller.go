@@ -3,8 +3,9 @@ package installer
 import (
 	"fmt"
 	"os"
-	"reflect"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -23,12 +24,25 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer/bindata"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const installerControllerWorkQueueKey = "key"
+const (
+	operatorStatusInstallerControllerFailing = "InstallerControllerFailing"
+	installerControllerWorkQueueKey          = "key"
+	manifestDir                              = "pkg/operator/staticpod/controller/installer"
+	manifestInstallerPodPath                 = "manifests/installer-pod.yaml"
+
+	hostResourceDirDir = "/etc/kubernetes/static-pod-resources"
+	hostPodManifestDir = "/etc/kubernetes/manifests"
+
+	revisionLabel       = "revision"
+	statusConfigMapName = "revision-status"
+)
 
 // InstallerController is a controller that watches the currentRevision and targetRevision fields for each node and spawn
 // installer pods to update the static pods on the master nodes.
@@ -36,13 +50,13 @@ type InstallerController struct {
 	targetNamespace, staticPodName string
 	// configMaps is the list of configmaps that are directly copied.A different actor/controller modifies these.
 	// the first element should be the configmap that contains the static pod manifest
-	configMaps []string
+	configMaps []revision.RevisionResource
 	// secrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
-	secrets []string
+	secrets []revision.RevisionResource
 	// command is the string to use for the installer pod command
 	command []string
 
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 
 	kubeClient kubernetes.Interface
 
@@ -67,16 +81,14 @@ const (
 	staticPodStateFailed
 )
 
-const revisionLabel = "revision"
-
-// NewBackingResourceController creates a new installer controller.
+// NewInstallerController creates a new installer controller.
 func NewInstallerController(
 	targetNamespace, staticPodName string,
-	configMaps []string,
-	secrets []string,
+	configMaps []revision.RevisionResource,
+	secrets []revision.RevisionResource,
 	command []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *InstallerController {
@@ -172,7 +184,7 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 
 // manageInstallationPods takes care of creating content for the static pods to install.
 // returns whether or not requeue and if an error happened when updating status.  Normally it updates status itself.
-func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.OperatorSpec, originalOperatorStatus *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
+func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.StaticPodOperatorSpec, originalOperatorStatus *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
 	if len(operatorStatus.NodeStatuses) == 0 {
@@ -214,15 +226,17 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 			// it's an extra write/read, but it makes the state debuggable from outside this process
 			if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 				glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-				operatorStatus.NodeStatuses[i] = *newCurrNodeState
-				updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
-				if updateError == nil {
-					if currNodeState.CurrentRevision != newCurrNodeState.CurrentRevision {
-						c.eventRecorder.Eventf("NodeCurrentRevisionChanged", "Updated node %q from revision %d to %d", currNodeState.NodeName,
-							currNodeState.CurrentRevision, newCurrNodeState.CurrentRevision)
-					}
+				newOperatorStatus, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions)
+				if updateError != nil {
+					return false, updateError
+				} else if updated && currNodeState.CurrentRevision != newCurrNodeState.CurrentRevision {
+					c.eventRecorder.Eventf("NodeCurrentRevisionChanged", "Updated node %q from revision %d to %d", currNodeState.NodeName,
+						currNodeState.CurrentRevision, newCurrNodeState.CurrentRevision)
 				}
-				return false, updateError
+				if err := c.updateRevisionStatus(newOperatorStatus); err != nil {
+					glog.Errorf("error updating revision status configmap: %v", err)
+				}
+				return false, nil
 			} else {
 				glog.V(2).Infof("%q is in transition to %d, but has not made progress", currNodeState.NodeName, currNodeState.TargetRevision)
 			}
@@ -245,68 +259,110 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		// it's an extra write/read, but it makes the state debuggable from outside this process
 		if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 			glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-			operatorStatus.NodeStatuses[i] = *newCurrNodeState
-			updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
-			if updateError == nil {
-				if currNodeState.TargetRevision != newCurrNodeState.TargetRevision && newCurrNodeState.TargetRevision != 0 {
-					c.eventRecorder.Eventf("NodeTargetRevisionChanged", "Updating node %q from revision %d to %d", currNodeState.NodeName,
-						currNodeState.CurrentRevision, newCurrNodeState.TargetRevision)
-				}
+			if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
+				return false, updateError
+			} else if updated && currNodeState.TargetRevision != newCurrNodeState.TargetRevision && newCurrNodeState.TargetRevision != 0 {
+				c.eventRecorder.Eventf("NodeTargetRevisionChanged", "Updating node %q from revision %d to %d", currNodeState.NodeName,
+					currNodeState.CurrentRevision, newCurrNodeState.TargetRevision)
 			}
 
-			return false, updateError
+			return false, nil
 		}
 		break
-	}
-
-	v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
-		Type:   "InstallerControllerFailing",
-		Status: operatorv1.ConditionFalse,
-	})
-	updateError := c.updateStatus(resourceVersion, originalOperatorStatus, operatorStatus)
-	if updateError != nil {
-		return true, updateError
 	}
 
 	return false, nil
 }
 
-// updateStatus inspects the old and new status, sets the correct available and progressing conditions, and then issue the update if required.
-func (c *InstallerController) updateStatus(resourceVersion string, oldStatus, newStatus *operatorv1.StaticPodOperatorStatus) error {
-	setConditions(newStatus)
-
-	if !reflect.DeepEqual(oldStatus, newStatus) {
-		_, err := c.operatorConfigClient.UpdateStatus(resourceVersion, newStatus)
-		return err
+func (c *InstallerController) updateRevisionStatus(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+	failedRevisions := make(map[int32]struct{})
+	currentRevisions := make(map[int32]struct{})
+	for _, nodeState := range operatorStatus.NodeStatuses {
+		failedRevisions[nodeState.LastFailedRevision] = struct{}{}
+		currentRevisions[nodeState.CurrentRevision] = struct{}{}
 	}
+	delete(failedRevisions, 0)
 
+	// If all current revisions point to the same revision, then mark it successful
+	if len(currentRevisions) == 1 {
+		err := c.updateConfigMapForRevision(currentRevisions, string(corev1.PodSucceeded))
+		if err != nil {
+			return err
+		}
+	}
+	return c.updateConfigMapForRevision(failedRevisions, string(corev1.PodFailed))
+}
+
+func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[int32]struct{}, status string) error {
+	for currentRevision := range currentRevisions {
+		statusConfigMap, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			glog.Infof("%s configmap not found, skipping update revision status", statusConfigMapNameForRevision(currentRevision))
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		statusConfigMap.Data["status"] = status
+		_, _, err = resourceapply.ApplyConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, statusConfigMap)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// setConditions sets the Available and Progressing conditions
-func setConditions(newStatus *operatorv1.StaticPodOperatorStatus) {
+func setNodeStatusFn(status *operatorv1.NodeStatus) v1helpers.UpdateStaticPodStatusFunc {
+	return func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+		for i := range operatorStatus.NodeStatuses {
+			if operatorStatus.NodeStatuses[i].NodeName == status.NodeName {
+				operatorStatus.NodeStatuses[i] = *status
+				break
+			}
+		}
+		return nil
+	}
+}
+
+// setAvailableProgressingConditions sets the Available and Progressing conditions
+func setAvailableProgressingConditions(newStatus *operatorv1.StaticPodOperatorStatus) error {
 	// Available means that we have at least one pod at the latest level
 	numAvailable := 0
+	numAtLatestRevision := 0
 	numProgressing := 0
+	counts := map[int32]int{}
 	for _, currNodeStatus := range newStatus.NodeStatuses {
+		if currNodeStatus.CurrentRevision != 0 {
+			numAvailable++
+		}
+		existing := counts[currNodeStatus.CurrentRevision]
+		counts[currNodeStatus.CurrentRevision] = existing + 1
+
 		if newStatus.LatestAvailableRevision == currNodeStatus.CurrentRevision {
-			numAvailable += 1
+			numAtLatestRevision += 1
 		} else {
 			numProgressing += 1
 		}
 	}
+
+	revisionStrings := []string{}
+	for revision, count := range counts {
+		revisionStrings = append(revisionStrings, fmt.Sprintf("%d nodes are at revision %d", count, revision))
+	}
+	revisionDescription := strings.Join(revisionStrings, "; ")
+
 	if numAvailable > 0 {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeAvailable,
 			Status:  operatorv1.ConditionTrue,
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Message: fmt.Sprintf("%d nodes are active; %s", numAvailable, revisionDescription),
 		})
 	} else {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeAvailable,
 			Status:  operatorv1.ConditionFalse,
-			Reason:  "ZeroNodesAtLatestRevision",
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Reason:  "ZeroNodesActive",
+			Message: fmt.Sprintf("%d nodes are active; %s", numAvailable, revisionDescription),
 		})
 	}
 
@@ -315,16 +371,18 @@ func setConditions(newStatus *operatorv1.StaticPodOperatorStatus) {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeProgressing,
 			Status:  operatorv1.ConditionTrue,
-			Message: fmt.Sprintf("%d of %d nodes are not at revision %d", numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Message: fmt.Sprintf("%s", revisionDescription),
 		})
 	} else {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeProgressing,
 			Status:  operatorv1.ConditionFalse,
 			Reason:  "AllNodesAtLatestRevision",
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Message: fmt.Sprintf("%s", revisionDescription),
 		})
 	}
+
+	return nil
 }
 
 // newNodeStateForInstallInProgress returns the new NodeState or error
@@ -429,34 +487,44 @@ func getInstallerPodName(revision int32, nodeName string) string {
 }
 
 // ensureInstallerPod creates the installer pod with the secrets required to if it does not exist already
-func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *operatorv1.OperatorSpec, revision int32) error {
-	required := resourceread.ReadPodV1OrDie([]byte(installerPod))
-	required.Name = getInstallerPodName(revision, nodeName)
-	required.Namespace = c.targetNamespace
-	required.Spec.NodeName = nodeName
-	required.Spec.Containers[0].Image = c.installerPodImageFn()
-	required.Spec.Containers[0].Command = c.command
-	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args,
-		fmt.Sprintf("-v=%d", 4),
+func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *operatorv1.StaticPodOperatorSpec, revision int32) error {
+	pod := resourceread.ReadPodV1OrDie(bindata.MustAsset(filepath.Join(manifestDir, manifestInstallerPodPath)))
+
+	pod.Namespace = c.targetNamespace
+	pod.Name = getInstallerPodName(revision, nodeName)
+	pod.Spec.NodeName = nodeName
+	pod.Spec.Containers[0].Image = c.installerPodImageFn()
+	pod.Spec.Containers[0].Command = c.command
+
+	if c.configMaps[0].Optional {
+		return fmt.Errorf("pod configmap %s is required, cannot be optional", c.configMaps[0].Name)
+	}
+	args := []string{
+		"-v=4", // TODO: Make this configurable?
 		fmt.Sprintf("--revision=%d", revision),
-		fmt.Sprintf("--namespace=%s", c.targetNamespace),
-		fmt.Sprintf("--pod=%s", c.configMaps[0]),
-		fmt.Sprintf("--resource-dir=%s", "/etc/kubernetes/static-pod-resources"),
-		fmt.Sprintf("--pod-manifest-dir=%s", "/etc/kubernetes/manifests"),
-	)
-	for _, name := range c.configMaps {
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--configmaps=%s", name))
+		fmt.Sprintf("--namespace=%s", pod.Namespace),
+		fmt.Sprintf("--pod=%s", c.configMaps[0].Name),
+		fmt.Sprintf("--resource-dir=%s", hostResourceDirDir),
+		fmt.Sprintf("--pod-manifest-dir=%s", hostPodManifestDir),
 	}
-	for _, name := range c.secrets {
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--secrets=%s", name))
+	for _, cm := range c.configMaps {
+		if cm.Optional {
+			args = append(args, fmt.Sprintf("--optional-configmaps=%s", cm.Name))
+		} else {
+			args = append(args, fmt.Sprintf("--configmaps=%s", cm.Name))
+		}
 	}
+	for _, s := range c.secrets {
+		if s.Optional {
+			args = append(args, fmt.Sprintf("--optional-secrets=%s", s.Name))
+		} else {
+			args = append(args, fmt.Sprintf("--secrets=%s", s.Name))
+		}
+	}
+	pod.Spec.Containers[0].Args = args
 
-	if _, err := c.kubeClient.CoreV1().Pods(c.targetNamespace).Create(required); err != nil && !apierrors.IsAlreadyExists(err) {
-		glog.Errorf("failed to create pod on node %q for %s: %v", nodeName, resourceread.WritePodV1OrDie(required), err)
-		return err
-	}
-
-	return nil
+	_, _, err := resourceapply.ApplyPod(c.kubeClient.CoreV1(), c.eventRecorder, pod)
+	return err
 }
 
 func getInstallerPodImageFromEnv() string {
@@ -464,7 +532,7 @@ func getInstallerPodImageFromEnv() string {
 }
 
 func (c InstallerController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.Get()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -483,22 +551,23 @@ func (c InstallerController) sync() error {
 	}
 	err = syncErr
 
+	// update failing condition
+	cond := operatorv1.OperatorCondition{
+		Type:   operatorStatusInstallerControllerFailing,
+		Status: operatorv1.ConditionFalse,
+	}
 	if err != nil {
-		v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
-			Type:    operatorv1.OperatorStatusTypeFailing,
-			Status:  operatorv1.ConditionTrue,
-			Reason:  "StatusUpdateError",
-			Message: err.Error(),
-		})
-		if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-			if _, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus); updateError != nil {
-				glog.Error(updateError)
-			}
+		cond.Status = operatorv1.ConditionTrue
+		cond.Reason = "Error"
+		cond.Message = err.Error()
+	}
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), setAvailableProgressingConditions); updateError != nil {
+		if err == nil {
+			return updateError
 		}
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
@@ -552,31 +621,6 @@ func mirrorPodNameForNode(staticPodName, nodeName string) string {
 	return staticPodName + "-" + nodeName
 }
 
-const installerPod = `apiVersion: v1
-kind: Pod
-metadata:
-  namespace: <namespace>
-  name: installer-<revision>-<nodeName>
-  labels:
-    app: installer
-spec:
-  serviceAccountName: installer-sa
-  containers:
-  - name: installer
-    image: ${IMAGE}
-    imagePullPolicy: Always
-    securityContext:
-      privileged: true
-      runAsUser: 0
-    terminationMessagePolicy: FallbackToLogsOnError
-    volumeMounts:
-    - mountPath: /etc/kubernetes/
-      name: kubelet-dir
-  restartPolicy: Never
-  securityContext:
-    runAsUser: 0
-  volumes:
-  - hostPath:
-      path: /etc/kubernetes/
-    name: kubelet-dir
-`
+func statusConfigMapNameForRevision(revision int32) string {
+	return fmt.Sprintf("%s-%d", statusConfigMapName, revision)
+}
