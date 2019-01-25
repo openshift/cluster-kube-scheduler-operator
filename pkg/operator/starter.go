@@ -10,17 +10,19 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
-	operatorconfigclient "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned"
-	operatorclientinformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
-
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/status"
-	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
+	operatorconfigclient "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned"
+	operatorclientinformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 )
 
 const (
@@ -56,11 +58,10 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		client:    operatorConfigClient.KubeschedulerV1alpha1(),
 	}
 
-	v1alpha1helpers.EnsureOperatorConfigExists(
+	v1helpers.EnsureOperatorConfigExists(
 		dynamicClient,
 		v311_00_assets.MustAsset("v3.11.0/kube-scheduler/operator-config.yaml"),
 		schema.GroupVersionResource{Group: v1alpha1.GroupName, Version: "v1alpha1", Resource: "kubescheduleroperatorconfigs"},
-		v1alpha1helpers.GetImageEnv,
 	)
 
 	configObserver := configobservercontroller.NewConfigObserver(
@@ -87,6 +88,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		deploymentSecrets,
 		staticPodOperatorClient,
 		kubeClient,
+		dynamicClient,
 		kubeInformersNamespace,
 		kubeInformersClusterScoped,
 		ctx.EventRecorder,
@@ -94,6 +96,13 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-kube-scheduler-operator",
+		[]configv1.ObjectReference{
+			{Group: "kubeapiserver.operator.openshift.io", Resource: "kubeapiserveroperatorconfigs", Name: "instance"},
+			{Resource: "namespaces", Name: operatorclient.GlobalUserSpecifiedConfigNamespace},
+			{Resource: "namespaces", Name: operatorclient.GlobalMachineSpecifiedConfigNamespace},
+			{Resource: "namespaces", Name: operatorclient.OperatorNamespace},
+			{Resource: "namespaces", Name: operatorclient.TargetNamespace},
+		},
 		configClient.ConfigV1(),
 		staticPodOperatorClient,
 		ctx.EventRecorder,
