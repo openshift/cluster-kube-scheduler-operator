@@ -2,6 +2,7 @@ package installer
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 func TestNewNodeStateForInstallInProgress(t *testing.T) {
@@ -57,12 +59,12 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	)
 
 	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
-
+	podCommand := []string{"/bin/true", "--foo=test", "--bar"}
 	c := NewInstallerController(
 		"test", "test-pod",
 		[]string{"test-config"},
 		[]string{"test-secret"},
-		[]string{"/bin/true"},
+		podCommand,
 		kubeInformers,
 		fakeStaticPodOperatorClient,
 		kubeClient,
@@ -92,6 +94,29 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	if installerPod == nil {
 		t.Fatalf("expected to create installer pod")
 	}
+
+	t.Run("VerifyPodCommand", func(t *testing.T) {
+		cmd := installerPod.Spec.Containers[0].Command
+		if !reflect.DeepEqual(podCommand, cmd) {
+			t.Errorf("expected pod command %#v to match resulting installer pod command: %#v", podCommand, cmd)
+		}
+	})
+
+	t.Run("VerifyPodArguments", func(t *testing.T) {
+		args := installerPod.Spec.Containers[0].Args
+		if len(args) == 0 {
+			t.Errorf("pod args should not be empty")
+		}
+		foundRevision := false
+		for _, arg := range args {
+			if arg == "--revision=1" {
+				foundRevision = true
+			}
+		}
+		if !foundRevision {
+			t.Errorf("revision installer argument not found")
+		}
+	})
 
 	t.Log("synching again, nothing happens")
 	if err := c.sync(); err != nil {
@@ -189,6 +214,13 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		}
 	} else {
 		t.Errorf("expected errors to be not empty")
+	}
+
+	if v1helpers.FindOperatorCondition(currStatus.Conditions, operatorv1.OperatorStatusTypeProgressing) == nil {
+		t.Error("missing Progressing")
+	}
+	if v1helpers.FindOperatorCondition(currStatus.Conditions, operatorv1.OperatorStatusTypeAvailable) == nil {
+		t.Error("missing Available")
 	}
 }
 
@@ -434,7 +466,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			createdInstallerPods := []*v1.Pod{}
 			updatedStaticPods := map[string]*v1.Pod{}
@@ -513,7 +545,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
 
 			c := NewInstallerController(
-				"test-"+test.name, "test-pod",
+				fmt.Sprintf("test-%d", i), "test-pod",
 				[]string{"test-config"},
 				[]string{"test-secret"},
 				[]string{"/bin/true"},
@@ -774,4 +806,59 @@ func TestNodeToStartRevisionWith(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetConditions(t *testing.T) {
+
+	type TestCase struct {
+		name                    string
+		latestAvailableRevision int32
+		currentRevisions        []int32
+		expectedAvailableStatus operatorv1.ConditionStatus
+		expectedPendingStatus   operatorv1.ConditionStatus
+	}
+
+	testCase := func(name string, available, pending bool, latest int32, current ...int32) TestCase {
+		availableStatus := operatorv1.ConditionFalse
+		pendingStatus := operatorv1.ConditionFalse
+		if available {
+			availableStatus = operatorv1.ConditionTrue
+		}
+		if pending {
+			pendingStatus = operatorv1.ConditionTrue
+		}
+		return TestCase{name, latest, current, availableStatus, pendingStatus}
+	}
+
+	testCases := []TestCase{
+		testCase("AvailablePending", true, true, 2, 2, 1, 2, 1),
+		testCase("AvailableNotPending", true, false, 2, 2, 2, 2),
+		testCase("NotAvailablePending", false, true, 2, 1, 1),
+		testCase("NotAvailableNotPending", false, false, 2),
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			status := &operatorv1.StaticPodOperatorStatus{
+				LatestAvailableRevision: tc.latestAvailableRevision,
+			}
+			for _, current := range tc.currentRevisions {
+				status.NodeStatuses = append(status.NodeStatuses, operatorv1.NodeStatus{CurrentRevision: current})
+			}
+			setAvailableProgressingConditions(status)
+			availableCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeAvailable)
+			if availableCondition == nil {
+				t.Error("Available condition: not found")
+			} else if availableCondition.Status != tc.expectedAvailableStatus {
+				t.Errorf("Available condition: expected status %v, actual status %v", tc.expectedAvailableStatus, availableCondition.Status)
+			}
+			pendingCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeProgressing)
+			if pendingCondition == nil {
+				t.Error("Pending condition: not found")
+			} else if pendingCondition.Status != tc.expectedPendingStatus {
+				t.Errorf("Pending condition: expected status %v, actual status %v", tc.expectedPendingStatus, pendingCondition.Status)
+			}
+		})
+	}
+
 }

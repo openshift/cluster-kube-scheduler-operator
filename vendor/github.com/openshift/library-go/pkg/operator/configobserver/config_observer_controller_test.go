@@ -7,6 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ghodss/yaml"
+	"github.com/imdario/mergo"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -126,7 +127,7 @@ func TestSyncStatus(t *testing.T) {
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
 				Status:  operatorv1.ConditionTrue,
-				Reason:  configObservationErrorConditionReason,
+				Reason:  "Error",
 				Message: "some failure",
 			},
 		},
@@ -152,7 +153,7 @@ func TestSyncStatus(t *testing.T) {
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
 				Status:  operatorv1.ConditionTrue,
-				Reason:  configObservationErrorConditionReason,
+				Reason:  "Error",
 				Message: "error writing updated observed config: update spec failure",
 			},
 		},
@@ -164,10 +165,10 @@ func TestSyncStatus(t *testing.T) {
 			eventClient := fake.NewSimpleClientset()
 
 			configObserver := ConfigObserver{
-				listers:        &fakeLister{},
-				operatorClient: operatorConfigClient,
-				observers:      tc.observers,
-				eventRecorder:  events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
+				listers:              &fakeLister{},
+				operatorConfigClient: operatorConfigClient,
+				observers:            tc.observers,
+				eventRecorder:        events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
 			}
 			err := configObserver.sync()
 			if tc.expectError && err == nil {
@@ -226,6 +227,16 @@ func TestSyncStatus(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestMergoVersion(t *testing.T) {
+	type test struct{ A string }
+	src := test{"src"}
+	dest := test{"dest"}
+	mergo.Merge(&dest, &src)
+	if dest.A != "src" {
+		t.Errorf("incompatible version of github.com/imdario/mergo found")
 	}
 }
 
