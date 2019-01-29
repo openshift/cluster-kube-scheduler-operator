@@ -20,6 +20,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	operatorconfigclientv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned/typed/kubescheduler/v1alpha1"
 	operatorconfiginformerv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions/kubescheduler/v1alpha1"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -155,7 +156,7 @@ func (c *TargetConfigReconciler) eventHandler() cache.ResourceEventHandler {
 }
 
 // this set of namespaces will include things like logging and metrics which are used to drive
-var interestingNamespaces = sets.NewString(targetNamespaceName)
+var interestingNamespaces = sets.NewString(operatorclient.TargetNamespace)
 
 func (c *TargetConfigReconciler) namespaceEventHandler() cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
@@ -164,7 +165,7 @@ func (c *TargetConfigReconciler) namespaceEventHandler() cache.ResourceEventHand
 			if !ok {
 				c.queue.Add(workQueueKey)
 			}
-			if ns.Name == targetNamespaceName {
+			if ns.Name == operatorclient.TargetNamespace {
 				c.queue.Add(workQueueKey)
 			}
 		},
@@ -173,7 +174,7 @@ func (c *TargetConfigReconciler) namespaceEventHandler() cache.ResourceEventHand
 			if !ok {
 				c.queue.Add(workQueueKey)
 			}
-			if ns.Name == targetNamespaceName {
+			if ns.Name == operatorclient.TargetNamespace {
 				c.queue.Add(workQueueKey)
 			}
 		},
@@ -191,7 +192,7 @@ func (c *TargetConfigReconciler) namespaceEventHandler() cache.ResourceEventHand
 					return
 				}
 			}
-			if ns.Name == targetNamespaceName {
+			if ns.Name == operatorclient.TargetNamespace {
 				c.queue.Add(workQueueKey)
 			}
 		},

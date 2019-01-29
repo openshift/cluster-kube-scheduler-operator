@@ -8,6 +8,8 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type ConfigObserver struct {
@@ -15,9 +17,10 @@ type ConfigObserver struct {
 }
 
 func NewConfigObserver(
-	operatorClient configobserver.OperatorClient,
+	operatorClient v1helpers.OperatorClient,
 	operatorConfigInformers operatorconfiginformers.SharedInformerFactory,
 	kubeInformersForOpenShiftKubeSchedulerNamespace informers.SharedInformerFactory,
+	resourceSyncer resourcesynccontroller.ResourceSyncer,
 	eventRecorder events.Recorder,
 ) *ConfigObserver {
 	c := &ConfigObserver{
@@ -26,6 +29,7 @@ func NewConfigObserver(
 			eventRecorder,
 			configobservation.Listers{
 				ConfigmapLister: kubeInformersForOpenShiftKubeSchedulerNamespace.Core().V1().ConfigMaps().Lister(),
+				ResourceSync:    resourceSyncer,
 				PreRunCachesSynced: []cache.InformerSynced{
 					kubeInformersForOpenShiftKubeSchedulerNamespace.Core().V1().ConfigMaps().Informer().HasSynced,
 				},

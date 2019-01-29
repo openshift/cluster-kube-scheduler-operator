@@ -2,6 +2,7 @@ package installer
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,7 +21,8 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 func TestNewNodeStateForInstallInProgress(t *testing.T) {
@@ -38,11 +40,16 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	})
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
-	fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 		&operatorv1.OperatorSpec{
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -57,12 +64,12 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	)
 
 	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
-
+	podCommand := []string{"/bin/true", "--foo=test", "--bar"}
 	c := NewInstallerController(
 		"test", "test-pod",
-		[]string{"test-config"},
-		[]string{"test-secret"},
-		[]string{"/bin/true"},
+		[]revision.RevisionResource{{Name: "test-config"}},
+		[]revision.RevisionResource{{Name: "test-secret"}},
+		podCommand,
 		kubeInformers,
 		fakeStaticPodOperatorClient,
 		kubeClient,
@@ -79,7 +86,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatalf("not expected to create installer pod yet")
 	}
 
-	_, currStatus, _, _ := fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ := fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if currStatus.NodeStatuses[0].TargetRevision != 1 {
 		t.Fatalf("expected target revision generation 1, got: %d", currStatus.NodeStatuses[0].TargetRevision)
 	}
@@ -92,6 +99,29 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	if installerPod == nil {
 		t.Fatalf("expected to create installer pod")
 	}
+
+	t.Run("VerifyPodCommand", func(t *testing.T) {
+		cmd := installerPod.Spec.Containers[0].Command
+		if !reflect.DeepEqual(podCommand, cmd) {
+			t.Errorf("expected pod command %#v to match resulting installer pod command: %#v", podCommand, cmd)
+		}
+	})
+
+	t.Run("VerifyPodArguments", func(t *testing.T) {
+		args := installerPod.Spec.Containers[0].Args
+		if len(args) == 0 {
+			t.Errorf("pod args should not be empty")
+		}
+		foundRevision := false
+		for _, arg := range args {
+			if arg == "--revision=1" {
+				foundRevision = true
+			}
+		}
+		if !foundRevision {
+			t.Errorf("revision installer argument not found")
+		}
+	})
 
 	t.Log("synching again, nothing happens")
 	if err := c.sync(); err != nil {
@@ -112,7 +142,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 0 {
 		t.Errorf("expected current revision generation for node to be 0, got %d", generation)
 	}
@@ -141,7 +171,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 0 {
 		t.Errorf("expected current revision generation for node to be 0, got %d", generation)
 	}
@@ -153,16 +183,16 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 1 {
 		t.Errorf("expected current revision generation for node to be 1, got %d", generation)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	currStatus.LatestAvailableRevision = 2
 	currStatus.NodeStatuses[0].TargetRevision = 2
 	currStatus.NodeStatuses[0].CurrentRevision = 1
-	fakeStaticPodOperatorClient.UpdateStatus("1", currStatus)
+	fakeStaticPodOperatorClient.UpdateStaticPodOperatorStatus("1", currStatus)
 
 	installerPod.Name = "installer-2-test-node-1"
 	installerPod.Status.Phase = v1.PodFailed
@@ -178,7 +208,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].LastFailedRevision; generation != 2 {
 		t.Errorf("expected last failed revision generation for node to be 2, got %d", generation)
 	}
@@ -189,6 +219,13 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		}
 	} else {
 		t.Errorf("expected errors to be not empty")
+	}
+
+	if v1helpers.FindOperatorCondition(currStatus.Conditions, operatorv1.OperatorStatusTypeProgressing) == nil {
+		t.Error("missing Progressing")
+	}
+	if v1helpers.FindOperatorCondition(currStatus.Conditions, operatorv1.OperatorStatusTypeAvailable) == nil {
+		t.Error("missing Available")
 	}
 }
 
@@ -214,11 +251,16 @@ func TestCreateInstallerPod(t *testing.T) {
 	})
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 
-	fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 		&operatorv1.OperatorSpec{
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -235,8 +277,8 @@ func TestCreateInstallerPod(t *testing.T) {
 
 	c := NewInstallerController(
 		"test", "test-pod",
-		[]string{"test-config"},
-		[]string{"test-secret"},
+		[]revision.RevisionResource{{Name: "test-config"}},
+		[]revision.RevisionResource{{Name: "test-secret"}},
 		[]string{"/bin/true"},
 		kubeInformers,
 		fakeStaticPodOperatorClient,
@@ -295,6 +337,146 @@ func TestCreateInstallerPod(t *testing.T) {
 		if expectedArgs[i] != v {
 			t.Errorf("arg[%d] expected %q, got %q", i, expectedArgs[i], v)
 		}
+	}
+}
+
+func TestEnsureInstallerPod(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectedArgs []string
+		configs      []revision.RevisionResource
+		secrets      []revision.RevisionResource
+		expectedErr  string
+	}{
+		{
+			name: "normal",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--secrets=test-secret",
+			},
+			configs: []revision.RevisionResource{{Name: "test-config"}},
+			secrets: []revision.RevisionResource{{Name: "test-secret"}},
+		},
+		{
+			name: "optional",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--configmaps=test-config-2",
+				"--optional-configmaps=test-config-opt",
+				"--secrets=test-secret",
+				"--secrets=test-secret-2",
+				"--optional-secrets=test-secret-opt",
+			},
+			configs: []revision.RevisionResource{
+				{Name: "test-config"},
+				{Name: "test-config-2"},
+				{Name: "test-config-opt", Optional: true}},
+			secrets: []revision.RevisionResource{
+				{Name: "test-secret"},
+				{Name: "test-secret-2"},
+				{Name: "test-secret-opt", Optional: true}},
+		},
+		{
+			name: "first-cm-not-optional",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--secrets=test-secret",
+			},
+			configs:     []revision.RevisionResource{{Name: "test-config", Optional: true}},
+			secrets:     []revision.RevisionResource{{Name: "test-secret"}},
+			expectedErr: "pod configmap test-config is required, cannot be optional",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
+
+			var installerPod *v1.Pod
+			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				installerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+				return false, nil, nil
+			})
+			kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
+
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			)
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
+			c := NewInstallerController(
+				"test", "test-pod",
+				tt.configs,
+				tt.secrets,
+				[]string{"/bin/true"},
+				kubeInformers,
+				fakeStaticPodOperatorClient,
+				kubeClient,
+				eventRecorder,
+			)
+
+			err := c.ensureInstallerPod("test-node-1", nil, 1)
+			if err != nil {
+				if tt.expectedErr == "" {
+					t.Errorf("InstallerController.ensureInstallerPod() expected no error, got = %v", err)
+					return
+				}
+				if tt.expectedErr != err.Error() {
+					t.Errorf("InstallerController.ensureInstallerPod() got error = %v, wanted %s", err, tt.expectedErr)
+					return
+				}
+				return
+			}
+			if tt.expectedErr != "" {
+				t.Errorf("InstallerController.ensureInstallerPod() passed but expected error %s", tt.expectedErr)
+			}
+
+			if len(tt.expectedArgs) != len(installerPod.Spec.Containers[0].Args) {
+				t.Fatalf("expected arguments does not match container arguments: %#v != %#v", tt.expectedArgs, installerPod.Spec.Containers[0].Args)
+			}
+
+			for i, v := range installerPod.Spec.Containers[0].Args {
+				if tt.expectedArgs[i] != v {
+					t.Errorf("arg[%d] expected %q, got %q", i, tt.expectedArgs[i], v)
+				}
+			}
+		})
 	}
 }
 
@@ -434,7 +616,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			createdInstallerPods := []*v1.Pod{}
 			updatedStaticPods := map[string]*v1.Pod{}
@@ -498,11 +680,16 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				statusUpdateCount++
 				return err
 			}
-			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: test.latestAvailableRevision,
 					NodeStatuses:            test.nodeStatuses,
@@ -513,9 +700,9 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
 
 			c := NewInstallerController(
-				"test-"+test.name, "test-pod",
-				[]string{"test-config"},
-				[]string{"test-secret"},
+				fmt.Sprintf("test-%d", i), "test-pod",
+				[]revision.RevisionResource{{Name: "test-config"}},
+				[]revision.RevisionResource{{Name: "test-secret"}},
 				[]string{"/bin/true"},
 				kubeInformers,
 				fakeStaticPodOperatorClient,
@@ -560,17 +747,17 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 	type fields struct {
 		targetNamespace      string
 		staticPodName        string
-		configMaps           []string
-		secrets              []string
+		configMaps           []revision.RevisionResource
+		secrets              []revision.RevisionResource
 		command              []string
-		operatorConfigClient common.OperatorClient
+		operatorConfigClient v1helpers.StaticPodOperatorClient
 		kubeClient           kubernetes.Interface
 		eventRecorder        events.Recorder
 		queue                workqueue.RateLimitingInterface
 		installerPodImageFn  func() string
 	}
 	type args struct {
-		operatorSpec           *operatorv1.OperatorSpec
+		operatorSpec           *operatorv1.StaticPodOperatorSpec
 		originalOperatorStatus *operatorv1.StaticPodOperatorStatus
 		resourceVersion        string
 	}
@@ -774,4 +961,60 @@ func TestNodeToStartRevisionWith(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetConditions(t *testing.T) {
+
+	type TestCase struct {
+		name                      string
+		latestAvailableRevision   int32
+		currentRevisions          []int32
+		expectedAvailableStatus   operatorv1.ConditionStatus
+		expectedProgressingStatus operatorv1.ConditionStatus
+	}
+
+	testCase := func(name string, available, progressing bool, latest int32, current ...int32) TestCase {
+		availableStatus := operatorv1.ConditionFalse
+		pendingStatus := operatorv1.ConditionFalse
+		if available {
+			availableStatus = operatorv1.ConditionTrue
+		}
+		if progressing {
+			pendingStatus = operatorv1.ConditionTrue
+		}
+		return TestCase{name, latest, current, availableStatus, pendingStatus}
+	}
+
+	testCases := []TestCase{
+		testCase("AvailableProgressing", true, true, 2, 2, 1, 2, 1),
+		testCase("AvailableNotProgressing", true, false, 2, 2, 2, 2),
+		testCase("NotAvailableProgressing", false, true, 2, 0, 0),
+		testCase("NotAvailableAtOldLevelProgressing", true, true, 2, 1, 1),
+		testCase("NotAvailableNotProgressing", false, false, 2),
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			status := &operatorv1.StaticPodOperatorStatus{
+				LatestAvailableRevision: tc.latestAvailableRevision,
+			}
+			for _, current := range tc.currentRevisions {
+				status.NodeStatuses = append(status.NodeStatuses, operatorv1.NodeStatus{CurrentRevision: current})
+			}
+			setAvailableProgressingConditions(status)
+			availableCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeAvailable)
+			if availableCondition == nil {
+				t.Error("Available condition: not found")
+			} else if availableCondition.Status != tc.expectedAvailableStatus {
+				t.Errorf("Available condition: expected status %v, actual status %v", tc.expectedAvailableStatus, availableCondition.Status)
+			}
+			pendingCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeProgressing)
+			if pendingCondition == nil {
+				t.Error("Progressing condition: not found")
+			} else if pendingCondition.Status != tc.expectedProgressingStatus {
+				t.Errorf("Progressing condition: expected status %v, actual status %v", tc.expectedProgressingStatus, pendingCondition.Status)
+			}
+		})
+	}
+
 }
