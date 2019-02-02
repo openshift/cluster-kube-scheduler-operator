@@ -2,14 +2,16 @@ package operator
 
 import (
 	"fmt"
-	"reflect"
-
-	corev1 "k8s.io/api/core/v1"
-	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
+	"github.com/golang/glog"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	"reflect"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -36,8 +38,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.kubeClient.CoreV1(), recorder, operatorConfig)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -78,9 +79,26 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
-	defaultConfig := v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+	var defaultConfig []byte
+	policyConfigMap, err := lister.ConfigMaps(operatorclient.GlobalUserSpecifiedConfigNamespace).Get("policy-configmap")
+	if err == nil {
+		// Create a new Configmap within targetNamespace to be used.
+		targetPolicyConfigMap := policyConfigMap.DeepCopy()
+		targetPolicyConfigMap.Namespace = operatorclient.TargetNamespace
+		targetPolicyConfigMap.ResourceVersion = ""
+		_, err := client.ConfigMaps(operatorclient.TargetNamespace).Create(targetPolicyConfigMap)
+		if err == nil || apierrors.IsAlreadyExists(err) {
+			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml")
+		} else {
+			// This means policyconfigmap could not be created, so let's default to postbootstrap only.
+			glog.Infof("Policy configmap creation error %v", err.Error())
+			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+		}
+	} else {
+		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+	}
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
 	if err != nil {
 		return nil, false, err

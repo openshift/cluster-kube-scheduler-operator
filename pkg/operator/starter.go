@@ -96,6 +96,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		os.Getenv("IMAGE"),
 		operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs(),
 		kubeInformersNamespace,
+		kubeInformersForNamespaces,
 		operatorConfigClient.KubeschedulerV1alpha1(),
 		kubeClient,
 		ctx.EventRecorder,
@@ -123,7 +124,8 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"openshift-kube-scheduler-operator",
 		[]configv1.ObjectReference{
-			{Group: "kubescheduler.operator.openshift.io", Resource: "kubescheduleroperatorconfigs", Name: "cluster"},
+			{Group: "kubescheduler.operator.openshift.io", Resource: "kubescheduleroperatorconfigs", Name: "instance"},
+			{Resource: "namespaces", Name: operatorclient.GlobalUserSpecifiedConfigNamespace},
 			{Resource: "namespaces", Name: operatorclient.TargetNamespace},
 			{Resource: "namespaces", Name: "openshift-kube-scheduler-operator"},
 		},
@@ -139,10 +141,10 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	kubeInformersForNamespaces.Start(ctx.StopCh)
 
 	go staticPodControllers.Run(ctx.StopCh)
+	go resourceSyncController.Run(1, ctx.StopCh)
 	go targetConfigReconciler.Run(1, ctx.StopCh)
 	go configObserver.Run(1, ctx.StopCh)
 	go clusterOperatorStatus.Run(1, ctx.StopCh)
-	go resourceSyncController.Run(1, ctx.StopCh)
 
 	<-ctx.StopCh
 	return fmt.Errorf("stopped")
@@ -153,6 +155,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 var deploymentConfigMaps = []revision.RevisionResource{
 	{Name: "kube-scheduler-pod"},
 	{Name: "config"},
+	{Name: "policy-configmap", Optional: true},
 }
 
 // deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
