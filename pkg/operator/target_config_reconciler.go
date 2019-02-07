@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
@@ -30,9 +31,9 @@ type TargetConfigReconciler struct {
 
 	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface
 
-	kubeClient    kubernetes.Interface
-	eventRecorder events.Recorder
-
+	kubeClient      kubernetes.Interface
+	eventRecorder   events.Recorder
+	configMapLister corev1listers.ConfigMapLister
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
@@ -41,6 +42,7 @@ func NewTargetConfigReconciler(
 	targetImagePullSpec string,
 	operatorConfigInformer operatorconfiginformerv1alpha1.KubeSchedulerOperatorConfigInformer,
 	namespacedKubeInformers informers.SharedInformerFactory,
+	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
@@ -49,6 +51,7 @@ func NewTargetConfigReconciler(
 		targetImagePullSpec:  targetImagePullSpec,
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
+		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
 		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
@@ -61,6 +64,10 @@ func NewTargetConfigReconciler(
 	namespacedKubeInformers.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().ServiceAccounts().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().Services().Informer().AddEventHandler(c.eventHandler())
+
+	// we react to some config changes
+	kubeInformersForNamespaces.InformersFor(operatorclient.GlobalUserSpecifiedConfigNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
+	kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 
 	// we only watch some namespaces
 	namespacedKubeInformers.Core().V1().Namespaces().Informer().AddEventHandler(c.namespaceEventHandler())
