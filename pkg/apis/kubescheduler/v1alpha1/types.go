@@ -17,6 +17,8 @@ type KubeSchedulerConfig struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KubeSchedulerOperatorConfig provides information to configure an operator to manage kube-scheduler.
+// +kubebuilder:categories=coreoperators
+// +kubebuilder:singular=kubescheduleroperatorconfig
 type KubeSchedulerOperatorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`

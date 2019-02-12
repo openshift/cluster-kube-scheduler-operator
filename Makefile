@@ -40,3 +40,23 @@ e2e: test-unit
 clean:
 	$(RM) ./cluster-kube-scheduler-operator
 .PHONY: clean
+
+OUTPUT_CRD=kubescheduler_v1alpha1_kubescheduleroperatorconfig.yaml
+CRD_MANIFEST=0000_11_kube-scheduler-operator_01_config.crd.yaml
+update-crds:
+	go get sigs.k8s.io/controller-tools/cmd/crd
+	crd generate --domain operator.openshift.io --output-dir manifests/
+	sed -i '/creationTimestamp/d' manifests/$(OUTPUT_CRD)
+	mv manifests/$(OUTPUT_CRD) manifests/$(CRD_MANIFEST)
+
+TMP_DIR:=$(shell mktemp -d)
+verify-crds:
+	go get sigs.k8s.io/controller-tools/cmd/crd
+	crd generate --domain operator.openshift.io --output-dir $(TMP_DIR)
+	sed -i '/creationTimestamp/d' $(TMP_DIR)/$(OUTPUT_CRD)
+	if cmp -s $(TMP_DIR)/$(OUTPUT_CRD) manifests/$(CRD_MANIFEST); then \
+		echo "verify-crds: OK"; \
+	else \
+		echo "CRDs not updated. Please run: make update-crds"; \
+		exit 1; \
+	fi
