@@ -18,7 +18,8 @@ func NewResourceSyncController(
 	resourceSyncController := resourcesynccontroller.NewResourceSyncController(
 		operatorConfigClient,
 		kubeInformersForNamespaces,
-		kubeClient,
+		kubeClient.CoreV1(),
+		kubeClient.CoreV1(),
 		eventRecorder,
 	)
 	if err := resourceSyncController.SyncConfigMap(
