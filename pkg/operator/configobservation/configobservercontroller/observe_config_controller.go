@@ -4,7 +4,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
-	operatorconfiginformers "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions"
+	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -18,7 +18,7 @@ type ConfigObserver struct {
 
 func NewConfigObserver(
 	operatorClient v1helpers.OperatorClient,
-	operatorConfigInformers operatorconfiginformers.SharedInformerFactory,
+	operatorConfigInformers operatorv1informers.SharedInformerFactory,
 	kubeInformersForOpenShiftKubeSchedulerNamespace informers.SharedInformerFactory,
 	resourceSyncer resourcesynccontroller.ResourceSyncer,
 	eventRecorder events.Recorder,
@@ -38,7 +38,7 @@ func NewConfigObserver(
 		),
 	}
 
-	operatorConfigInformers.Kubescheduler().V1alpha1().KubeSchedulerOperatorConfigs().Informer().AddEventHandler(c.EventHandler())
+	operatorConfigInformers.Operator().V1().KubeSchedulers().Informer().AddEventHandler(c.EventHandler())
 	kubeInformersForOpenShiftKubeSchedulerNamespace.Core().V1().ConfigMaps().Informer().AddEventHandler(c.EventHandler())
 
 	return c
