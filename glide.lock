@@ -1,5 +1,5 @@
 hash: 20d7c78c8f3375601f242486a8e1bd382bd26428744c97634ec469c49a8b215a
-updated: 2019-02-15T12:43:05.7224+01:00
+updated: 2019-02-15T10:02:00.797920123-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -99,7 +99,7 @@ imports:
   - daemon
   - journal
 - name: github.com/davecgh/go-spew
-  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
 - name: github.com/docker/docker
@@ -120,7 +120,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: 25d852aebe32c875e9c044af3eef9c7dc6bc777f
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -196,7 +196,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: ea5d05408a95a765d44b5a4b31561b530f0b1f4c
+  version: 58462523f67ade6127870c5862444d6ff7d36585
   subpackages:
   - apps
   - apps/v1
@@ -247,6 +247,14 @@ imports:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
+  - operator/clientset/versioned
+  - operator/clientset/versioned/scheme
+  - operator/clientset/versioned/typed/operator/v1
+  - operator/informers/externalversions
+  - operator/informers/externalversions/internalinterfaces
+  - operator/informers/externalversions/operator
+  - operator/informers/externalversions/operator/v1
+  - operator/listers/operator/v1
 - name: github.com/openshift/library-go
   version: b64777b4d45b05436fb4410b57aa69dde89d847f
   subpackages:
@@ -611,7 +619,6 @@ imports:
   version: 701b913670036511e3d752318272c97f1a2a2edd
   subpackages:
   - discovery
-  - discovery/fake
   - dynamic
   - informers
   - informers/admissionregistration
@@ -724,7 +731,6 @@ imports:
   - plugin/pkg/client/auth/exec
   - rest
   - rest/watch
-  - testing
   - tools/auth
   - tools/cache
   - tools/clientcmd
