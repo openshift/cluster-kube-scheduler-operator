@@ -3,7 +3,6 @@ package operator
 import (
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/apis/kubescheduler/v1alpha1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
@@ -23,7 +22,7 @@ import (
 
 // syncKubeScheduler_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (bool, error) {
+func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (bool, error) {
 	operatorConfigOriginal := operatorConfig.DeepCopy()
 	errors := []error{}
 
@@ -59,7 +58,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			Message: message,
 		})
 		if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
-			_, updateError := c.operatorConfigClient.KubeSchedulerOperatorConfigs().UpdateStatus(operatorConfig)
+			_, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig)
 			return true, updateError
 		}
 		return true, nil
@@ -70,7 +69,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 		Status: operatorv1.ConditionFalse,
 	})
 	if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
-		_, updateError := c.operatorConfigClient.KubeSchedulerOperatorConfigs().UpdateStatus(operatorConfig)
+		_, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig)
 		if updateError != nil {
 			return true, updateError
 		}
@@ -79,7 +78,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
 	var defaultConfig []byte
 	policyConfigMap, err := lister.ConfigMaps(operatorclient.GlobalUserSpecifiedConfigNamespace).Get("policy-configmap")
@@ -106,13 +105,24 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *v1alpha1.KubeSchedulerOperatorConfig, imagePullSpec string) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, imagePullSpec string) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod.yaml"))
 	required.Spec.Containers[0].ImagePullPolicy = corev1.PullAlways
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
 	}
-	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 4))
+	switch operatorConfig.Spec.LogLevel {
+	case operatorv1.Normal:
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
+	case operatorv1.Debug:
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 4))
+	case operatorv1.Trace:
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 6))
+	case operatorv1.TraceAll:
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 8))
+	default:
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
+	}
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)

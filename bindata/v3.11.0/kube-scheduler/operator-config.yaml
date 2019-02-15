@@ -1,5 +1,5 @@
-apiVersion: kubescheduler.operator.openshift.io/v1alpha1
-kind: KubeSchedulerOperatorConfig
+apiVersion: operator.openshift.io/v1
+kind: KubeScheduler
 metadata:
   name: instance
 spec:

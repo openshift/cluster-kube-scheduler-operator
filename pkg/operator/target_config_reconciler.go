@@ -19,8 +19,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-	operatorconfigclientv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/clientset/versioned/typed/kubescheduler/v1alpha1"
-	operatorconfiginformerv1alpha1 "github.com/openshift/cluster-kube-scheduler-operator/pkg/generated/informers/externalversions/kubescheduler/v1alpha1"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions/operator/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -29,7 +29,7 @@ import (
 type TargetConfigReconciler struct {
 	targetImagePullSpec string
 
-	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface
+	operatorConfigClient operatorv1client.KubeSchedulersGetter
 
 	kubeClient      kubernetes.Interface
 	eventRecorder   events.Recorder
@@ -40,10 +40,10 @@ type TargetConfigReconciler struct {
 
 func NewTargetConfigReconciler(
 	targetImagePullSpec string,
-	operatorConfigInformer operatorconfiginformerv1alpha1.KubeSchedulerOperatorConfigInformer,
+	operatorConfigInformer operatorv1informers.KubeSchedulerInformer,
 	namespacedKubeInformers informers.SharedInformerFactory,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
-	operatorConfigClient operatorconfigclientv1alpha1.KubeschedulerV1alpha1Interface,
+	operatorConfigClient operatorv1client.KubeSchedulersGetter,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
@@ -76,7 +76,7 @@ func NewTargetConfigReconciler(
 }
 
 func (c TargetConfigReconciler) sync() error {
-	operatorConfig, err := c.operatorConfigClient.KubeSchedulerOperatorConfigs().Get("instance", metav1.GetOptions{})
+	operatorConfig, err := c.operatorConfigClient.KubeSchedulers().Get("instance", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c TargetConfigReconciler) sync() error {
 				Reason:  "StatusUpdateError",
 				Message: err.Error(),
 			})
-			if _, updateError := c.operatorConfigClient.KubeSchedulerOperatorConfigs().UpdateStatus(operatorConfig); updateError != nil {
+			if _, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig); updateError != nil {
 				glog.Error(updateError)
 			}
 		}

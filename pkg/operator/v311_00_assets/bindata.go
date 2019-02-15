@@ -168,8 +168,8 @@ func v3110KubeSchedulerNsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerOperatorConfigYaml = []byte(`apiVersion: kubescheduler.operator.openshift.io/v1alpha1
-kind: KubeSchedulerOperatorConfig
+var _v3110KubeSchedulerOperatorConfigYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: KubeScheduler
 metadata:
   name: instance
 spec:
