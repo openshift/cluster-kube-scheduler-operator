@@ -32,7 +32,7 @@ const (
 )
 
 func RunOperator(ctx *controllercmd.ControllerContext) error {
-	kubeClient, err := kubernetes.NewForConfig(ctx.KubeConfig)
+	kubeClient, err := kubernetes.NewForConfig(ctx.ProtoKubeConfig)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	}
 
 	kubeInformersClusterScoped := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	kubeInformersNamespace := informers.NewFilteredSharedInformerFactory(kubeClient, 10*time.Minute, operatorclient.TargetNamespace, nil)
+	kubeInformersNamespace := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithNamespace(operatorclient.TargetNamespace))
 
 	v1helpers.EnsureOperatorConfigExists(
 		dynamicClient,
@@ -111,8 +111,8 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		deploymentConfigMaps,
 		deploymentSecrets,
 		operatorClient,
-		v1helpers.CachedConfigMapGetter(kubeClient, kubeInformersForNamespaces),
-		v1helpers.CachedSecretGetter(kubeClient, kubeInformersForNamespaces),
+		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
+		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		kubeClient.CoreV1(),
 		kubeClient,
 		dynamicClient,
@@ -135,18 +135,18 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		ctx.EventRecorder,
 	)
 
-	operatorConfigInformers.Start(ctx.StopCh)
-	kubeInformersClusterScoped.Start(ctx.StopCh)
-	kubeInformersNamespace.Start(ctx.StopCh)
-	kubeInformersForNamespaces.Start(ctx.StopCh)
+	operatorConfigInformers.Start(ctx.Done())
+	kubeInformersClusterScoped.Start(ctx.Done())
+	kubeInformersNamespace.Start(ctx.Done())
+	kubeInformersForNamespaces.Start(ctx.Done())
 
-	go staticPodControllers.Run(ctx.StopCh)
-	go resourceSyncController.Run(1, ctx.StopCh)
-	go targetConfigReconciler.Run(1, ctx.StopCh)
-	go configObserver.Run(1, ctx.StopCh)
-	go clusterOperatorStatus.Run(1, ctx.StopCh)
+	go staticPodControllers.Run(ctx.Done())
+	go resourceSyncController.Run(1, ctx.Done())
+	go targetConfigReconciler.Run(1, ctx.Done())
+	go configObserver.Run(1, ctx.Done())
+	go clusterOperatorStatus.Run(1, ctx.Done())
 
-	<-ctx.StopCh
+	<-ctx.Done()
 	return fmt.Errorf("stopped")
 }
 
