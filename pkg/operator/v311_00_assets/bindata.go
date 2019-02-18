@@ -4,6 +4,8 @@
 // bindata/v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig.yaml
+// bindata/v3.11.0/kube-scheduler/kubeconfig-cm.yaml
+// bindata/v3.11.0/kube-scheduler/leader-election-rolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/ns.yaml
 // bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/pod-cm.yaml
@@ -82,7 +84,7 @@ func v3110KubeSchedulerCmYaml() (*asset, error) {
 var _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml = []byte(`apiVersion: componentconfig/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
-  kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
+  kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 algorithmSource:
   policy:
     configMap:
@@ -108,7 +110,7 @@ func v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml() (*asset, error
 var _v3110KubeSchedulerDefaultconfigPostbootstrapYaml = []byte(`apiVersion: componentconfig/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
-  kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
+  kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 `)
 
 func v3110KubeSchedulerDefaultconfigPostbootstrapYamlBytes() ([]byte, error) {
@@ -141,6 +143,77 @@ func v3110KubeSchedulerDefaultconfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/defaultconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3110KubeSchedulerKubeconfigCmYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-kubeconfig
+  namespace: openshift-kube-scheduler
+data:
+  kubeconfig: |
+    apiVersion: v1
+    clusters:
+      - cluster:
+          certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
+          server: https://localhost:6443
+        name: loopback
+    contexts:
+      - context:
+          cluster: loopback
+          user: kube-scheduler
+        name: kube-scheduler
+    current-context: kube-scheduler
+    kind: Config
+    preferences: {}
+    users:
+      - name: kube-scheduler
+        user:
+          client-certificate: /etc/kubernetes/static-pod-resources/secrets/kube-scheduler-client-cert-key/tls.crt
+          client-key: /etc/kubernetes/static-pod-resources/secrets/kube-scheduler-client-cert-key/tls.key
+`)
+
+func v3110KubeSchedulerKubeconfigCmYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerKubeconfigCmYaml, nil
+}
+
+func v3110KubeSchedulerKubeconfigCmYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerKubeconfigCmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/kubeconfig-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3110KubeSchedulerLeaderElectionRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: kube-system
+  name: system:openshift:leader-locking-kube-scheduler
+roleRef:
+  kind: Role
+  name: system::leader-locking-kube-scheduler
+subjects:
+  - kind: User
+    name: system:kube-scheduler
+`)
+
+func v3110KubeSchedulerLeaderElectionRolebindingYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerLeaderElectionRolebindingYaml, nil
+}
+
+func v3110KubeSchedulerLeaderElectionRolebindingYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerLeaderElectionRolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/leader-election-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -411,6 +484,8 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml": v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml,
 	"v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml":             v3110KubeSchedulerDefaultconfigPostbootstrapYaml,
 	"v3.11.0/kube-scheduler/defaultconfig.yaml":                           v3110KubeSchedulerDefaultconfigYaml,
+	"v3.11.0/kube-scheduler/kubeconfig-cm.yaml":                           v3110KubeSchedulerKubeconfigCmYaml,
+	"v3.11.0/kube-scheduler/leader-election-rolebinding.yaml":             v3110KubeSchedulerLeaderElectionRolebindingYaml,
 	"v3.11.0/kube-scheduler/ns.yaml":                                      v3110KubeSchedulerNsYaml,
 	"v3.11.0/kube-scheduler/operator-config.yaml":                         v3110KubeSchedulerOperatorConfigYaml,
 	"v3.11.0/kube-scheduler/pod-cm.yaml":                                  v3110KubeSchedulerPodCmYaml,
@@ -467,6 +542,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"defaultconfig-postbootstrap-with-policy.yaml": {v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml, map[string]*bintree{}},
 			"defaultconfig-postbootstrap.yaml":             {v3110KubeSchedulerDefaultconfigPostbootstrapYaml, map[string]*bintree{}},
 			"defaultconfig.yaml":                           {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
+			"kubeconfig-cm.yaml":                           {v3110KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
+			"leader-election-rolebinding.yaml":             {v3110KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
 			"ns.yaml":                                      {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
 			"operator-config.yaml":                         {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
 			"pod-cm.yaml":                                  {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
