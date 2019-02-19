@@ -79,7 +79,7 @@ func v3110KubeSchedulerCmYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml = []byte(`apiVersion: componentconfig/v1alpha1
+var _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
@@ -105,7 +105,7 @@ func v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml() (*asset, error
 	return a, nil
 }
 
-var _v3110KubeSchedulerDefaultconfigPostbootstrapYaml = []byte(`apiVersion: componentconfig/v1alpha1
+var _v3110KubeSchedulerDefaultconfigPostbootstrapYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/secrets/scheduler-kubeconfig/kubeconfig
@@ -126,7 +126,7 @@ func v3110KubeSchedulerDefaultconfigPostbootstrapYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: componentconfig/v1alpha1
+var _v3110KubeSchedulerDefaultconfigYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
 `)
 
