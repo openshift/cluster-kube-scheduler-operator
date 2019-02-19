@@ -34,7 +34,6 @@ func NewConfigObserver(
 					kubeInformersForOpenShiftKubeSchedulerNamespace.Core().V1().ConfigMaps().Informer().HasSynced,
 				},
 			},
-			nil,
 		),
 	}
 
