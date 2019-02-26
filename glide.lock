@@ -1,5 +1,5 @@
 hash: 20d7c78c8f3375601f242486a8e1bd382bd26428744c97634ec469c49a8b215a
-updated: 2019-02-15T10:02:00.797920123-05:00
+updated: 2019-02-26T17:36:22.774030589-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -99,7 +99,7 @@ imports:
   - daemon
   - journal
 - name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
 - name: github.com/docker/docker
@@ -120,7 +120,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
-  version: 25d852aebe32c875e9c044af3eef9c7dc6bc777f
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -196,7 +196,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 58462523f67ade6127870c5862444d6ff7d36585
+  version: c58918e29f89383d2e1467bad7156e2b0c49497f
   subpackages:
   - apps
   - apps/v1
@@ -256,7 +256,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: b64777b4d45b05436fb4410b57aa69dde89d847f
+  version: c7611e224f477630e3b53827298d19c91e9f56e5
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -291,6 +291,7 @@ imports:
   - pkg/operator/staticpod/installerpod
   - pkg/operator/staticpod/prune
   - pkg/operator/status
+  - pkg/operator/unsupportedconfigoverridescontroller
   - pkg/operator/v1helpers
   - pkg/serviceability
 - name: github.com/pborman/uuid
@@ -384,7 +385,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: 99bc4335fe23898c0a61f5b35afabb6d11f29094
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/base
