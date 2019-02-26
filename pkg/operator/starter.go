@@ -153,11 +153,14 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 // the first element should be the configmap that contains the static pod manifest
 var deploymentConfigMaps = []revision.RevisionResource{
 	{Name: "kube-scheduler-pod"},
+
 	{Name: "config"},
+	{Name: "scheduler-kubeconfig"},
+	{Name: "serviceaccount-ca"},
 	{Name: "policy-configmap", Optional: true},
 }
 
 // deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
 var deploymentSecrets = []revision.RevisionResource{
-	{Name: "scheduler-kubeconfig"},
+	{Name: "kube-scheduler-client-cert-key"},
 }

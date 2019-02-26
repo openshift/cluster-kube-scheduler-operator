@@ -27,5 +27,11 @@ func NewResourceSyncController(
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.GlobalUserSpecifiedConfigNamespace, Name: "policy-configmap"}); err != nil {
 		return nil, err
 	}
+	if err := resourceSyncController.SyncSecret(
+		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "kube-scheduler-client-cert-key"},
+		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.GlobalMachineSpecifiedConfigNamespace, Name: "kube-scheduler-client-cert-key"},
+	); err != nil {
+		return nil, err
+	}
 	return resourceSyncController, nil
 }
