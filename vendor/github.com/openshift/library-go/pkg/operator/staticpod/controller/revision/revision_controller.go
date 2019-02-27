@@ -227,17 +227,20 @@ func (c RevisionController) createNewRevision(revision int32) error {
 }
 
 func (c RevisionController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorStateWithQuorum()
 	if err != nil {
 		return err
 	}
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
 	switch operatorSpec.ManagementState {
+	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
 	case operatorv1.Removed:
-		// TODO probably just fail.  Static pod managers can't be removed.
+		// TODO probably just fail
+		return nil
+	default:
 		return nil
 	}
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -101,24 +103,28 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		ctx.EventRecorder,
 	)
 
-	staticPodControllers := staticpod.NewControllers(
-		operatorclient.TargetNamespace,
-		"openshift-kube-scheduler",
-		"kube-scheduler-pod",
-		[]string{"cluster-kube-scheduler-operator", "installer"},
-		[]string{"cluster-kube-scheduler-operator", "prune"},
-		deploymentConfigMaps,
-		deploymentSecrets,
-		operatorClient,
-		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
-		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
-		kubeClient.CoreV1(),
-		kubeClient,
-		dynamicClient,
-		kubeInformersNamespace,
-		kubeInformersClusterScoped,
-		ctx.EventRecorder,
-	)
+	// don't change any versions until we sync
+	versionRecorder := status.NewVersionGetter()
+	clusterOperator, err := configClient.ConfigV1().ClusterOperators().Get("kube-scheduler-operator", metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	for _, version := range clusterOperator.Status.Versions {
+		versionRecorder.SetVersion(version.Name, version.Version)
+	}
+	versionRecorder.SetVersion("operator", os.Getenv("OPERATOR_IMAGE_VERSION"))
+
+	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces).
+		WithEvents(ctx.EventRecorder).
+		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
+		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
+		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
+		WithServiceMonitor(dynamicClient).
+		WithVersioning(operatorclient.OperatorNamespace, "kube-scheduler", versionRecorder).
+		ToControllers()
+	if err != nil {
+		return err
+	}
 
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"kube-scheduler",
@@ -130,7 +136,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		},
 		configClient.ConfigV1(),
 		operatorClient,
-		status.NewVersionGetter(),
+		versionRecorder,
 		ctx.EventRecorder,
 	)
 

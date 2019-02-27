@@ -31,17 +31,25 @@ spec:
         volumeMounts:
         - mountPath: /var/run/configmaps/config
           name: config
+        - mountPath: /var/run/secrets/serving-cert
+          name: serving-cert
         env:
         - name: IMAGE
           value: quay.io/openshift/origin-hyperkube:v4.0
         - name: OPERATOR_IMAGE
           value: docker.io/openshift/origin-cluster-kube-scheduler-operator:v4.0
+        - name: OPERATOR_IMAGE_VERSION
+          value: "0.0.0_version_cluster-kube-scheduler-operator"
         - name: POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name          
         terminationMessagePolicy: FallbackToLogsOnError
       volumes:
+      - name: serving-cert
+        secret:
+          secretName: kube-scheduler-operator-serving-cert
+          optional: true
       - name: config
         configMap:
           name: openshift-kube-scheduler-operator-config

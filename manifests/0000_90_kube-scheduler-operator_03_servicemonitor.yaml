@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-scheduler-operator
+  namespace: openshift-kube-scheduler-operator
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    metricRelabelings:
+    - action: drop
+      regex: etcd_(debugging|disk|request|server).*
+      sourceLabels:
+      - __name__
+    port: https
+    scheme: https
+    tlsConfig:
+      # TODO where do you mount the service-ca.crt?
+      insecureSkipVerify: true
+      serverName: metrics.openshift-kube-scheduler-operator.svc
+  jobLabel: component
+  namespaceSelector:
+    matchNames:
+    - openshift-kube-scheduler-operator
+  selector:
+    matchLabels:
+      app: kube-scheduler-operator
