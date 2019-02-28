@@ -308,7 +308,7 @@ spec:
   containers:
   - name: scheduler
     image: ${IMAGE}
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["hyperkube", "kube-scheduler"]
     args:
