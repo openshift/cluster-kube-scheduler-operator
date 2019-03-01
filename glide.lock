@@ -1,5 +1,5 @@
 hash: 20d7c78c8f3375601f242486a8e1bd382bd26428744c97634ec469c49a8b215a
-updated: 2019-02-26T17:36:22.774030589-05:00
+updated: 2019-03-01T14:17:17.659633245-06:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -196,7 +196,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: c58918e29f89383d2e1467bad7156e2b0c49497f
+  version: b75f8002d9873eb84986b824850058977e116e5b
   subpackages:
   - apps
   - apps/v1
@@ -242,7 +242,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 31ef839c86359881d2c312c4f0131febc6662400
+  version: 2d89985ca24a8307e4b5db2574a62d3e6c2444b4
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
@@ -256,7 +256,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: c7611e224f477630e3b53827298d19c91e9f56e5
+  version: 67ba562464684b95438c9dc80acedf74c701ced6
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -275,6 +275,7 @@ imports:
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
   - pkg/operator/resource/resourceread
+  - pkg/operator/resource/retry
   - pkg/operator/resourcesynccontroller
   - pkg/operator/staticpod
   - pkg/operator/staticpod/controller/backingresource
@@ -385,7 +386,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: e9657d882bb81064595ca3b56cbe2546bbabf7b1
   subpackages:
   - internal
   - internal/base
