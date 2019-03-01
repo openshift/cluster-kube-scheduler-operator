@@ -244,7 +244,7 @@ func v3110KubeSchedulerNsYaml() (*asset, error) {
 var _v3110KubeSchedulerOperatorConfigYaml = []byte(`apiVersion: operator.openshift.io/v1
 kind: KubeScheduler
 metadata:
-  name: instance
+  name: cluster
 spec:
   managementState: Managed
   imagePullSpec: openshift/origin-hyperkube:latest

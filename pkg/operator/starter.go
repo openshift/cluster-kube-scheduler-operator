@@ -129,7 +129,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	clusterOperatorStatus := status.NewClusterOperatorStatusController(
 		"kube-scheduler",
 		[]configv1.ObjectReference{
-			{Group: "operator.openshift.io", Resource: "kubeschedulers", Name: "instance"},
+			{Group: "operator.openshift.io", Resource: "kubeschedulers", Name: "cluster"},
 			{Resource: "namespaces", Name: operatorclient.GlobalUserSpecifiedConfigNamespace},
 			{Resource: "namespaces", Name: operatorclient.TargetNamespace},
 			{Resource: "namespaces", Name: "openshift-kube-scheduler-operator"},
