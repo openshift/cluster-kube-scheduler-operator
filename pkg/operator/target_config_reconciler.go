@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions/operator/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
@@ -31,9 +33,10 @@ type TargetConfigReconciler struct {
 
 	operatorConfigClient operatorv1client.KubeSchedulersGetter
 
-	kubeClient      kubernetes.Interface
-	eventRecorder   events.Recorder
-	configMapLister corev1listers.ConfigMapLister
+	kubeClient       kubernetes.Interface
+	eventRecorder    events.Recorder
+	configMapLister  corev1listers.ConfigMapLister
+	SchedulingLister configlistersv1.SchedulerLister
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
@@ -43,6 +46,7 @@ func NewTargetConfigReconciler(
 	operatorConfigInformer operatorv1informers.KubeSchedulerInformer,
 	namespacedKubeInformers informers.SharedInformerFactory,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
+	configInformer configinformers.SharedInformerFactory,
 	operatorConfigClient operatorv1client.KubeSchedulersGetter,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
@@ -53,8 +57,8 @@ func NewTargetConfigReconciler(
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
 		eventRecorder:        eventRecorder,
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
+		SchedulingLister:     configInformer.Config().V1().Schedulers().Lister(),
+		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
 	}
 
 	operatorConfigInformer.Informer().AddEventHandler(c.eventHandler())
@@ -72,6 +76,8 @@ func NewTargetConfigReconciler(
 	// we only watch some namespaces
 	namespacedKubeInformers.Core().V1().Namespaces().Informer().AddEventHandler(c.namespaceEventHandler())
 
+	// TODO: @ravig Remove this and move this to config observer code.
+	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
 	return c
 }
 
@@ -91,7 +97,6 @@ func (c TargetConfigReconciler) sync() error {
 		// TODO probably just fail
 		return nil
 	}
-
 	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorConfig)
 	if requeue && err == nil {
 		return fmt.Errorf("synthetic requeue request")
