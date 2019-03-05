@@ -13,6 +13,7 @@ import (
 	"reflect"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
@@ -20,6 +21,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
+
+const TargetPolicyConfigMapName = "policy-configmap"
 
 // syncKubeScheduler_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
@@ -40,7 +43,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig, c.SchedulingLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -85,24 +88,35 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, schedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
 	var defaultConfig []byte
-	policyConfigMap, err := lister.ConfigMaps(operatorclient.GlobalUserSpecifiedConfigNamespace).Get("policy-configmap")
-	if err == nil {
-		// Create a new Configmap within targetNamespace to be used.
-		targetPolicyConfigMap := policyConfigMap.DeepCopy()
-		targetPolicyConfigMap.Namespace = operatorclient.TargetNamespace
-		targetPolicyConfigMap.ResourceVersion = ""
-		_, err := client.ConfigMaps(operatorclient.TargetNamespace).Create(targetPolicyConfigMap)
-		if err == nil || apierrors.IsAlreadyExists(err) {
-			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml")
+	observedpolicyConfigMap, err := schedulerLister.Get("cluster")
+	var policyConfigMapName string
+	if err == nil && observedpolicyConfigMap != nil && len(observedpolicyConfigMap.Spec.Policy.Name) > 0 {
+		policyConfigMapName = observedpolicyConfigMap.Spec.Policy.Name
+		policyConfigMap, err := lister.ConfigMaps(operatorclient.GlobalUserSpecifiedConfigNamespace).Get(policyConfigMapName)
+		if err == nil {
+			// Create a new Configmap within targetNamespace to be used.
+			targetPolicyConfigMap := policyConfigMap.DeepCopy()
+			targetPolicyConfigMap.Namespace = operatorclient.TargetNamespace
+			// TODO: Switch to using config observer instead of doing it here.
+			targetPolicyConfigMap.Name = TargetPolicyConfigMapName
+			targetPolicyConfigMap.ResourceVersion = ""
+			_, err := client.ConfigMaps(operatorclient.TargetNamespace).Create(targetPolicyConfigMap)
+			if err == nil || apierrors.IsAlreadyExists(err) {
+				defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml")
+			} else {
+				// This means policyconfigmap could not be created, so let's default to postbootstrap only.
+				glog.Infof("Policy configmap creation error %v and using default algorithm provider in kubernetes scheduler", err.Error())
+				defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+			}
 		} else {
-			// This means policyconfigmap could not be created, so let's default to postbootstrap only.
-			glog.Infof("Policy configmap creation error %v", err.Error())
+			glog.Infof("Error while listing scheduler configmap from openshift-config namespace %v and using default algorithm provider in kubernetes scheduler", err.Error())
 			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 		}
 	} else {
+		glog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", err.Error())
 		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	}
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
