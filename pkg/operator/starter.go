@@ -137,6 +137,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 			{Resource: "namespaces", Name: "openshift-kube-scheduler-operator"},
 		},
 		configClient.ConfigV1(),
+		configInformers.Config().V1().ClusterOperators(),
 		operatorClient,
 		versionRecorder,
 		ctx.EventRecorder,
