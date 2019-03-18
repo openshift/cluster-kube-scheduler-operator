@@ -11,6 +11,7 @@ type MyOperatorResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +required
 	Spec   MyOperatorResourceSpec   `json:"spec"`
 	Status MyOperatorResourceStatus `json:"status"`
 }
@@ -33,8 +34,11 @@ var (
 	// It will only upgrade the component if it is safe to do so
 	Managed ManagementState = "Managed"
 	// Unmanaged means that the operator will not take any action related to the component
+	// Some operators might not support this management state as it might damage the cluster and lead to manual recovery.
 	Unmanaged ManagementState = "Unmanaged"
 	// Removed means that the operator is actively managing its resources and trying to remove all traces of the component
+	// Some operators (like kube-apiserver-operator) might not support this management state as removing the API server will
+	// brick the cluster.
 	Removed ManagementState = "Removed"
 )
 
@@ -42,7 +46,7 @@ var (
 // inside of the Spec struct for your particular operator.
 type OperatorSpec struct {
 	// managementState indicates whether and how the operator should manage the component
-	// +optional
+	// +kubebuilder:validation:Pattern=^Managed|Unmanaged|Force|Removed$
 	ManagementState ManagementState `json:"managementState"`
 
 	// logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a
@@ -125,16 +129,19 @@ type OperatorStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions is a list of conditions and their status
+	// +optional
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
 
 	// version is the level this availability applies to
-	Version string `json:"version"`
+	// +optional
+	Version string `json:"version,omitempty"`
 
 	// readyReplicas indicates how many replicas are ready and at the desired state
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.
-	Generations []GenerationStatus `json:"generations"`
+	// +optional
+	Generations []GenerationStatus `json:"generations,omitempty"`
 }
 
 // GenerationStatus keeps track of the generation for a given resource so that decisions about forced updates can be made.
@@ -202,9 +209,11 @@ type StaticPodOperatorStatus struct {
 	OperatorStatus `json:",inline"`
 
 	// latestAvailableRevision is the deploymentID of the most recent deployment
-	LatestAvailableRevision int32 `json:"latestAvailableRevision"`
+	// +optional
+	LatestAvailableRevision int32 `json:"latestAvailableRevision,omitEmpty"`
 
 	// nodeStatuses track the deployment values and errors across individual nodes
+	// +optional
 	NodeStatuses []NodeStatus `json:"nodeStatuses,omitempty"`
 }
 

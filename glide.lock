@@ -1,5 +1,5 @@
 hash: 20d7c78c8f3375601f242486a8e1bd382bd26428744c97634ec469c49a8b215a
-updated: 2019-03-01T14:17:17.659633245-06:00
+updated: 2019-03-18T12:59:33.159381553-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -196,7 +196,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: b75f8002d9873eb84986b824850058977e116e5b
+  version: 756349b2dde816edf40630643cf42d1533e24ab3
   subpackages:
   - apps
   - apps/v1
@@ -242,11 +242,16 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 2d89985ca24a8307e4b5db2574a62d3e6c2444b4
+  version: 8ae2a9c33ba2a3d2ed5dc13d536ca935fc9625b9
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
+  - config/informers/externalversions
+  - config/informers/externalversions/config
+  - config/informers/externalversions/config/v1
+  - config/informers/externalversions/internalinterfaces
+  - config/listers/config/v1
   - operator/clientset/versioned
   - operator/clientset/versioned/scheme
   - operator/clientset/versioned/typed/operator/v1
@@ -256,7 +261,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: 67ba562464684b95438c9dc80acedf74c701ced6
+  version: 69ec53fc354e648d1b1bd08556e702639f494688
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -270,6 +275,7 @@ imports:
   - pkg/crypto
   - pkg/operator/configobserver
   - pkg/operator/events
+  - pkg/operator/management
   - pkg/operator/render
   - pkg/operator/render/options
   - pkg/operator/resource/resourceapply
@@ -386,7 +392,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: e9657d882bb81064595ca3b56cbe2546bbabf7b1
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/base
