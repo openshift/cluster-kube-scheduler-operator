@@ -77,7 +77,7 @@ func NewPruneController(
 		configMapGetter: configMapGetter,
 		secretGetter:    secretGetter,
 		podGetter:       podGetter,
-		eventRecorder:   eventRecorder,
+		eventRecorder:   eventRecorder.WithComponentSuffix("prune-controller"),
 
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "PruneController"),
 		prunerPodImageFn: getPrunerPodImageFromEnv,
@@ -215,6 +215,9 @@ func protectedRevisions(revisions []int, revisionLimit int) []int {
 }
 
 func (c *PruneController) ensurePrunePod(nodeName string, maxEligibleRevision int, protectedRevisions []int, revision int32) error {
+	if revision == 0 {
+		return nil
+	}
 	pod := resourceread.ReadPodV1OrDie(bindata.MustAsset(filepath.Join("pkg/operator/staticpod/controller/prune", "manifests/pruner-pod.yaml")))
 
 	pod.Name = getPrunerPodName(nodeName, revision)
