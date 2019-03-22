@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
+
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
@@ -79,6 +80,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
 		operatorClient,
 		kubeInformersForNamespaces,
+		configInformers,
 		kubeClient,
 		ctx.EventRecorder,
 	)
@@ -146,6 +148,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	kubeInformersClusterScoped.Start(ctx.Done())
 	kubeInformersNamespace.Start(ctx.Done())
 	kubeInformersForNamespaces.Start(ctx.Done())
+	configInformers.Start(ctx.Done())
 
 	go staticPodControllers.Run(ctx.Done())
 	go resourceSyncController.Run(1, ctx.Done())

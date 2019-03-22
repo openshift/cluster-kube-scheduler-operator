@@ -7,7 +7,14 @@ import (
 
 	"github.com/golang/glog"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions/operator/v1"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,25 +25,16 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions/operator/v1"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type TargetConfigReconciler struct {
-	targetImagePullSpec string
-
+	targetImagePullSpec  string
 	operatorConfigClient operatorv1client.KubeSchedulersGetter
-
-	kubeClient       kubernetes.Interface
-	eventRecorder    events.Recorder
-	configMapLister  corev1listers.ConfigMapLister
-	SchedulingLister configlistersv1.SchedulerLister
+	kubeClient           kubernetes.Interface
+	eventRecorder        events.Recorder
+	configMapLister      corev1listers.ConfigMapLister
+	SchedulerLister      configlistersv1.SchedulerLister
+	SchedulingCacheSync  cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
@@ -57,10 +55,13 @@ func NewTargetConfigReconciler(
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
 		eventRecorder:        eventRecorder,
-		SchedulingLister:     configInformer.Config().V1().Schedulers().Lister(),
+		SchedulerLister:      configInformer.Config().V1().Schedulers().Lister(),
+		SchedulingCacheSync:  configInformer.Config().V1().Schedulers().Informer().HasSynced,
 		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
 	}
 
+	// TODO: @ravig Remove this and move this to config observer code.
+	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
 	operatorConfigInformer.Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Rbac().V1().Roles().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Rbac().V1().RoleBindings().Informer().AddEventHandler(c.eventHandler())
@@ -76,8 +77,6 @@ func NewTargetConfigReconciler(
 	// we only watch some namespaces
 	namespacedKubeInformers.Core().V1().Namespaces().Informer().AddEventHandler(c.namespaceEventHandler())
 
-	// TODO: @ravig Remove this and move this to config observer code.
-	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
 	return c
 }
 
@@ -86,7 +85,6 @@ func (c TargetConfigReconciler) sync() error {
 	if err != nil {
 		return err
 	}
-
 	operatorConfigOriginal := operatorConfig.DeepCopy()
 
 	switch operatorConfig.Spec.ManagementState {
@@ -127,6 +125,11 @@ func (c *TargetConfigReconciler) Run(workers int, stopCh <-chan struct{}) {
 
 	glog.Infof("Starting TargetConfigReconciler")
 	defer glog.Infof("Shutting down TargetConfigReconciler")
+
+	if !cache.WaitForCacheSync(stopCh, c.SchedulingCacheSync) {
+		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
+		return
+	}
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

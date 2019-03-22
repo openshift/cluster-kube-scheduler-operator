@@ -43,7 +43,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig, c.SchedulingLister)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig, c.SchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -92,6 +92,9 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
 	var defaultConfig []byte
 	observedpolicyConfigMap, err := schedulerLister.Get("cluster")
+	if err != nil {
+		glog.Infof("Error while listing configmap %v", err.Error())
+	}
 	var policyConfigMapName string
 	if err == nil && observedpolicyConfigMap != nil && len(observedpolicyConfigMap.Spec.Policy.Name) > 0 {
 		policyConfigMapName = observedpolicyConfigMap.Spec.Policy.Name
@@ -105,6 +108,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 			targetPolicyConfigMap.ResourceVersion = ""
 			_, err := client.ConfigMaps(operatorclient.TargetNamespace).Create(targetPolicyConfigMap)
 			if err == nil || apierrors.IsAlreadyExists(err) {
+				glog.Infof("Custom policy config map to be used by scheduler is successfully created")
 				defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml")
 			} else {
 				// This means policyconfigmap could not be created, so let's default to postbootstrap only.

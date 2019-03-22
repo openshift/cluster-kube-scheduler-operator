@@ -10,6 +10,8 @@
 // bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/pod-cm.yaml
 // bindata/v3.11.0/kube-scheduler/pod.yaml
+// bindata/v3.11.0/kube-scheduler/policyconfigmap-role.yaml
+// bindata/v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/sa.yaml
 // bindata/v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/svc.yaml
@@ -344,6 +346,66 @@ func v3110KubeSchedulerPodYaml() (*asset, error) {
 	return a, nil
 }
 
+var _v3110KubeSchedulerPolicyconfigmapRoleYaml = []byte(`#As of now, system:kube-scheduler role cannot list configmaps from openshift-kube-scheduler namespace. So, creating a role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: system:openshift:sa-listing-configmaps
+  namespace: openshift-kube-scheduler
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+`)
+
+func v3110KubeSchedulerPolicyconfigmapRoleYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerPolicyconfigmapRoleYaml, nil
+}
+
+func v3110KubeSchedulerPolicyconfigmapRoleYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerPolicyconfigmapRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/policyconfigmap-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v3110KubeSchedulerPolicyconfigmapRolebindingYaml = []byte(`# As of now, system:kube-scheduler role cannot list configmaps from openshift-kube-scheduler namespace. So, creating a role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: openshift-kube-scheduler
+  name: system:openshift:sa-listing-configmaps
+roleRef:
+  kind: Role
+  name: system:openshift:sa-listing-configmaps
+subjects:
+- kind: ServiceAccount
+  namespace: openshift-kube-scheduler
+  name: openshift-kube-scheduler-sa
+`)
+
+func v3110KubeSchedulerPolicyconfigmapRolebindingYamlBytes() ([]byte, error) {
+	return _v3110KubeSchedulerPolicyconfigmapRolebindingYaml, nil
+}
+
+func v3110KubeSchedulerPolicyconfigmapRolebindingYaml() (*asset, error) {
+	bytes, err := v3110KubeSchedulerPolicyconfigmapRolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _v3110KubeSchedulerSaYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -490,6 +552,8 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/operator-config.yaml":                         v3110KubeSchedulerOperatorConfigYaml,
 	"v3.11.0/kube-scheduler/pod-cm.yaml":                                  v3110KubeSchedulerPodCmYaml,
 	"v3.11.0/kube-scheduler/pod.yaml":                                     v3110KubeSchedulerPodYaml,
+	"v3.11.0/kube-scheduler/policyconfigmap-role.yaml":                    v3110KubeSchedulerPolicyconfigmapRoleYaml,
+	"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml":             v3110KubeSchedulerPolicyconfigmapRolebindingYaml,
 	"v3.11.0/kube-scheduler/sa.yaml":                                      v3110KubeSchedulerSaYaml,
 	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml":            v3110KubeSchedulerSchedulerClusterrolebindingYaml,
 	"v3.11.0/kube-scheduler/svc.yaml":                                     v3110KubeSchedulerSvcYaml,
@@ -548,6 +612,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"operator-config.yaml":                         {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
 			"pod-cm.yaml":                                  {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
 			"pod.yaml":                                     {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
+			"policyconfigmap-role.yaml":                    {v3110KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
+			"policyconfigmap-rolebinding.yaml":             {v3110KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
 			"sa.yaml":                                      {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
 			"scheduler-clusterrolebinding.yaml":            {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
 			"svc.yaml":                                     {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
