@@ -386,9 +386,8 @@ roleRef:
   kind: Role
   name: system:openshift:sa-listing-configmaps
 subjects:
-- kind: ServiceAccount
-  namespace: openshift-kube-scheduler
-  name: openshift-kube-scheduler-sa
+- kind: User
+  name: system:kube-scheduler
 `)
 
 func v3110KubeSchedulerPolicyconfigmapRolebindingYamlBytes() ([]byte, error) {
