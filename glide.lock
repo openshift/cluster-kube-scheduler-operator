@@ -1,5 +1,5 @@
 hash: 36bd141e1a8e8a3ebac723c736a185a648fbdc81d2262868b571993498dd4446
-updated: 2019-03-26T10:48:35.786093106-04:00
+updated: 2019-03-27T12:05:16.359452746+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -178,11 +178,13 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/joho/godotenv
-  version: 5c0e6c6ab1a0a9ef0a8822cba3a05d62f7dad941
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 - name: github.com/json-iterator/go
   version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:
@@ -202,7 +204,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 1e536453f3cb4ee935963035007bdd917da1020d
+  version: ad6339a9e4ce20fffe56b91dc9c9ee7a4d04ebd7
   subpackages:
   - apps
   - apps/v1
@@ -267,7 +269,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: fc4b2d5cbcf0ab855422e340c78fe7a53a38bee3
+  version: 05f32092e5396f1c0279b59d24ad0df13922a387
   subpackages:
   - cmd/crd-schema-gen/generator
   - pkg/assets
@@ -316,6 +318,8 @@ imports:
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
   version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
+- name: github.com/pkg/sftp
+  version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/prometheus/client_golang
   version: e7e903064f5e9eb5da98208bae10b475d4db0f8c
   subpackages:
@@ -347,9 +351,10 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/spf13/afero
-  version: 588a75ec4f32903aa5e39a2619ba6a4631e28424
+  version: b28a7effac979219c2a2ed6205a4d70e4b1bcd02
   subpackages:
   - mem
+  - sftp
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -363,12 +368,15 @@ imports:
   subpackages:
   - bcrypt
   - blowfish
+  - curve25519
   - ed25519
   - ed25519/internal/edwards25519
+  - internal/chacha20
   - internal/subtle
   - nacl/secretbox
   - poly1305
   - salsa20/salsa
+  - ssh
   - ssh/terminal
 - name: golang.org/x/net
   version: 0ed95abb35c445290478a5348a7b38bb154135fd
@@ -414,7 +422,7 @@ imports:
   - go/ast/astutil
   - imports
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
   - internal
   - internal/base
