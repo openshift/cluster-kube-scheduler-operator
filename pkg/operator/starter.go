@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -76,7 +77,27 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		v311_00_assets.MustAsset("v3.11.0/kube-scheduler/operator-config.yaml"),
 		schema.GroupVersionResource{Group: operatorv1.GroupName, Version: "v1", Resource: "kubeschedulers"},
 	)
-
+	// Create scheduler config CR needed.
+	schedulerConfig := &configv1.Scheduler{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Scheduler",
+			APIVersion: "config.openshift.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: configv1.SchedulerSpec{
+			Policy: configv1.ConfigMapNameReference{
+				Name: "",
+			},
+		},
+	}
+	_, err = configClient.ConfigV1().Schedulers().Create(schedulerConfig)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		// If the scheduler config type cluster already exists, let's proceed as usual.
+		glog.Infof("creation of scheduler config custom resource failed let's not proceed further")
+		return err
+	}
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
 		operatorClient,
 		kubeInformersForNamespaces,
