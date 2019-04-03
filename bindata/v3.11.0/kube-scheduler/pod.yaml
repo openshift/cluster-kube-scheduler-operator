@@ -16,8 +16,7 @@ spec:
     command: ["hyperkube", "kube-scheduler"]
     args:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
-    - --secure-port=0
-    - --port=10251
+    - --cert-dir=/var/run/kubernetes
     resources:
       requests:
         memory: 50Mi
