@@ -14,16 +14,16 @@ import:
   version: kubernetes-1.12.5
 - package: k8s.io/apiextensions-apiserver
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver
-  version: origin-4.0-kubernetes-1.12.4 # for nullable PR, instead of kubernetes-1.12.5
+  version: 36be1826c980fa7ca82d91645e06e3157f159322 # for nullable PR, instead of kubernetes-1.12.5
 - package: sigs.k8s.io/controller-tools
   repo: https://github.com/openshift/kubernetes-sigs-controller-tools
   version: master
 - package: github.com/openshift/api
-  version: master
+  version: b9d3a68a3adcd9ad4d8dfea44c44a030ca37db41 # FIXME: pre-1.13-rebase SHA
 - package: github.com/openshift/client-go
-  version: master
+  version: 8ae2a9c33ba2a3d2ed5dc13d536ca935fc9625b9 # FIXME: pre-1.13-rebase SHA
 - package: github.com/openshift/library-go
-  version: master
+  version: temporary-1.12 # FIXME: This is temporary until we manage to merge 1.13 branch
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - package: k8s.io/gengo/args
