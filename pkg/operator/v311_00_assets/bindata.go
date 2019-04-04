@@ -316,6 +316,7 @@ spec:
     args:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
     - --cert-dir=/var/run/kubernetes
+    - --port=0
     resources:
       requests:
         memory: 50Mi
