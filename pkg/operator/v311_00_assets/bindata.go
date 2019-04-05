@@ -473,7 +473,7 @@ spec:
   ports:
   - name: https
     port: 443
-    targetPort: 8443
+    targetPort: 10259
 `)
 
 func v3110KubeSchedulerSvcYamlBytes() ([]byte, error) {
