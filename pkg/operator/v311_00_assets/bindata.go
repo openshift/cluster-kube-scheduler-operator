@@ -316,6 +316,7 @@ spec:
     args:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
     - --cert-dir=/var/run/kubernetes
+    - --port=0
     resources:
       requests:
         memory: 50Mi
@@ -472,7 +473,7 @@ spec:
   ports:
   - name: https
     port: 443
-    targetPort: 8443
+    targetPort: 10259
 `)
 
 func v3110KubeSchedulerSvcYamlBytes() ([]byte, error) {
