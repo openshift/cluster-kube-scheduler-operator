@@ -317,6 +317,8 @@ spec:
     - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
     - --cert-dir=/var/run/kubernetes
     - --port=0
+    - --authentication-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
+    - --authorization-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
     resources:
       requests:
         memory: 50Mi

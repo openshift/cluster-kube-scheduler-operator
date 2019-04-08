@@ -15,7 +15,7 @@ spec:
     imagePullPolicy: {{ .ImagePullPolicy }}
     command: ["/bin/bash", "-c"]
     args:
-    - exec hyperkube kube-scheduler --kubeconfig=/etc/kubernetes/secrets/kubeconfig --leader-elect=true --cert-dir=/var/run/kubernetes --port 0
+    - exec hyperkube kube-scheduler --kubeconfig=/etc/kubernetes/secrets/kubeconfig --leader-elect=true --cert-dir=/var/run/kubernetes --port 0 --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
     volumeMounts:
     - mountPath: /etc/kubernetes/secrets
       name: secrets
