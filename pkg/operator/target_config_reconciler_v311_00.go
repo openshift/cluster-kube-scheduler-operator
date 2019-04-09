@@ -12,6 +12,7 @@ import (
 	"k8s.io/klog"
 	"reflect"
 
+	"github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -53,7 +54,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), recorder, operatorConfig, c.targetImagePullSpec)
+	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), recorder, operatorConfig, c.targetImagePullSpec, c.featureGateLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -132,11 +133,25 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, imagePullSpec string) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, imagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod.yaml"))
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
 	}
+	// check for feature gates from feature lister.
+	featureGates, err := checkForFeatureGates(featureGateLister)
+	if err != nil || len(featureGates) == 0 {
+		// Default behaviour
+		klog.Infof("Error while getting feature gates or there are no featuregates for given feature, so defaulting to empty feature gates")
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", ""))
+	} else {
+		allFeatureGates := ""
+		for featureGate, status := range featureGates {
+			allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGate, status)
+		}
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
+	}
+
 	switch operatorConfig.Spec.LogLevel {
 	case operatorv1.Normal:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
@@ -155,6 +170,34 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 	configMap.Data["forceRedeploymentReason"] = operatorConfig.Spec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
 	return resourceapply.ApplyConfigMap(client, recorder, configMap)
+}
+
+func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) (map[string]bool, error) {
+	featureGateListConfig, err := featureGateLister.Get("cluster")
+	var featureGates = make(map[string]bool)
+	if err != nil {
+		klog.Infof("Error while listing features.config.openshift.io/cluster with %v: so return empty feature gates", err)
+		return nil, err
+	}
+	var enabledFeatureSets, disabledFeatureSets []string
+	currentFeatureSetConfig := featureGateListConfig.Spec.FeatureSet
+	if featureSet, ok := v1.FeatureSets[currentFeatureSetConfig]; ok {
+		enabledFeatureSets = featureSet.Enabled
+		disabledFeatureSets = featureSet.Disabled
+	} else {
+		klog.Infof("Invalid feature set config found in features.config.openshift.io/cluster %v. Please look at allowed features", currentFeatureSetConfig)
+	}
+	return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates), nil
+}
+
+func generateFeatureGates(enabledFeatureGates, disabledFeatureGates []string, featureGates map[string]bool) map[string]bool {
+	for _, enabledFeatureGate := range enabledFeatureGates {
+		featureGates[enabledFeatureGate] = true
+	}
+	for _, disabledFeatureGate := range disabledFeatureGates {
+		featureGates[disabledFeatureGate] = false
+	}
+	return featureGates
 }
 
 func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {

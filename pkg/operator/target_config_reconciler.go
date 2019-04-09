@@ -30,11 +30,14 @@ import (
 type TargetConfigReconciler struct {
 	targetImagePullSpec  string
 	operatorConfigClient operatorv1client.KubeSchedulersGetter
+
 	kubeClient           kubernetes.Interface
 	eventRecorder        events.Recorder
 	configMapLister      corev1listers.ConfigMapLister
 	SchedulerLister      configlistersv1.SchedulerLister
 	SchedulingCacheSync  cache.InformerSynced
+	featureGateLister    configlistersv1.FeatureGateLister
+	featureGateCacheSync cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
@@ -55,8 +58,11 @@ func NewTargetConfigReconciler(
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
 		eventRecorder:        eventRecorder,
+
 		SchedulerLister:      configInformer.Config().V1().Schedulers().Lister(),
 		SchedulingCacheSync:  configInformer.Config().V1().Schedulers().Informer().HasSynced,
+		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
+		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
 		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
 	}
 
@@ -70,6 +76,8 @@ func NewTargetConfigReconciler(
 	namespacedKubeInformers.Core().V1().ServiceAccounts().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().Services().Informer().AddEventHandler(c.eventHandler())
 
+	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
+	configInformer.Config().V1().FeatureGates().Informer().AddEventHandler(c.eventHandler())
 	// we react to some config changes
 	kubeInformersForNamespaces.InformersFor(operatorclient.GlobalUserSpecifiedConfigNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
@@ -127,7 +135,7 @@ func (c *TargetConfigReconciler) Run(workers int, stopCh <-chan struct{}) {
 	defer klog.Infof("Shutting down TargetConfigReconciler")
 
 	if !cache.WaitForCacheSync(stopCh, c.SchedulingCacheSync) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
+		utilruntime.HandleError(fmt.Errorf("scheduler caches did not sync"))
 		return
 	}
 
