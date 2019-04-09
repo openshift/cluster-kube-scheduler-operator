@@ -32,16 +32,11 @@ type InfrastructureSpec struct {
 
 // InfrastructureStatus describes the infrastructure the cluster is leveraging.
 type InfrastructureStatus struct {
-	// infrastructureName uniquely identifies a cluster with a human friendly name.
-	// Once set it should not be changed. Must be of max length 27 and must have only
-	// alphanumeric or hyphen characters.
-	InfrastructureName string `json:"infrastructureName"`
-
 	// platform is the underlying infrastructure provider for the cluster. This
 	// value controls whether infrastructure automation such as service load
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
-	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
+	// enabled. Allowed values are "AWS", "Azure", "GCP", "Libvirt",
 	// "OpenStack", "VSphere", and "None". Individual components may not support
 	// all platforms, and must handle unrecognized platforms as None if they do
 	// not support that platform.
@@ -62,29 +57,26 @@ type InfrastructureStatus struct {
 type PlatformType string
 
 const (
-	// AWSPlatformType represents Amazon Web Services infrastructure.
-	AWSPlatformType PlatformType = "AWS"
+	// AWSPlatform represents Amazon Web Services infrastructure.
+	AWSPlatform PlatformType = "AWS"
 
-	// AzurePlatformType represents Microsoft Azure infrastructure.
-	AzurePlatformType PlatformType = "Azure"
+	// AzurePlatform represents Microsoft Azure infrastructure.
+	AzurePlatform PlatformType = "Azure"
 
-	// BareMetalPlatformType represents managed bare metal infrastructure.
-	BareMetalPlatformType PlatformType = "BareMetal"
+	// GCPPlatform represents Google Cloud Platform infrastructure.
+	GCPPlatform PlatformType = "GCP"
 
-	// GCPPlatformType represents Google Cloud Platform infrastructure.
-	GCPPlatformType PlatformType = "GCP"
+	// LibvirtPlatform represents libvirt infrastructure.
+	LibvirtPlatform PlatformType = "Libvirt"
 
-	// LibvirtPlatformType represents libvirt infrastructure.
-	LibvirtPlatformType PlatformType = "Libvirt"
+	// OpenStackPlatform represents OpenStack infrastructure.
+	OpenStackPlatform PlatformType = "OpenStack"
 
-	// OpenStackPlatformType represents OpenStack infrastructure.
-	OpenStackPlatformType PlatformType = "OpenStack"
+	// NonePlatform means there is no infrastructure provider.
+	NonePlatform PlatformType = "None"
 
-	// NonePlatformType means there is no infrastructure provider.
-	NonePlatformType PlatformType = "None"
-
-	// VSpherePlatformType represents VMWare vSphere infrastructure.
-	VSpherePlatformType PlatformType = "VSphere"
+	// VSpherePlatform represents VMWare vSphere infrastructure.
+	VSpherePlatform PlatformType = "VSphere"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

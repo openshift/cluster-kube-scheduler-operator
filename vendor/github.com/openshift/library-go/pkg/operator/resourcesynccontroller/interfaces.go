@@ -2,8 +2,8 @@ package resourcesynccontroller
 
 // ResourceLocation describes coordinates for a resource to be synced
 type ResourceLocation struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
+	Namespace string
+	Name      string
 }
 
 var emptyResourceLocation = ResourceLocation{}

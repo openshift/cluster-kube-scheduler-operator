@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +45,6 @@ type StatusSyncer struct {
 	operatorClient        operatorv1helpers.OperatorClient
 	clusterOperatorClient configv1client.ClusterOperatorsGetter
 	clusterOperatorLister configv1listers.ClusterOperatorLister
-	clusterOperatorSynced cache.InformerSynced
 	eventRecorder         events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
@@ -67,7 +66,6 @@ func NewClusterOperatorStatusController(
 		versionGetter:         versionGetter,
 		clusterOperatorClient: clusterOperatorClient,
 		clusterOperatorLister: clusterOperatorInformer.Lister(),
-		clusterOperatorSynced: clusterOperatorInformer.Informer().HasSynced,
 		operatorClient:        operatorClient,
 		eventRecorder:         recorder.WithComponentSuffix("status-controller"),
 
@@ -103,14 +101,14 @@ func (c StatusSyncer) sync() error {
 
 	// ensure that we have a clusteroperator resource
 	if originalClusterOperatorObj == nil || apierrors.IsNotFound(err) {
-		klog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
+		glog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
 		var createErr error
 		originalClusterOperatorObj, createErr = c.clusterOperatorClient.ClusterOperators().Create(&configv1.ClusterOperator{
 			ObjectMeta: metav1.ObjectMeta{Name: c.clusterOperatorName},
 		})
 		if apierrors.IsNotFound(createErr) {
 			// this means that the API isn't present.  We did not fail.  Try again later
-			klog.Infof("ClusterOperator API not created")
+			glog.Infof("ClusterOperator API not created")
 			c.queue.AddRateLimited(workQueueKey)
 			return nil
 		}
@@ -155,7 +153,7 @@ func (c StatusSyncer) sync() error {
 	if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
 		return nil
 	}
-	klog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
+	glog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
 
 	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
 		return updateErr
@@ -178,11 +176,8 @@ func (c *StatusSyncer) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
-	defer klog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
-	if !cache.WaitForCacheSync(stopCh, c.clusterOperatorSynced) {
-		return
-	}
+	glog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
+	defer glog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
 
 	// start watching for version changes
 	go c.watchVersionGetter(stopCh)

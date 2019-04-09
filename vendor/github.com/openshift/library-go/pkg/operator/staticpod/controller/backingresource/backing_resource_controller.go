@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -139,8 +139,8 @@ func (c *BackingResourceController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Infof("Starting BackingResourceController")
-	defer klog.Infof("Shutting down BackingResourceController")
+	glog.Infof("Starting BackingResourceController")
+	defer glog.Infof("Shutting down BackingResourceController")
 	if !cache.WaitForCacheSync(stopCh, c.saListerSynced) {
 		return
 	}

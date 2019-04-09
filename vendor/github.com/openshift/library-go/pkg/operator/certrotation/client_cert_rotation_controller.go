@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -121,8 +121,8 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Infof("Starting CertRotationController - %q", c.name)
-	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
+	glog.Infof("Starting CertRotationController - %q", c.name)
+	defer glog.Infof("Shutting down CertRotationController - %q", c.name)
 
 	if !cache.WaitForCacheSync(stopCh, c.cachesSynced...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))

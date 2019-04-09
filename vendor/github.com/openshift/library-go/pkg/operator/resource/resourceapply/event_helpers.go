@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +47,7 @@ func reportCreateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 	}
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		klog.Errorf("Failed to get accessor for %+v", obj)
+		glog.Errorf("Failed to get accessor for %+v", obj)
 		return
 	}
 	namespace := ""
@@ -68,7 +68,7 @@ func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 	}
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		klog.Errorf("Failed to get accessor for %+v", obj)
+		glog.Errorf("Failed to get accessor for %+v", obj)
 		return
 	}
 	namespace := ""

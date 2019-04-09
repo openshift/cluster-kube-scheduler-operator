@@ -3,11 +3,9 @@
 package v1
 
 import (
-	"time"
-
 	v1 "github.com/openshift/api/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -24,11 +22,11 @@ type ServiceCatalogControllerManagerInterface interface {
 	Create(*v1.ServiceCatalogControllerManager) (*v1.ServiceCatalogControllerManager, error)
 	Update(*v1.ServiceCatalogControllerManager) (*v1.ServiceCatalogControllerManager, error)
 	UpdateStatus(*v1.ServiceCatalogControllerManager) (*v1.ServiceCatalogControllerManager, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.ServiceCatalogControllerManager, error)
-	List(opts metav1.ListOptions) (*v1.ServiceCatalogControllerManagerList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Get(name string, options meta_v1.GetOptions) (*v1.ServiceCatalogControllerManager, error)
+	List(opts meta_v1.ListOptions) (*v1.ServiceCatalogControllerManagerList, error)
+	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ServiceCatalogControllerManager, err error)
 	ServiceCatalogControllerManagerExpansion
 }
@@ -46,7 +44,7 @@ func newServiceCatalogControllerManagers(c *OperatorV1Client) *serviceCatalogCon
 }
 
 // Get takes name of the serviceCatalogControllerManager, and returns the corresponding serviceCatalogControllerManager object, and an error if there is any.
-func (c *serviceCatalogControllerManagers) Get(name string, options metav1.GetOptions) (result *v1.ServiceCatalogControllerManager, err error) {
+func (c *serviceCatalogControllerManagers) Get(name string, options meta_v1.GetOptions) (result *v1.ServiceCatalogControllerManager, err error) {
 	result = &v1.ServiceCatalogControllerManager{}
 	err = c.client.Get().
 		Resource("servicecatalogcontrollermanagers").
@@ -58,32 +56,22 @@ func (c *serviceCatalogControllerManagers) Get(name string, options metav1.GetOp
 }
 
 // List takes label and field selectors, and returns the list of ServiceCatalogControllerManagers that match those selectors.
-func (c *serviceCatalogControllerManagers) List(opts metav1.ListOptions) (result *v1.ServiceCatalogControllerManagerList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
+func (c *serviceCatalogControllerManagers) List(opts meta_v1.ListOptions) (result *v1.ServiceCatalogControllerManagerList, err error) {
 	result = &v1.ServiceCatalogControllerManagerList{}
 	err = c.client.Get().
 		Resource("servicecatalogcontrollermanagers").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested serviceCatalogControllerManagers.
-func (c *serviceCatalogControllerManagers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
+func (c *serviceCatalogControllerManagers) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Resource("servicecatalogcontrollermanagers").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
 		Watch()
 }
 
@@ -126,7 +114,7 @@ func (c *serviceCatalogControllerManagers) UpdateStatus(serviceCatalogController
 }
 
 // Delete takes name of the serviceCatalogControllerManager and deletes it. Returns an error if one occurs.
-func (c *serviceCatalogControllerManagers) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *serviceCatalogControllerManagers) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("servicecatalogcontrollermanagers").
 		Name(name).
@@ -136,15 +124,10 @@ func (c *serviceCatalogControllerManagers) Delete(name string, options *metav1.D
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *serviceCatalogControllerManagers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
-	}
+func (c *serviceCatalogControllerManagers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Resource("servicecatalogcontrollermanagers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
-		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

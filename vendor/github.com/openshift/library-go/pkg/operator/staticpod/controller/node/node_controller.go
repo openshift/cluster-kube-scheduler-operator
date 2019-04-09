@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/labels"
@@ -120,8 +120,8 @@ func (c *NodeController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Infof("Starting NodeController")
-	defer klog.Infof("Shutting down NodeController")
+	glog.Infof("Starting NodeController")
+	defer glog.Infof("Shutting down NodeController")
 	if !cache.WaitForCacheSync(stopCh, c.nodeListerSynced) {
 		return
 	}

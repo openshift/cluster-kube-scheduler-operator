@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -96,7 +96,7 @@ func (c *UnsupportedConfigOverridesController) sync() error {
 func keysSetInUnsupportedConfig(configYaml []byte) (sets.String, error) {
 	configJson, err := kyaml.ToJSON(configYaml)
 	if err != nil {
-		klog.Warning(err)
+		glog.Warning(err)
 		// maybe it's just json
 		configJson = configYaml
 	}
@@ -151,8 +151,8 @@ func (c *UnsupportedConfigOverridesController) Run(workers int, stopCh <-chan st
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	klog.Infof("Starting UnsupportedConfigOverridesController")
-	defer klog.Infof("Shutting down UnsupportedConfigOverridesController")
+	glog.Infof("Starting UnsupportedConfigOverridesController")
+	defer glog.Infof("Shutting down UnsupportedConfigOverridesController")
 	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
 		return
 	}

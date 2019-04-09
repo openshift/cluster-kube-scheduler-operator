@@ -5,8 +5,8 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	core_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -354,13 +354,21 @@ func (in *DefaultNetworkDefinition) DeepCopyInto(out *DefaultNetworkDefinition) 
 	*out = *in
 	if in.OpenShiftSDNConfig != nil {
 		in, out := &in.OpenShiftSDNConfig, &out.OpenShiftSDNConfig
-		*out = new(OpenShiftSDNConfig)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(OpenShiftSDNConfig)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.OVNKubernetesConfig != nil {
 		in, out := &in.OVNKubernetesConfig, &out.OVNKubernetesConfig
-		*out = new(OVNKubernetesConfig)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(OVNKubernetesConfig)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -568,33 +576,57 @@ func (in *IngressControllerSpec) DeepCopyInto(out *IngressControllerSpec) {
 	*out = *in
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(int32)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
 	}
 	if in.EndpointPublishingStrategy != nil {
 		in, out := &in.EndpointPublishingStrategy, &out.EndpointPublishingStrategy
-		*out = new(EndpointPublishingStrategy)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(EndpointPublishingStrategy)
+			**out = **in
+		}
 	}
 	if in.DefaultCertificate != nil {
 		in, out := &in.DefaultCertificate, &out.DefaultCertificate
-		*out = new(corev1.LocalObjectReference)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(core_v1.LocalObjectReference)
+			**out = **in
+		}
 	}
 	if in.NamespaceSelector != nil {
 		in, out := &in.NamespaceSelector, &out.NamespaceSelector
-		*out = new(metav1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(meta_v1.LabelSelector)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.RouteSelector != nil {
 		in, out := &in.RouteSelector, &out.RouteSelector
-		*out = new(metav1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(meta_v1.LabelSelector)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.NodePlacement != nil {
 		in, out := &in.NodePlacement, &out.NodePlacement
-		*out = new(NodePlacement)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(NodePlacement)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -614,8 +646,12 @@ func (in *IngressControllerStatus) DeepCopyInto(out *IngressControllerStatus) {
 	*out = *in
 	if in.EndpointPublishingStrategy != nil {
 		in, out := &in.EndpointPublishingStrategy, &out.EndpointPublishingStrategy
-		*out = new(EndpointPublishingStrategy)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(EndpointPublishingStrategy)
+			**out = **in
+		}
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
@@ -1058,18 +1094,30 @@ func (in *NetworkSpec) DeepCopyInto(out *NetworkSpec) {
 	}
 	if in.DisableMultiNetwork != nil {
 		in, out := &in.DisableMultiNetwork, &out.DisableMultiNetwork
-		*out = new(bool)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(bool)
+			**out = **in
+		}
 	}
 	if in.DeployKubeProxy != nil {
 		in, out := &in.DeployKubeProxy, &out.DeployKubeProxy
-		*out = new(bool)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(bool)
+			**out = **in
+		}
 	}
 	if in.KubeProxyConfig != nil {
 		in, out := &in.KubeProxyConfig, &out.KubeProxyConfig
-		*out = new(ProxyConfig)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ProxyConfig)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -1105,14 +1153,11 @@ func (in *NodePlacement) DeepCopyInto(out *NodePlacement) {
 	*out = *in
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
-		*out = new(metav1.LabelSelector)
-		(*in).DeepCopyInto(*out)
-	}
-	if in.Tolerations != nil {
-		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(meta_v1.LabelSelector)
+			(*in).DeepCopyInto(*out)
 		}
 	}
 	return
@@ -1154,8 +1199,12 @@ func (in *OVNKubernetesConfig) DeepCopyInto(out *OVNKubernetesConfig) {
 	*out = *in
 	if in.MTU != nil {
 		in, out := &in.MTU, &out.MTU
-		*out = new(uint32)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(uint32)
+			**out = **in
+		}
 	}
 	return
 }
@@ -1365,18 +1414,30 @@ func (in *OpenShiftSDNConfig) DeepCopyInto(out *OpenShiftSDNConfig) {
 	*out = *in
 	if in.VXLANPort != nil {
 		in, out := &in.VXLANPort, &out.VXLANPort
-		*out = new(uint32)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(uint32)
+			**out = **in
+		}
 	}
 	if in.MTU != nil {
 		in, out := &in.MTU, &out.MTU
-		*out = new(uint32)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(uint32)
+			**out = **in
+		}
 	}
 	if in.UseExternalOpenvswitch != nil {
 		in, out := &in.UseExternalOpenvswitch, &out.UseExternalOpenvswitch
-		*out = new(bool)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(bool)
+			**out = **in
+		}
 	}
 	return
 }
@@ -1396,8 +1457,12 @@ func (in *OperandContainerSpec) DeepCopyInto(out *OperandContainerSpec) {
 	*out = *in
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(corev1.ResourceRequirements)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(core_v1.ResourceRequirements)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -1517,15 +1582,12 @@ func (in *ProxyConfig) DeepCopyInto(out *ProxyConfig) {
 		in, out := &in.ProxyArguments, &out.ProxyArguments
 		*out = make(map[string][]string, len(*in))
 		for key, val := range *in {
-			var outVal []string
 			if val == nil {
 				(*out)[key] = nil
 			} else {
-				in, out := &val, &outVal
-				*out = make([]string, len(*in))
-				copy(*out, *in)
+				(*out)[key] = make([]string, len(val))
+				copy((*out)[key], val)
 			}
-			(*out)[key] = outVal
 		}
 	}
 	return

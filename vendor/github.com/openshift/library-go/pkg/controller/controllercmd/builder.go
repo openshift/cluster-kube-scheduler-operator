@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -43,9 +43,6 @@ type ControllerContext struct {
 
 	// EventRecorder is used to record events in controllers.
 	EventRecorder events.Recorder
-
-	// Server is the GenericAPIServer serving healthz checks and debug info
-	Server *genericapiserver.GenericAPIServer
 
 	stopChan <-chan struct{}
 }
@@ -104,7 +101,7 @@ func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, starting
 
 	b.fileObserverReactorFn = func(filename string, action fileobserver.ActionType) error {
 		once.Do(func() {
-			klog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
+			glog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
 			close(stopCh)
 		})
 		return nil
@@ -185,31 +182,33 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 		}
 	}
 
-	if b.servingInfo == nil {
-		return fmt.Errorf("server config required for health checks and debugging endpoints")
-	}
+	switch {
+	case b.servingInfo == nil && len(b.healthChecks) > 0:
+		return fmt.Errorf("healthchecks without server config won't work")
 
-	kubeConfig := ""
-	if b.kubeAPIServerConfigFile != nil {
-		kubeConfig = *b.kubeAPIServerConfigFile
-	}
-	serverConfig, err := serving.ToServerConfig(*b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
-	if err != nil {
-		return err
-	}
-	serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
-
-	server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		if err := server.PrepareRun().Run(ctx.Done()); err != nil {
-			klog.Error(err)
+	default:
+		kubeConfig := ""
+		if b.kubeAPIServerConfigFile != nil {
+			kubeConfig = *b.kubeAPIServerConfigFile
 		}
-		klog.Fatal("server exited")
-	}()
+		serverConfig, err := serving.ToServerConfig(*b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
+		if err != nil {
+			return err
+		}
+		serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
+
+		server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			if err := server.PrepareRun().Run(ctx.Done()); err != nil {
+				glog.Error(err)
+			}
+			glog.Fatal("server exited")
+		}()
+	}
 
 	protoConfig := rest.CopyConfig(clientConfig)
 	protoConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
@@ -220,7 +219,6 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 		KubeConfig:      clientConfig,
 		ProtoKubeConfig: protoConfig,
 		EventRecorder:   eventRecorder,
-		Server:          server,
 		stopChan:        ctx.Done(),
 	}
 
@@ -239,7 +237,7 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 	leaderElection.Callbacks.OnStartedLeading = func(ctx context.Context) {
 		controllerContext.stopChan = ctx.Done()
 		if err := b.startFunc(controllerContext); err != nil {
-			klog.Fatal(err)
+			glog.Fatal(err)
 		}
 	}
 	leaderelection.RunOrDie(ctx, leaderElection)

@@ -5,7 +5,7 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	core_v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -157,7 +157,9 @@ func (in *AdmissionConfig) DeepCopyInto(out *AdmissionConfig) {
 		in, out := &in.PluginConfig, &out.PluginConfig
 		*out = make(map[string]AdmissionPluginConfig, len(*in))
 		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+			newVal := new(AdmissionPluginConfig)
+			val.DeepCopyInto(newVal)
+			(*out)[key] = *newVal
 		}
 	}
 	if in.EnabledAdmissionPlugins != nil {
@@ -366,17 +368,25 @@ func (in *BuildDefaults) DeepCopyInto(out *BuildDefaults) {
 	*out = *in
 	if in.DefaultProxy != nil {
 		in, out := &in.DefaultProxy, &out.DefaultProxy
-		*out = new(ProxySpec)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ProxySpec)
+			**out = **in
+		}
 	}
 	if in.GitProxy != nil {
 		in, out := &in.GitProxy, &out.GitProxy
-		*out = new(ProxySpec)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ProxySpec)
+			**out = **in
+		}
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]corev1.EnvVar, len(*in))
+		*out = make([]core_v1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -450,7 +460,7 @@ func (in *BuildOverrides) DeepCopyInto(out *BuildOverrides) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]core_v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -729,8 +739,12 @@ func (in *ClusterVersionSpec) DeepCopyInto(out *ClusterVersionSpec) {
 	*out = *in
 	if in.DesiredUpdate != nil {
 		in, out := &in.DesiredUpdate, &out.DesiredUpdate
-		*out = new(Update)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(Update)
+			**out = **in
+		}
 	}
 	if in.Overrides != nil {
 		in, out := &in.Overrides, &out.Overrides
@@ -1010,13 +1024,21 @@ func (in *DNSSpec) DeepCopyInto(out *DNSSpec) {
 	*out = *in
 	if in.PublicZone != nil {
 		in, out := &in.PublicZone, &out.PublicZone
-		*out = new(DNSZone)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(DNSZone)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.PrivateZone != nil {
 		in, out := &in.PrivateZone, &out.PrivateZone
-		*out = new(DNSZone)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(DNSZone)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -1425,48 +1447,84 @@ func (in *IdentityProviderConfig) DeepCopyInto(out *IdentityProviderConfig) {
 	*out = *in
 	if in.BasicAuth != nil {
 		in, out := &in.BasicAuth, &out.BasicAuth
-		*out = new(BasicAuthIdentityProvider)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(BasicAuthIdentityProvider)
+			**out = **in
+		}
 	}
 	if in.GitHub != nil {
 		in, out := &in.GitHub, &out.GitHub
-		*out = new(GitHubIdentityProvider)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(GitHubIdentityProvider)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.GitLab != nil {
 		in, out := &in.GitLab, &out.GitLab
-		*out = new(GitLabIdentityProvider)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(GitLabIdentityProvider)
+			**out = **in
+		}
 	}
 	if in.Google != nil {
 		in, out := &in.Google, &out.Google
-		*out = new(GoogleIdentityProvider)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(GoogleIdentityProvider)
+			**out = **in
+		}
 	}
 	if in.HTPasswd != nil {
 		in, out := &in.HTPasswd, &out.HTPasswd
-		*out = new(HTPasswdIdentityProvider)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(HTPasswdIdentityProvider)
+			**out = **in
+		}
 	}
 	if in.Keystone != nil {
 		in, out := &in.Keystone, &out.Keystone
-		*out = new(KeystoneIdentityProvider)
-		**out = **in
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(KeystoneIdentityProvider)
+			**out = **in
+		}
 	}
 	if in.LDAP != nil {
 		in, out := &in.LDAP, &out.LDAP
-		*out = new(LDAPIdentityProvider)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(LDAPIdentityProvider)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.OpenID != nil {
 		in, out := &in.OpenID, &out.OpenID
-		*out = new(OpenIDIdentityProvider)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(OpenIDIdentityProvider)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	if in.RequestHeader != nil {
 		in, out := &in.RequestHeader, &out.RequestHeader
-		*out = new(RequestHeaderIdentityProvider)
-		(*in).DeepCopyInto(*out)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(RequestHeaderIdentityProvider)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -2773,7 +2831,11 @@ func (in *UpdateHistory) DeepCopyInto(out *UpdateHistory) {
 	in.StartedTime.DeepCopyInto(&out.StartedTime)
 	if in.CompletionTime != nil {
 		in, out := &in.CompletionTime, &out.CompletionTime
-		*out = (*in).DeepCopy()
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = (*in).DeepCopy()
+		}
 	}
 	return
 }

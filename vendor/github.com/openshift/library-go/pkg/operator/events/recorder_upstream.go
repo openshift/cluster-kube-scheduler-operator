@@ -3,7 +3,7 @@ package events
 import (
 	"fmt"
 
-	"k8s.io/klog"
+	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -32,7 +32,7 @@ type upstreamRecorder struct {
 func (r *upstreamRecorder) ForComponent(componentName string) Recorder {
 	newRecorderForComponent := *r
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(klog.Infof)
+	broadcaster.StartLogging(glog.Infof)
 	broadcaster.StartRecordingToSink(&corev1client.EventSinkImpl{Interface: newRecorderForComponent.client})
 
 	newRecorderForComponent.eventRecorder = broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: componentName})
