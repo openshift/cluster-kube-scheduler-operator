@@ -2,8 +2,8 @@ package resourcesynccontroller
 
 import (
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 
-	"github.com/golang/glog"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -28,7 +28,7 @@ func NewResourceSyncController(
 
 	scheduler, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
 	if err != nil {
-		glog.Infof("Error while listing scheduler %v", err)
+		klog.Infof("Error while listing scheduler %v", err)
 	}
 	if scheduler != nil && len(scheduler.Spec.Policy.Name) > 0 {
 		if err := resourceSyncController.SyncConfigMap(

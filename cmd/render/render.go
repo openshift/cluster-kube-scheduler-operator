@@ -5,13 +5,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/golang/glog"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
+	"k8s.io/klog"
 
 	genericrender "github.com/openshift/library-go/pkg/operator/render"
 	genericrenderoptions "github.com/openshift/library-go/pkg/operator/render/options"
@@ -38,10 +36,10 @@ func NewRenderCommand() *cobra.Command {
 		Short: "Render kube-scheduler bootstrap manifests, secrets and configMaps",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := renderOpts.Validate(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 			if err := renderOpts.Run(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}

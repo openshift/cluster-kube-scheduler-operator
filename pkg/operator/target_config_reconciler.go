@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -109,7 +109,7 @@ func (c TargetConfigReconciler) sync() error {
 				Message: err.Error(),
 			})
 			if _, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig); updateError != nil {
-				glog.Error(updateError)
+				klog.Error(updateError)
 			}
 		}
 		return err
@@ -123,8 +123,8 @@ func (c *TargetConfigReconciler) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting TargetConfigReconciler")
-	defer glog.Infof("Shutting down TargetConfigReconciler")
+	klog.Infof("Starting TargetConfigReconciler")
+	defer klog.Infof("Shutting down TargetConfigReconciler")
 
 	if !cache.WaitForCacheSync(stopCh, c.SchedulingCacheSync) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
