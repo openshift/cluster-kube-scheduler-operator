@@ -1,5 +1,5 @@
-hash: 3ffdc5deaf9d4e0f0b0f1d2d1c1eae8f604c8fbc7d694ab5b00ae567433d130c
-updated: 2019-04-09T17:06:02.140752228-04:00
+hash: ac386cbe580ff42ab449301ba56bdcfcd09afd2ceab59532118d5f1a3e7caeb4
+updated: 2019-04-11T12:28:25.880839+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -95,7 +95,7 @@ imports:
   - daemon
   - journal
 - name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
 - name: github.com/docker/docker
@@ -116,7 +116,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
-  version: 25d852aebe32c875e9c044af3eef9c7dc6bc777f
+  version: c7ce16629ff4cd059ed96ed06419dd3856fd3577
 - name: github.com/go-openapi/jsonpointer
   version: ef5f0afec364d3b9396b7b77b43dbe26bf1f8004
 - name: github.com/go-openapi/jsonreference
@@ -199,7 +199,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 275768afc8f66b79aeb12debf94ffc85255104ad
+  version: 87f97e6c35f4e067e1c744b3013fd902c5baa4ad
   subpackages:
   - apps
   - apps/v1
@@ -264,7 +264,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: 8feeb2216a12650b738e6199e27e3f6a5a77abe3
+  version: a0f83294d69c791f53d01d5f6d6bf4f4cd7fd3a9
   subpackages:
   - cmd/crd-schema-gen/generator
   - pkg/assets
@@ -336,7 +336,7 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/rogpeppe/go-internal
-  version: bb30e2a7ca3553a66c6a740eb5ebe72f9d35ef0e
+  version: 438578804ca6f31be148c27683afc419ce47c06e
   subpackages:
   - modfile
   - module
@@ -456,7 +456,7 @@ imports:
 - name: gopkg.in/natefinch/lumberjack.v2
   version: 20b71e5b60d756d3d2f80def009790325acc2b23
 - name: gopkg.in/yaml.v2
-  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
   version: 5cb15d34447165a97c76ed5a60e4e99c8a01ecfe
   subpackages:
@@ -495,7 +495,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 6e2b3eb1b401beaf836f640f73f730f6da7aff2f
+  version: 8772a1fb4e1ec06c1b2301bf78f48613a53107f7
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -824,7 +824,7 @@ imports:
   - pkg/util
   - pkg/util/proto
 - name: sigs.k8s.io/controller-tools
-  version: 9023c7551a0d78f09b063fc41cefa8a23bb849ab
+  version: 4e23e49e5d401ca6ced86aa30262d0cf2488c504
   repo: https://github.com/openshift/kubernetes-sigs-controller-tools
   subpackages:
   - pkg/crd/generator
