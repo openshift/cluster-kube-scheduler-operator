@@ -122,7 +122,14 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 		}
 	} else {
-		klog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", err.Error())
+		msg := "unknown"
+		switch {
+		case err != nil:
+			msg = err.Error()
+		case len(observedpolicyConfigMap.Spec.Policy.Name) == 0:
+			msg = "missing policy"
+		}
+		klog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", msg)
 		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	}
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
