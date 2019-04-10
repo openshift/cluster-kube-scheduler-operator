@@ -139,18 +139,12 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 		required.Spec.Containers[0].Image = imagePullSpec
 	}
 	// check for feature gates from feature lister.
-	featureGates, err := checkForFeatureGates(featureGateLister)
-	if err != nil || len(featureGates) == 0 {
-		// Default behaviour
-		klog.Infof("Error while getting feature gates or there are no featuregates for given feature, so defaulting to empty feature gates")
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", ""))
-	} else {
-		allFeatureGates := ""
-		for featureGate, status := range featureGates {
-			allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGate, status)
-		}
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
+	featureGates := checkForFeatureGates(featureGateLister)
+	allFeatureGates := ""
+	for featureGate, status := range featureGates {
+		allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGate, status)
 	}
+	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
 	switch operatorConfig.Spec.LogLevel {
 	case operatorv1.Normal:
@@ -172,14 +166,19 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 	return resourceapply.ApplyConfigMap(client, recorder, configMap)
 }
 
-func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) (map[string]bool, error) {
+func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) map[string]bool {
 	featureGateListConfig, err := featureGateLister.Get("cluster")
+	var enabledFeatureSets, disabledFeatureSets []string
 	var featureGates = make(map[string]bool)
 	if err != nil {
-		klog.Infof("Error while listing features.config.openshift.io/cluster with %v: so return empty feature gates", err)
-		return nil, err
+		klog.Infof("Error while listing features.config.openshift.io/cluster with %v: so return default feature gates", err.Error())
+		if featureSet, ok := v1.FeatureSets[v1.Default]; ok {
+			enabledFeatureSets = featureSet.Enabled
+			disabledFeatureSets = featureSet.Disabled
+		}
+		return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
 	}
-	var enabledFeatureSets, disabledFeatureSets []string
+
 	currentFeatureSetConfig := featureGateListConfig.Spec.FeatureSet
 	if featureSet, ok := v1.FeatureSets[currentFeatureSetConfig]; ok {
 		enabledFeatureSets = featureSet.Enabled
@@ -187,7 +186,7 @@ func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) (
 	} else {
 		klog.Infof("Invalid feature set config found in features.config.openshift.io/cluster %v. Please look at allowed features", currentFeatureSetConfig)
 	}
-	return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates), nil
+	return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
 }
 
 func generateFeatureGates(enabledFeatureGates, disabledFeatureGates []string, featureGates map[string]bool) map[string]bool {

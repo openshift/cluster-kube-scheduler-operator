@@ -46,7 +46,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 			},
 		})
 		featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
-		actualFeatureGates, _ := checkForFeatureGates(featureGateLister)
+		actualFeatureGates := checkForFeatureGates(featureGateLister)
 		if !reflect.DeepEqual(actualFeatureGates, tc.expectedResult) {
 			t.Fatalf("Expected %v feature gates to be present but found %v", tc.expectedResult, actualFeatureGates)
 		}
