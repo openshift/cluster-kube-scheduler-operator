@@ -2,7 +2,6 @@ package operator
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
@@ -10,6 +9,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog"
 	"reflect"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -95,7 +95,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	var defaultConfig []byte
 	observedpolicyConfigMap, err := schedulerLister.Get("cluster")
 	if err != nil {
-		glog.Infof("Error while listing configmap %v", err.Error())
+		klog.Infof("Error while listing configmap %v", err.Error())
 	}
 	var policyConfigMapName string
 	if err == nil && observedpolicyConfigMap != nil && len(observedpolicyConfigMap.Spec.Policy.Name) > 0 {
@@ -110,19 +110,19 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 			targetPolicyConfigMap.ResourceVersion = ""
 			_, err := client.ConfigMaps(operatorclient.TargetNamespace).Create(targetPolicyConfigMap)
 			if err == nil || apierrors.IsAlreadyExists(err) {
-				glog.Infof("Custom policy config map to be used by scheduler is successfully created")
+				klog.Infof("Custom policy config map to be used by scheduler is successfully created")
 				defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml")
 			} else {
 				// This means policyconfigmap could not be created, so let's default to postbootstrap only.
-				glog.Infof("Policy configmap creation error %v and using default algorithm provider in kubernetes scheduler", err.Error())
+				klog.Infof("Policy configmap creation error %v and using default algorithm provider in kubernetes scheduler", err.Error())
 				defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 			}
 		} else {
-			glog.Infof("Error while listing scheduler configmap from openshift-config namespace %v and using default algorithm provider in kubernetes scheduler", err.Error())
+			klog.Infof("Error while listing scheduler configmap from openshift-config namespace %v and using default algorithm provider in kubernetes scheduler", err.Error())
 			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 		}
 	} else {
-		glog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", err.Error())
+		klog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", err.Error())
 		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	}
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
