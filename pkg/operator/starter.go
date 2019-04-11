@@ -87,7 +87,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	if err != nil {
 		return err
 	}
-
 	configObserver := configobservercontroller.NewConfigObserver(
 		operatorClient,
 		operatorConfigInformers,
