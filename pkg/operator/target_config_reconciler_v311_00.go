@@ -11,6 +11,7 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 	"reflect"
+	"sort"
 
 	"github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -21,7 +22,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-	"sort"
+	"strings"
 )
 
 const TargetPolicyConfigMapName = "policy-configmap"
@@ -146,17 +147,11 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
 	}
-	var sortedFeatureGates []string
+
 	// check for feature gates from feature lister.
 	featureGates := checkForFeatureGates(featureGateLister)
-	for featureGateName := range featureGates {
-		sortedFeatureGates = append(sortedFeatureGates, featureGateName)
-	}
-	sort.Strings(sortedFeatureGates)
-	allFeatureGates := ""
-	for _, featureGateName := range sortedFeatureGates {
-		allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGateName, featureGates[featureGateName])
-	}
+	sortedFeatureGates := getSortedFeatureGates(featureGates)
+	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGates)
 	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
 	switch operatorConfig.Spec.LogLevel {
@@ -179,6 +174,22 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 	return resourceapply.ApplyConfigMap(client, recorder, configMap)
 }
 
+func getSortedFeatureGates(featureGates map[string]bool) []string {
+	var sortedFeatureGates []string
+	for featureGateName := range featureGates {
+		sortedFeatureGates = append(sortedFeatureGates, featureGateName)
+	}
+	sort.Strings(sortedFeatureGates)
+	return sortedFeatureGates
+}
+
+func getFeatureGateString(sortedFeatureGates []string, featureGates map[string]bool) string {
+	allFeatureGates := ""
+	for _, featureGateName := range sortedFeatureGates {
+		allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGateName, featureGates[featureGateName])
+	}
+	return strings.TrimPrefix(allFeatureGates, ",")
+}
 func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) map[string]bool {
 	featureGateListConfig, err := featureGateLister.Get("cluster")
 	var enabledFeatureSets, disabledFeatureSets []string

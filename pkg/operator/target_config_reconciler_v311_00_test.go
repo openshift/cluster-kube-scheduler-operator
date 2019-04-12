@@ -52,3 +52,19 @@ func TestCheckForFeatureGates(t *testing.T) {
 		}
 	}
 }
+
+func TestGetSortedFeatureGates(t *testing.T) {
+	featueGates := map[string]bool{
+		"ExperimentalCriticalPodAnnotation": true,
+		"RotateKubeletServerCertificate":    true,
+		"SupportPodPidsLimit":               true,
+		"CSIBlockVolume":                    true,
+		"LocalStorageCapacityIsolation":     false,
+	}
+	expectedFeatureGateString := "CSIBlockVolume=true,ExperimentalCriticalPodAnnotation=true,LocalStorageCapacityIsolation=false,RotateKubeletServerCertificate=true,SupportPodPidsLimit=true"
+	sortedFeatureGates := getSortedFeatureGates(featueGates)
+	actualFeatureGateString := getFeatureGateString(sortedFeatureGates, featueGates)
+	if expectedFeatureGateString != actualFeatureGateString {
+		t.Fatalf("Expected %v as featuregate string but got %v", expectedFeatureGateString, actualFeatureGateString)
+	}
+}
