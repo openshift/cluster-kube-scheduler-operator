@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	"sort"
 )
 
 const TargetPolicyConfigMapName = "policy-configmap"
@@ -145,11 +146,16 @@ func managePod_v311_00_to_latest(client coreclientv1.ConfigMapsGetter, recorder 
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
 	}
+	var sortedFeatureGates []string
 	// check for feature gates from feature lister.
 	featureGates := checkForFeatureGates(featureGateLister)
+	for featureGateName := range featureGates {
+		sortedFeatureGates = append(sortedFeatureGates, featureGateName)
+	}
+	sort.Strings(sortedFeatureGates)
 	allFeatureGates := ""
-	for featureGate, status := range featureGates {
-		allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGate, status)
+	for _, featureGateName := range sortedFeatureGates {
+		allFeatureGates = allFeatureGates + "," + fmt.Sprintf("%v=%v", featureGateName, featureGates[featureGateName])
 	}
 	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
