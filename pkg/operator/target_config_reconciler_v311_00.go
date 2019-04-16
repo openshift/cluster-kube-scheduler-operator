@@ -148,6 +148,9 @@ func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter,
 	required := resourceread.ReadPodV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod.yaml"))
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
+		if len(required.Spec.InitContainers) > 0 {
+			required.Spec.InitContainers[0].Image = imagePullSpec
+		}
 	}
 
 	// check for feature gates from feature lister.
