@@ -1,12 +1,13 @@
 package operator
 
 import (
+	"reflect"
+	"testing"
+
 	configv1 "github.com/openshift/api/config/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	"reflect"
-	"testing"
 )
 
 func TestCheckForFeatureGates(t *testing.T) {
@@ -22,7 +23,9 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"ExperimentalCriticalPodAnnotation": true,
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
+				"ResourceQuotaScopeSelectors":       false,
 				"LocalStorageCapacityIsolation":     false,
+				"TaintBasedEvictions":               false,
 			},
 		},
 		{
@@ -33,23 +36,27 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
 				"CSIBlockVolume":                    true,
+				"ResourceQuotaScopeSelectors":       false,
 				"LocalStorageCapacityIsolation":     false,
+				"TaintBasedEvictions":               false,
 			},
 		},
 	}
 	for _, tc := range tests {
-		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-		indexer.Add(&configv1.FeatureGate{
-			ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-			Spec: configv1.FeatureGateSpec{
-				FeatureSet: tc.configValue,
-			},
+		t.Run(tc.name, func(t *testing.T) {
+			indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+			indexer.Add(&configv1.FeatureGate{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Spec: configv1.FeatureGateSpec{
+					FeatureSet: tc.configValue,
+				},
+			})
+			featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
+			actualFeatureGates := checkForFeatureGates(featureGateLister)
+			if !reflect.DeepEqual(actualFeatureGates, tc.expectedResult) {
+				t.Fatalf("Expected %v feature gates to be present but found %v", tc.expectedResult, actualFeatureGates)
+			}
 		})
-		featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
-		actualFeatureGates := checkForFeatureGates(featureGateLister)
-		if !reflect.DeepEqual(actualFeatureGates, tc.expectedResult) {
-			t.Fatalf("Expected %v feature gates to be present but found %v", tc.expectedResult, actualFeatureGates)
-		}
 	}
 }
 

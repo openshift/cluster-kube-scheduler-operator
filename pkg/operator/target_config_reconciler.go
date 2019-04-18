@@ -111,7 +111,7 @@ func (c TargetConfigReconciler) sync() error {
 	if err != nil {
 		if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
 			v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-				Type:    operatorv1.OperatorStatusTypeFailing,
+				Type:    operatorv1.OperatorStatusTypeDegraded,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "StatusUpdateError",
 				Message: err.Error(),
