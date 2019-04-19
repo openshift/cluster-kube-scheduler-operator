@@ -69,7 +69,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			message = message + err.Error() + "\n"
 		}
 		v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-			Type:    "TargetConfigReconcilerFailing",
+			Type:    "TargetConfigReconcilerDegraded",
 			Status:  operatorv1.ConditionTrue,
 			Reason:  "SynchronizationError",
 			Message: message,
@@ -82,7 +82,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	}
 
 	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-		Type:   "TargetConfigReconcilerFailing",
+		Type:   "TargetConfigReconcilerDegraded",
 		Status: operatorv1.ConditionFalse,
 	})
 	if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {

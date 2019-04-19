@@ -1054,17 +1054,17 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &InstallerController{
-				targetNamespace:      tt.fields.targetNamespace,
-				staticPodName:        tt.fields.staticPodName,
-				configMaps:           tt.fields.configMaps,
-				secrets:              tt.fields.secrets,
-				command:              tt.fields.command,
-				operatorConfigClient: tt.fields.operatorConfigClient,
-				configMapsGetter:     tt.fields.kubeClient.CoreV1(),
-				podsGetter:           tt.fields.kubeClient.CoreV1(),
-				eventRecorder:        tt.fields.eventRecorder,
-				queue:                tt.fields.queue,
-				installerPodImageFn:  tt.fields.installerPodImageFn,
+				targetNamespace:     tt.fields.targetNamespace,
+				staticPodName:       tt.fields.staticPodName,
+				configMaps:          tt.fields.configMaps,
+				secrets:             tt.fields.secrets,
+				command:             tt.fields.command,
+				operatorClient:      tt.fields.operatorConfigClient,
+				configMapsGetter:    tt.fields.kubeClient.CoreV1(),
+				podsGetter:          tt.fields.kubeClient.CoreV1(),
+				eventRecorder:       tt.fields.eventRecorder,
+				queue:               tt.fields.queue,
+				installerPodImageFn: tt.fields.installerPodImageFn,
 			}
 			got, err := c.manageInstallationPods(tt.args.operatorSpec, tt.args.originalOperatorStatus, tt.args.resourceVersion)
 			if (err != nil) != tt.wantErr {
@@ -1274,7 +1274,7 @@ func TestSetConditions(t *testing.T) {
 	}
 
 	testCases := []TestCase{
-		testCase("AvailableProgressingFailing", true, true, true, 1, 2, 2, 1, 2, 1),
+		testCase("AvailableProgressingDegraded", true, true, true, 1, 2, 2, 1, 2, 1),
 		testCase("AvailableProgressing", true, true, false, 0, 2, 2, 1, 2, 1),
 		testCase("AvailableNotProgressing", true, false, false, 0, 2, 2, 2, 2),
 		testCase("NotAvailableProgressing", false, true, false, 0, 2, 0, 0),
@@ -1306,7 +1306,7 @@ func TestSetConditions(t *testing.T) {
 				t.Errorf("Progressing condition: expected status %v, actual status %v", tc.expectedProgressingStatus, pendingCondition.Status)
 			}
 
-			failingCondition := v1helpers.FindOperatorCondition(status.Conditions, nodeInstallerFailing)
+			failingCondition := v1helpers.FindOperatorCondition(status.Conditions, nodeInstallerDegraded)
 			if failingCondition == nil {
 				t.Error("Failing condition: not found")
 			} else if failingCondition.Status != tc.expectedFailingStatus {
