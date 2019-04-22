@@ -23,9 +23,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"ExperimentalCriticalPodAnnotation": true,
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
-				"ResourceQuotaScopeSelectors":       false,
 				"LocalStorageCapacityIsolation":     false,
-				"TaintBasedEvictions":               false,
 			},
 		},
 		{
@@ -36,9 +34,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
 				"CSIBlockVolume":                    true,
-				"ResourceQuotaScopeSelectors":       false,
 				"LocalStorageCapacityIsolation":     false,
-				"TaintBasedEvictions":               false,
 			},
 		},
 	}
