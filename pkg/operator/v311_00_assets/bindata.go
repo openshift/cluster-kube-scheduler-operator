@@ -7,7 +7,6 @@
 // bindata/v3.11.0/kube-scheduler/kubeconfig-cm.yaml
 // bindata/v3.11.0/kube-scheduler/leader-election-rolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/ns.yaml
-// bindata/v3.11.0/kube-scheduler/operator-config.yaml
 // bindata/v3.11.0/kube-scheduler/pod-cm.yaml
 // bindata/v3.11.0/kube-scheduler/pod.yaml
 // bindata/v3.11.0/kube-scheduler/policyconfigmap-role.yaml
@@ -239,34 +238,6 @@ func v3110KubeSchedulerNsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/ns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerOperatorConfigYaml = []byte(`apiVersion: operator.openshift.io/v1
-kind: KubeScheduler
-metadata:
-  name: cluster
-spec:
-  managementState: Managed
-  imagePullSpec: openshift/origin-hyperkube:latest
-  version: 3.11.0
-  logging:
-    level: 4
-  replicas: 2
-`)
-
-func v3110KubeSchedulerOperatorConfigYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerOperatorConfigYaml, nil
-}
-
-func v3110KubeSchedulerOperatorConfigYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerOperatorConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/operator-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -581,7 +552,6 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/kubeconfig-cm.yaml":                           v3110KubeSchedulerKubeconfigCmYaml,
 	"v3.11.0/kube-scheduler/leader-election-rolebinding.yaml":             v3110KubeSchedulerLeaderElectionRolebindingYaml,
 	"v3.11.0/kube-scheduler/ns.yaml":                                      v3110KubeSchedulerNsYaml,
-	"v3.11.0/kube-scheduler/operator-config.yaml":                         v3110KubeSchedulerOperatorConfigYaml,
 	"v3.11.0/kube-scheduler/pod-cm.yaml":                                  v3110KubeSchedulerPodCmYaml,
 	"v3.11.0/kube-scheduler/pod.yaml":                                     v3110KubeSchedulerPodYaml,
 	"v3.11.0/kube-scheduler/policyconfigmap-role.yaml":                    v3110KubeSchedulerPolicyconfigmapRoleYaml,
@@ -641,7 +611,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"kubeconfig-cm.yaml":                           {v3110KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
 			"leader-election-rolebinding.yaml":             {v3110KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
 			"ns.yaml":                                      {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
-			"operator-config.yaml":                         {v3110KubeSchedulerOperatorConfigYaml, map[string]*bintree{}},
 			"pod-cm.yaml":                                  {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
 			"pod.yaml":                                     {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
 			"policyconfigmap-role.yaml":                    {v3110KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
