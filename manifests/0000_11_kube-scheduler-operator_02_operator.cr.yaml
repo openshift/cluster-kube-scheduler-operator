@@ -2,6 +2,8 @@ apiVersion: operator.openshift.io/v1
 kind: KubeScheduler
 metadata:
   name: cluster
+  annotations:
+    release.openshift.io/create-only: "true"
 spec:
   managementState: Managed
   imagePullSpec: openshift/origin-hyperkube:latest
