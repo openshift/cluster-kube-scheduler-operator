@@ -100,10 +100,11 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	var defaultConfig []byte
 	observedpolicyConfigMap, err := schedulerLister.Get("cluster")
 	if err != nil {
-		klog.Infof("Error while listing configmap %v", err.Error())
+		klog.Infof("Error while listing scheduler type %v and using default algorithm provider", err.Error())
+		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	}
 	var policyConfigMapName string
-	if err == nil && observedpolicyConfigMap != nil && len(observedpolicyConfigMap.Spec.Policy.Name) > 0 {
+	if observedpolicyConfigMap != nil && len(observedpolicyConfigMap.Spec.Policy.Name) > 0 {
 		policyConfigMapName = observedpolicyConfigMap.Spec.Policy.Name
 		policyConfigMap, err := lister.ConfigMaps(operatorclient.GlobalUserSpecifiedConfigNamespace).Get(policyConfigMapName)
 		if err == nil {
@@ -126,15 +127,8 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 			klog.Infof("Error while listing scheduler configmap from openshift-config namespace %v and using default algorithm provider in kubernetes scheduler", err.Error())
 			defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 		}
-	} else {
-		msg := "unknown"
-		switch {
-		case err != nil:
-			msg = err.Error()
-		case len(observedpolicyConfigMap.Spec.Policy.Name) == 0:
-			msg = "missing policy"
-		}
-		klog.Infof("Error while getting scheduler type %v and using default algorithm provider in kubernetes scheduler", msg)
+	} else if len(observedpolicyConfigMap.Spec.Policy.Name) == 0 {
+		klog.Info("Missing policy configmap name in scheduler type and using default algorithm provider type")
 		defaultConfig = v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	}
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
