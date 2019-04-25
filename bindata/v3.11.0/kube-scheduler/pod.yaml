@@ -41,20 +41,6 @@ spec:
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
-    livenessProbe:
-      httpGet:
-        scheme: HTTP
-        port: 10251
-        path: healthz
-      initialDelaySeconds: 45
-      timeOutSeconds: 10
-    readinessProbe:
-      httpGet:
-        scheme: HTTP
-        port: 10251
-        path: healthz
-      initialDelaySeconds: 45
-      timeOutSeconds: 10
   hostNetwork: true
   priorityClassName: system-node-critical
   tolerations:
