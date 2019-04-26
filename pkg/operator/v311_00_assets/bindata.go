@@ -222,6 +222,8 @@ func v3110KubeSchedulerLeaderElectionRolebindingYaml() (*asset, error) {
 var _v3110KubeSchedulerNsYaml = []byte(`apiVersion: v1
 kind: Namespace
 metadata:
+  annotations:
+    openshift.io/node-selector: ""
   name: openshift-kube-scheduler
   labels:
     openshift.io/run-level: "0"
