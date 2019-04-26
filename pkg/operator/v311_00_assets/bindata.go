@@ -288,8 +288,8 @@ spec:
     command: ['/usr/bin/timeout', '30', '/bin/bash', '-c']
     args:
     - |
-      echo -n "Waiting for port :10259 and :10251 to be released."
-      while [ -n "$(lsof -ni :10251)" -o -n "$(lsof -i :10259)" ]; do
+      echo -n "Waiting for port :10259 and :10251"
+      while [ -n "$(lsof -ni :10251)" -o -n "$(lsof -ni :10259)" ]; do
         echo -n "."
         sleep 1
       done
@@ -315,15 +315,15 @@ spec:
       name: resource-dir
     livenessProbe:
       httpGet:
-        scheme: HTTP
-        port: 10251
+        scheme: HTTPS
+        port: 10259
         path: healthz
       initialDelaySeconds: 45
       timeOutSeconds: 10
     readinessProbe:
       httpGet:
-        scheme: HTTP
-        port: 10251
+        scheme: HTTPS
+        port: 10259
         path: healthz
       initialDelaySeconds: 45
       timeOutSeconds: 10
