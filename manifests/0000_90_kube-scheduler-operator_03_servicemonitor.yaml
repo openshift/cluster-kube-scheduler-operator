@@ -15,7 +15,7 @@ spec:
     port: https
     scheme: https
     tlsConfig:
-      caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
+      insecureSkipVerify: true
       serverName: metrics.openshift-kube-scheduler-operator.svc
   jobLabel: component
   namespaceSelector:
