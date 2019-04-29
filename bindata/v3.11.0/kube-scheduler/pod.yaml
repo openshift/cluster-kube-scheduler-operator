@@ -8,19 +8,6 @@ metadata:
     scheduler: "true"
     revision: "REVISION"
 spec:
-  initContainers:
-  - name: wait-for-host-port
-    image: ${IMAGE}
-    imagePullPolicy: IfNotPresent
-    terminationMessagePolicy: FallbackToLogsOnError
-    command: ['/usr/bin/timeout', '30', '/bin/bash', '-c']
-    args:
-    - |
-      echo -n "Waiting for port :10259 and :10251"
-      while [ -n "$(lsof -ni :10251)" -o -n "$(lsof -ni :10259)" ]; do
-        echo -n "."
-        sleep 1
-      done
   containers:
   - name: scheduler
     image: ${IMAGE}
