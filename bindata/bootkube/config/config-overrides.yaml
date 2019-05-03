@@ -1,2 +1,4 @@
 apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
+leaderElection:
+  resourceLock: "configmaps"

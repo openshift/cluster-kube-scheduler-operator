@@ -86,6 +86,8 @@ var _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml = []byte(`apiVer
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
+leaderElection:
+  resourceLock: "configmaps"
 algorithmSource:
   policy:
     configMap:
@@ -112,6 +114,8 @@ var _v3110KubeSchedulerDefaultconfigPostbootstrapYaml = []byte(`apiVersion: kube
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
+leaderElection:
+  resourceLock: "configmaps"
 `)
 
 func v3110KubeSchedulerDefaultconfigPostbootstrapYamlBytes() ([]byte, error) {
