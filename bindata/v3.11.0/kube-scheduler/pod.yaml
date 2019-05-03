@@ -42,12 +42,16 @@ spec:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
     livenessProbe:
-      httpGet:
-        scheme: HTTP
-        port: 10251
-        path: healthz
-      initialDelaySeconds: 45
-      timeOutSeconds: 10
+      exec:
+        command:
+        - "/bin/bash"
+        - "-ec"
+        - |
+          find /etc/kubernetes/static-pod-resources/secrets/kube-scheduler-client-cert-key -mmin -1 -exec false {} +
+          test $(curl --silent --output /dev/stderr --write-out \"%{http_code}\" http://localhost:10251/healthz) = 200"
+      initialDelaySeconds: 70
+      timeoutSeconds: 10
+      failureThreshold: 1
     readinessProbe:
       httpGet:
         scheme: HTTP
