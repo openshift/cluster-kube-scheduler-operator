@@ -87,6 +87,7 @@ kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 leaderElection:
+  lockObjectNamespace: "openshift-kube-scheduler"
   resourceLock: "configmaps"
 algorithmSource:
   policy:
@@ -115,6 +116,8 @@ kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 leaderElection:
+  leaderElect: true
+  lockObjectNamespace: "openshift-kube-scheduler"
   resourceLock: "configmaps"
 `)
 
@@ -204,8 +207,8 @@ roleRef:
   kind: Role
   name: system::leader-locking-kube-scheduler
 subjects:
-  - kind: User
-    name: system:kube-scheduler
+- kind: User
+  name: system:kube-scheduler
 `)
 
 func v3110KubeSchedulerLeaderElectionRolebindingYamlBytes() ([]byte, error) {
@@ -369,6 +372,8 @@ rules:
   - configmaps
   verbs:
   - get
+  - create
+  - update
 `)
 
 func v3110KubeSchedulerPolicyconfigmapRoleYamlBytes() ([]byte, error) {

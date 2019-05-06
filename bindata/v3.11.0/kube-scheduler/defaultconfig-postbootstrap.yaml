@@ -3,4 +3,6 @@ kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 leaderElection:
+  leaderElect: true
+  lockObjectNamespace: "openshift-kube-scheduler"
   resourceLock: "configmaps"
