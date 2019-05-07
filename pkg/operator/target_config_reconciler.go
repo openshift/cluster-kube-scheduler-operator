@@ -103,7 +103,7 @@ func (c TargetConfigReconciler) sync() error {
 		// TODO probably just fail
 		return nil
 	}
-	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorConfig)
+	requeue, err := createTargetConfigReconciler_v410_00_to_latest(c, c.eventRecorder, operatorConfig)
 	if requeue && err == nil {
 		return fmt.Errorf("synthetic requeue request")
 	}
