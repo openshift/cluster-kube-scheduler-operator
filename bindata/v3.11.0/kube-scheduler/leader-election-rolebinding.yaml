@@ -7,5 +7,5 @@ roleRef:
   kind: Role
   name: system::leader-locking-kube-scheduler
 subjects:
-  - kind: User
-    name: system:kube-scheduler
+- kind: User
+  name: system:kube-scheduler
