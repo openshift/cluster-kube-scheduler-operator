@@ -436,6 +436,8 @@ rules:
   - configmaps
   verbs:
   - get
+  - create
+  - update
 `)
 
 func v3110KubeSchedulerPolicyconfigmapRoleYamlBytes() ([]byte, error) {
