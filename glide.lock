@@ -1,5 +1,5 @@
 hash: ac386cbe580ff42ab449301ba56bdcfcd09afd2ceab59532118d5f1a3e7caeb4
-updated: 2019-05-03T14:45:20.056242+02:00
+updated: 2019-05-10T12:01:54.38575192-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -126,7 +126,7 @@ imports:
 - name: github.com/go-openapi/swag
   version: 5899d5c5e619fda5fa86e14795a835f473ca284c
 - name: github.com/gobuffalo/envy
-  version: 043cb4b8af871b49563291e32c66bb84378a60ac
+  version: 1e6702b55a7afe795770f86ce76c13836a591904
 - name: github.com/gogo/protobuf
   version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
@@ -135,7 +135,7 @@ imports:
   - protoc-gen-gogo/descriptor
   - sortkeys
 - name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -199,7 +199,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 168fd4e3c55217ad0042c4ee1ec79e9ce40d5c21
+  version: 81d064c11ff2d62705dbb09ed9ac200ef9557716
   subpackages:
   - apps
   - apps/v1
@@ -264,7 +264,7 @@ imports:
   - operator/informers/externalversions/operator/v1
   - operator/listers/operator/v1
 - name: github.com/openshift/library-go
-  version: 30efb8b70b661872bd0fd9de4ae37f61815bf161
+  version: 174f3b6f6711a5024b9487ddc06858a09f655682
   subpackages:
   - cmd/crd-schema-gen/generator
   - pkg/assets
@@ -337,7 +337,7 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/rogpeppe/go-internal
-  version: 438578804ca6f31be148c27683afc419ce47c06e
+  version: bb30e2a7ca3553a66c6a740eb5ebe72f9d35ef0e
   subpackages:
   - modfile
   - module
@@ -807,7 +807,7 @@ imports:
   - parser
   - types
 - name: k8s.io/klog
-  version: e531227889390a39d9533dde61f590fe9f4b0035
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-aggregator
   version: 3e0149950b0e22a3b8579db52bd50e40d0dac10e
   subpackages:

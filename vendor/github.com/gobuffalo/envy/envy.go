@@ -68,16 +68,8 @@ func loadEnv() {
 	}
 }
 
-// Mods returns true if module support is enabled, false otherwise
-// See https://github.com/golang/go/wiki/Modules#how-to-install-and-activate-module-support for details
 func Mods() bool {
-	go111 := Get(GO111MODULE, "")
-
-	if !InGoPath() {
-		return go111 != "off"
-	}
-
-	return go111 == "on"
+	return Get(GO111MODULE, "off") == "on"
 }
 
 // Reload the ENV variables. Useful if
