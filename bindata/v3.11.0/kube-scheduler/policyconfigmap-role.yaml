@@ -1,4 +1,4 @@
-#As of now, system:kube-scheduler role cannot list configmaps from openshift-kube-scheduler namespace. So, creating a role.
+# As of now, system:kube-scheduler role cannot list, create or update configmaps from openshift-kube-scheduler namespace. So, creating a role.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -11,3 +11,5 @@ rules:
   - configmaps
   verbs:
   - get
+  - create
+  - update

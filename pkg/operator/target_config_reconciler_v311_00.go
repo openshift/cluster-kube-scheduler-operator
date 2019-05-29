@@ -42,8 +42,6 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 		"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
 		"v3.11.0/kube-scheduler/policyconfigmap-role.yaml",
 		"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
-		"v3.11.0/kube-scheduler/leader-election-configmap-role.yaml",
-		"v3.11.0/kube-scheduler/configmap-leaderelection-rolebinding.yaml",
 		"v3.11.0/kube-scheduler/svc.yaml",
 		"v3.11.0/kube-scheduler/sa.yaml",
 	)
