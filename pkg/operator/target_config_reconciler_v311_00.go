@@ -2,7 +2,6 @@ package operator
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -32,7 +31,6 @@ const TargetPolicyConfigMapName = "policy-configmap"
 // syncKubeScheduler_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
 func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (bool, error) {
-	operatorConfigOriginal := operatorConfig.DeepCopy()
 	errors := []error{}
 
 	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, v311_00_assets.Asset,
@@ -66,32 +64,24 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	}
 
 	if len(errors) > 0 {
-		message := ""
-		for _, err := range errors {
-			message = message + err.Error() + "\n"
-		}
-		v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-			Type:    "TargetConfigReconcilerDegraded",
+		condition := operatorv1.OperatorCondition{
+			Type:    "TargetConfigControllerDegraded",
 			Status:  operatorv1.ConditionTrue,
 			Reason:  "SynchronizationError",
-			Message: message,
-		})
-		if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
-			_, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig)
-			return true, updateError
+			Message: v1helpers.NewMultiLineAggregate(errors).Error(),
+		}
+		if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
+			return true, err
 		}
 		return true, nil
 	}
 
-	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-		Type:   "TargetConfigReconcilerDegraded",
+	condition := operatorv1.OperatorCondition{
+		Type:   "TargetConfigControllerDegraded",
 		Status: operatorv1.ConditionFalse,
-	})
-	if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
-		_, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig)
-		if updateError != nil {
-			return true, updateError
-		}
+	}
+	if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
+		return true, err
 	}
 
 	return false, nil
