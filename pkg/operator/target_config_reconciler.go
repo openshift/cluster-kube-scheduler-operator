@@ -2,7 +2,6 @@ package operator
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"k8s.io/klog"
@@ -30,7 +29,7 @@ import (
 type TargetConfigReconciler struct {
 	targetImagePullSpec  string
 	operatorConfigClient operatorv1client.KubeSchedulersGetter
-
+	operatorClient       v1helpers.StaticPodOperatorClient
 	kubeClient           kubernetes.Interface
 	eventRecorder        events.Recorder
 	configMapLister      corev1listers.ConfigMapLister
@@ -49,6 +48,7 @@ func NewTargetConfigReconciler(
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
 	operatorConfigClient operatorv1client.KubeSchedulersGetter,
+	operatorClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
@@ -57,6 +57,7 @@ func NewTargetConfigReconciler(
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
+		operatorClient:       operatorClient,
 		eventRecorder:        eventRecorder,
 
 		SchedulerLister:      configInformer.Config().V1().Schedulers().Lister(),
@@ -93,34 +94,25 @@ func (c TargetConfigReconciler) sync() error {
 	if err != nil {
 		return err
 	}
-	operatorConfigOriginal := operatorConfig.DeepCopy()
 
 	switch operatorConfig.Spec.ManagementState {
+	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
 
 	case operatorv1.Removed:
 		// TODO probably just fail
 		return nil
+	default:
+		c.eventRecorder.Warningf("ManagementStateUnknown", "Unrecognized operator management state %q", operatorConfig.Spec.ManagementState)
+		return nil
 	}
 	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorConfig)
-	if requeue && err == nil {
-		return fmt.Errorf("synthetic requeue request")
-	}
-
 	if err != nil {
-		if !reflect.DeepEqual(operatorConfigOriginal, operatorConfig) {
-			v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-				Type:    operatorv1.OperatorStatusTypeDegraded,
-				Status:  operatorv1.ConditionTrue,
-				Reason:  "StatusUpdateError",
-				Message: err.Error(),
-			})
-			if _, updateError := c.operatorConfigClient.KubeSchedulers().UpdateStatus(operatorConfig); updateError != nil {
-				klog.Error(updateError)
-			}
-		}
 		return err
+	}
+	if requeue {
+		return fmt.Errorf("synthetic requeue request")
 	}
 
 	return nil
