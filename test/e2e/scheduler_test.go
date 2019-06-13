@@ -177,14 +177,14 @@ func TestConfigMapCreation(t *testing.T) {
 	}
 }
 
-func waitForOperatorToBeUpdated(opClient operatorclientv1.OperatorV1Interface, status string) error {
+func waitForOperatorDegradedStateToBeRemoved(opClient operatorclientv1.OperatorV1Interface, status string) error {
 	return wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
 		schedulerConfig, err := opClient.KubeSchedulers().Get("cluster", metav1.GetOptions{})
 		if err != nil {
 			klog.Infof("Scheduler operator CR cluster doesn't exist: %v\n", err)
 			return false, nil
 		}
-		klog.Infof("Scheduler operator CR cluster exists")
+		klog.Info("Scheduler operator CR cluster exists. Let's proceed to check it's status")
 		for _, condition := range schedulerConfig.Status.Conditions {
 			if condition.Type == status {
 				return false, nil
@@ -216,24 +216,7 @@ func TestStaleConditionRemoval(t *testing.T) {
 	if _, err := opClient.KubeSchedulers().UpdateStatus(operatorConfig); err != nil {
 		t.Fatalf("failed to update scheduler operator status with error %v", err)
 	}
-	if err := waitForOperatorToBeUpdated(opClient, "Degraded"); err != nil {
-		t.Fatalf("Timed out waiting for scheduler operator status to be updated")
-	}
-	operatorConfig, err = opClient.KubeSchedulers().Get("cluster", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("failed to get scheduler operator config with error %v", err)
-	}
-	// This to test upgrade path, where older versions report
-	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-		Type:    "TargetConfigControllerDegraded",
-		Status:  operatorv1.ConditionTrue,
-		Reason:  "Synchronization error",
-		Message: "Forced Error",
-	})
-	if _, err := opClient.KubeSchedulers().UpdateStatus(operatorConfig); err != nil {
-		t.Fatalf("failed to update scheduler operator status with error %v", err)
-	}
-	if err := waitForOperatorToBeUpdated(opClient, "TargetConfigControllerDegraded"); err != nil {
+	if err := waitForOperatorDegradedStateToBeRemoved(opClient, "Degraded"); err != nil {
 		t.Fatalf("Timed out waiting for scheduler operator status to be updated")
 	}
 }
