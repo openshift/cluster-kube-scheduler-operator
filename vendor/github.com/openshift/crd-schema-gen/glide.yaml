@@ -1,0 +1,13 @@
+package: github.com/openshift/crd-schema-gen
+import:
+- package: github.com/evanphx/json-patch
+- package: github.com/openshift/library-go
+  version: master
+- package: gopkg.in/yaml.v2
+- package: k8s.io/apiextensions-apiserver
+  repo: https://github.com/openshift/kubernetes-apiextensions-apiserver
+  version: 6e2b3eb1b401beaf836f640f73f730f6da7aff2f # pinned to get nullable patch
+- package: k8s.io/apimachinery
+- package: sigs.k8s.io/controller-tools
+  version: master
+  repo: https://github.com/openshift/kubernetes-sigs-controller-tools.git
