@@ -40,10 +40,10 @@ clean:
 .PHONY: clean
 
 update-codegen-crds:
-	go run ./vendor/github.com/openshift/library-go/cmd/crd-schema-gen/main.go --domain openshift.io --apis-dir vendor/github.com/openshift/api
+	go run ./vendor/github.com/openshift/crd-schema-gen/cmd/crd-schema-gen --apis-dir vendor/github.com/openshift/api
 update-codegen: update-codegen-crds
 verify-codegen-crds:
-	go run ./vendor/github.com/openshift/library-go/cmd/crd-schema-gen/main.go --domain openshift.io --apis-dir vendor/github.com/openshift/api --verify-only
+	go run ./vendor/github.com/openshift/crd-schema-gen/cmd/crd-schema-gen --apis-dir vendor/github.com/openshift/api --verify-only
 verify-codegen: verify-codegen-crds
 verify: verify-codegen
 

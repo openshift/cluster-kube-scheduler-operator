@@ -30,6 +30,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: +required
           properties:
             failedRevisionLimit:
               description: failedRevisionLimit is the number of failed static pod
@@ -53,13 +54,11 @@ spec:
             managementState:
               description: managementState indicates whether and how the operator
                 should manage the component
-              pattern: ^(Managed|Unmanaged|Force|Removed)$
               type: string
             observedConfig:
               description: observedConfig holds a sparse config that controller has
                 observed from the cluster state.  It exists in spec because it is
-                an input to the level for the operator
-              nullable: true
+                an input to the level for the operator +nullable
               type: object
             operatorLogLevel:
               description: operatorLogLevel is an intent based logging for the operator
@@ -77,9 +76,16 @@ spec:
               description: 'unsupportedConfigOverrides holds a sparse config that
                 will override any previously set options.  It only needs to be the
                 fields to override it will end up overlaying in the following order:
-                1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides'
-              nullable: true
+                1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides
+                +nullable'
               type: object
+          required:
+          - managementState
+          - logLevel
+          - operatorLogLevel
+          - unsupportedConfigOverrides
+          - observedConfig
+          - forceRedeploymentReason
           type: object
         status:
           properties:
@@ -98,6 +104,9 @@ spec:
                     type: string
                   type:
                     type: string
+                required:
+                - type
+                - status
                 type: object
               type: array
             generations:
@@ -127,6 +136,13 @@ spec:
                     description: resource is the resource type of the thing you're
                       tracking
                     type: string
+                required:
+                - group
+                - resource
+                - namespace
+                - name
+                - lastGeneration
+                - hash
                 type: object
               type: array
             latestAvailableRevision:
@@ -167,6 +183,9 @@ spec:
                       we're trying to apply
                     format: int32
                     type: integer
+                required:
+                - nodeName
+                - currentRevision
                 type: object
               type: array
             observedGeneration:
@@ -182,6 +201,12 @@ spec:
             version:
               description: version is the level this availability applies to
               type: string
+          required:
+          - readyReplicas
+          - latestAvailableRevision
+          - latestAvailableRevisionReason
           type: object
       required:
+      - metadata
       - spec
+      - status
