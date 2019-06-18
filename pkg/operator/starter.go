@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/staleconditions"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -136,6 +138,15 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		ctx.EventRecorder,
 	)
 
+	staleConditions := staleconditions.NewRemoveStaleConditions(
+		[]string{
+			// in 4.1.0 this was accidentally in the list.  This can be removed in 4.3.
+			"Degraded",
+		},
+		operatorClient,
+		ctx.EventRecorder,
+	)
+
 	operatorConfigInformers.Start(ctx.Done())
 	kubeInformersClusterScoped.Start(ctx.Done())
 	kubeInformersNamespace.Start(ctx.Done())
@@ -147,6 +158,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	go targetConfigReconciler.Run(1, ctx.Done())
 	go configObserver.Run(1, ctx.Done())
 	go clusterOperatorStatus.Run(1, ctx.Done())
+	go staleConditions.Run(1, ctx.Done())
 
 	<-ctx.Done()
 	return fmt.Errorf("stopped")
