@@ -13,7 +13,6 @@
 // bindata/v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml
 // bindata/v3.11.0/kube-scheduler/sa.yaml
 // bindata/v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml
-// bindata/v3.11.0/kube-scheduler/servicemonitor.yaml
 // bindata/v3.11.0/kube-scheduler/svc.yaml
 // DO NOT EDIT!
 
@@ -235,6 +234,7 @@ metadata:
   name: openshift-kube-scheduler
   labels:
     openshift.io/run-level: "0"
+    openshift.io/cluster-monitoring: "true"
 `)
 
 func v3110KubeSchedulerNsYamlBytes() ([]byte, error) {
@@ -472,43 +472,6 @@ func v3110KubeSchedulerSchedulerClusterrolebindingYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v3110KubeSchedulerServicemonitorYaml = []byte(`apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  labels:
-    k8s-app: kube-scheduler
-  name: kube-scheduler
-  namespace: openshift-kube-scheduler
-spec:
-  endpoints:
-  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-    interval: 30s
-    port: https
-    scheme: https
-    tlsConfig:
-      insecureSkipVerify: true
-  jobLabel: null
-  namespaceSelector:
-    matchNames:
-    - openshift-kube-scheduler
-  selector: {}
-`)
-
-func v3110KubeSchedulerServicemonitorYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerServicemonitorYaml, nil
-}
-
-func v3110KubeSchedulerServicemonitorYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerServicemonitorYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/servicemonitor.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _v3110KubeSchedulerSvcYaml = []byte(`apiVersion: v1
 kind: Service
 metadata:
@@ -607,7 +570,6 @@ var _bindata = map[string]func() (*asset, error){
 	"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml":             v3110KubeSchedulerPolicyconfigmapRolebindingYaml,
 	"v3.11.0/kube-scheduler/sa.yaml":                                      v3110KubeSchedulerSaYaml,
 	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml":            v3110KubeSchedulerSchedulerClusterrolebindingYaml,
-	"v3.11.0/kube-scheduler/servicemonitor.yaml":                          v3110KubeSchedulerServicemonitorYaml,
 	"v3.11.0/kube-scheduler/svc.yaml":                                     v3110KubeSchedulerSvcYaml,
 }
 
@@ -667,7 +629,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"policyconfigmap-rolebinding.yaml":             {v3110KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
 			"sa.yaml":                                      {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
 			"scheduler-clusterrolebinding.yaml":            {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
-			"servicemonitor.yaml":                          {v3110KubeSchedulerServicemonitorYaml, map[string]*bintree{}},
 			"svc.yaml":                                     {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},

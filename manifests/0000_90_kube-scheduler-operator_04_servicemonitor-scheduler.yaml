@@ -13,7 +13,6 @@ spec:
     scheme: https
     tlsConfig:
       insecureSkipVerify: true
-  jobLabel: null
   namespaceSelector:
     matchNames:
     - openshift-kube-scheduler
