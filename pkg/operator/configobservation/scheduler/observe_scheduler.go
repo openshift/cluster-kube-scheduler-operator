@@ -19,7 +19,9 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 	errs := []error{}
 	prevObservedConfig := map[string]interface{}{}
 	policyConfigMapRootPath := []string{"algorithmSource", "policy", "configMap"}
+	// Name of the policy configmap. This should come after the policyConfigMapRootPath
 	policyConfigMapNamePath := append(policyConfigMapRootPath, "name")
+	// Namespace where the policy configmap exists. This should come after the policyConfigMapRootPath
 	policyConfigMapNamespacePath := append(policyConfigMapRootPath, "namespace")
 	currentPolicyConfigMapName, _, err := unstructured.NestedString(existingConfig, policyConfigMapNamePath...)
 	if err != nil {
@@ -52,24 +54,34 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 	}
 	configMapName := schedulerConfig.Spec.Policy.Name
 
-	if len(configMapName) == 0 {
-		return observedConfig, errs
+	var sourceTargetLocation resourcesynccontroller.ResourceLocation
+	switch {
+	case len(configMapName) == 0:
+		sourceTargetLocation = resourcesynccontroller.ResourceLocation{}
+	case len(configMapName) > 0:
+		sourceTargetLocation = resourcesynccontroller.ResourceLocation{
+			Namespace: operatorclient.GlobalUserSpecifiedConfigNamespace,
+			Name:      configMapName,
+		}
 	}
 
+	// Sync the configmap from openshift-config namespace to openshift-kube-scheduler namespace. If the configMapName
+	// is empty string, it will mirror the deletion as well.
 	err = listers.ResourceSyncer().SyncConfigMap(
 		resourcesynccontroller.ResourceLocation{
 			Namespace: operatorclient.TargetNamespace,
-			Name:      configMapName,
+			Name:      "policy-configmap",
 		},
-		resourcesynccontroller.ResourceLocation{
-			Namespace: operatorclient.GlobalUserSpecifiedConfigNamespace,
-			Name:      configMapName,
-		},
+		sourceTargetLocation,
 	)
+	if len(configMapName) == 0 {
+		return prevObservedConfig, errs
+	}
 	if err != nil {
 		errs = append(errs, err)
 		return prevObservedConfig, errs
 	}
+
 	if err := unstructured.SetNestedField(observedConfig, configMapName, policyConfigMapNamePath...); err != nil {
 		errs = append(errs, err)
 	}
