@@ -33,7 +33,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"ExperimentalCriticalPodAnnotation": true,
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
-				"CSIBlockVolume":                    true,
 				"LocalStorageCapacityIsolation":     false,
 			},
 		},

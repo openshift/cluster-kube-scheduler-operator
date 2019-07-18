@@ -1,5 +1,5 @@
-hash: 4d7198f721e90bcf9ac570247f4960bbe1ad873f882430796a2c9e9dca6be501
-updated: 2019-06-21T11:21:38.454727+02:00
+hash: 89b739484cfae765384bf30e30064857c82c4b26307bf5089eafab0e2aa73ecf
+updated: 2019-07-11T13:24:55.527222716-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -89,7 +89,7 @@ imports:
   - daemon
   - journal
 - name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
 - name: github.com/emicklei/go-restful
@@ -101,7 +101,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
-  version: 25d852aebe32c875e9c044af3eef9c7dc6bc777f
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-openapi/jsonpointer
   version: ef5f0afec364d3b9396b7b77b43dbe26bf1f8004
 - name: github.com/go-openapi/jsonreference
@@ -110,8 +110,6 @@ imports:
   version: 5bae59e25b21498baea7f9d46e9c147ec106a42e
 - name: github.com/go-openapi/swag
   version: 5899d5c5e619fda5fa86e14795a835f473ca284c
-- name: github.com/gobuffalo/envy
-  version: 043cb4b8af871b49563291e32c66bb84378a60ac
 - name: github.com/gogo/protobuf
   version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
@@ -119,8 +117,6 @@ imports:
   - proto
   - protoc-gen-gogo/descriptor
   - sortkeys
-- name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -151,8 +147,6 @@ imports:
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- name: github.com/joho/godotenv
-  version: 5c0e6c6ab1a0a9ef0a8822cba3a05d62f7dad941
 - name: github.com/json-iterator/go
   version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
 - name: github.com/jteeuwen/go-bindata
@@ -163,8 +157,6 @@ imports:
   - buffer
   - jlexer
   - jwriter
-- name: github.com/markbates/inflect
-  version: d582c680dc4d29c2279628ae00e743005bfcd4fe
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -178,7 +170,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: a77179bc5896d5391a200f8a4578f092f8828178
+  version: cf189d3400156fba0afb233aa8fca57a7ff61cb2
   subpackages:
   - apps
   - apps/v1
@@ -224,7 +216,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8892c0adc000741c33af70e05f4ede47725d0773
+  version: c44a8b61b9f46cd9e802384dfeda0bc9942db68a
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
@@ -237,15 +229,17 @@ imports:
   - operator/clientset/versioned
   - operator/clientset/versioned/scheme
   - operator/clientset/versioned/typed/operator/v1
+  - operator/clientset/versioned/typed/operator/v1alpha1
   - operator/informers/externalversions
   - operator/informers/externalversions/internalinterfaces
   - operator/informers/externalversions/operator
   - operator/informers/externalversions/operator/v1
+  - operator/informers/externalversions/operator/v1alpha1
   - operator/listers/operator/v1
+  - operator/listers/operator/v1alpha1
 - name: github.com/openshift/library-go
-  version: a892dfa31808d111be9ed476cba127c4eadb7a61
+  version: f8abdcd57c468b7f49a91caa77212c12bd05fa9f
   subpackages:
-  - cmd/crd-schema-gen/generator
   - pkg/assets
   - pkg/config/client
   - pkg/config/clusteroperator/v1helpers
@@ -288,8 +282,6 @@ imports:
   - pkg/serviceability
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
-- name: github.com/pkg/errors
-  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
   version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
 - name: github.com/prometheus/client_golang
@@ -314,18 +306,8 @@ imports:
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
-- name: github.com/rogpeppe/go-internal
-  version: 6f68bf1e81f8552c7dbd47f3bc4371c2db0941a6
-  subpackages:
-  - modfile
-  - module
-  - semver
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
-- name: github.com/spf13/afero
-  version: 588a75ec4f32903aa5e39a2619ba6a4631e28424
-  subpackages:
-  - mem
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -375,11 +357,6 @@ imports:
   version: f51c12702a4d776e4c1fa9b0fabab841babae631
   subpackages:
   - rate
-- name: golang.org/x/tools
-  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
-  subpackages:
-  - go/ast/astutil
-  - imports
 - name: google.golang.org/appengine
   version: b2f4a3cf3c67576a2ee09e1fe62656a5086ce880
   subpackages:
@@ -428,7 +405,7 @@ imports:
 - name: gopkg.in/natefinch/lumberjack.v2
   version: 20b71e5b60d756d3d2f80def009790325acc2b23
 - name: gopkg.in/yaml.v2
-  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
   version: 40a48860b5abbba9aa891b02b32da429b08d96a0
   subpackages:
@@ -471,8 +448,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: d4b26e32461e939592c021a8a75d9f1b2c809d08
-  repo: https://github.com/openshift/kubernetes-apiextensions-apiserver
+  version: 53c4693659ed354d76121458fb819202dd1635fa
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
@@ -784,7 +760,7 @@ imports:
 - name: k8s.io/code-generator
   version: 50b561225d70b3eb79a1faafd3dfe7b1a62cbe73
 - name: k8s.io/component-base
-  version: 4a91899592f42b2f5859587cc5a676a5b94d2ee3
+  version: f0322db00a103489b85cb3835886741a3911636b
   subpackages:
   - cli/flag
   - logs
@@ -792,12 +768,8 @@ imports:
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
   subpackages:
   - args
-  - generator
-  - namer
-  - parser
-  - types
 - name: k8s.io/klog
-  version: e15309493592bfe9c98ae656cf2ee299f710146b
+  version: 8e90cee79f823779174776412c13478955131846
 - name: k8s.io/kube-aggregator
   version: da8327669ac57b6e6a06676eeb7de19c9780f76d
   subpackages:
@@ -822,16 +794,6 @@ imports:
   - integer
   - pointer
   - trace
-- name: sigs.k8s.io/controller-tools
-  version: 72ae52c08b9dd626cfb64ebef0fbf40ce667939b
-  repo: https://github.com/openshift/kubernetes-sigs-controller-tools
-  subpackages:
-  - pkg/crd/generator
-  - pkg/crd/util
-  - pkg/internal/codegen
-  - pkg/internal/codegen/parse
-  - pkg/internal/general
-  - pkg/util
 - name: sigs.k8s.io/structured-merge-diff
   version: e85c7b244fd2cc57bb829d73a061f93a441e63ce
   subpackages:
