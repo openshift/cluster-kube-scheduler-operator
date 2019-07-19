@@ -41,11 +41,19 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 			errs = append(errs, err)
 		}
 	}
-
+	sourceTargetLocation := resourcesynccontroller.ResourceLocation{}
 	observedConfig := map[string]interface{}{}
 	schedulerConfig, err := listers.SchedulerLister.Get("cluster")
 	if errors.IsNotFound(err) {
 		klog.Warningf("schedulers.config.openshift.io/cluster: not found")
+		// We don't have scheduler CR, so remove the policy configmap if it exists in openshift-kube-scheduler namespace
+		err = listers.ResourceSyncer().SyncConfigMap(
+			resourcesynccontroller.ResourceLocation{
+				Namespace: operatorclient.TargetNamespace,
+				Name:      "policy-configmap",
+			},
+			sourceTargetLocation,
+		)
 		return observedConfig, errs
 	}
 	if err != nil {
@@ -54,7 +62,6 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 	}
 	configMapName := schedulerConfig.Spec.Policy.Name
 
-	var sourceTargetLocation resourcesynccontroller.ResourceLocation
 	switch {
 	case len(configMapName) == 0:
 		sourceTargetLocation = resourcesynccontroller.ResourceLocation{}
