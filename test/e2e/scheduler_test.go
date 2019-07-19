@@ -15,11 +15,13 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"reflect"
 )
 
 func getKubeClient() (*k8sclient.Clientset, error) {
@@ -85,7 +87,7 @@ func waitForOperator(kclient *k8sclient.Clientset) error {
 
 }
 
-func createSchedulerConfigMap(kclient *k8sclient.Clientset) error {
+func createSchedulerConfigMap(kclient *k8sclient.Clientset) (*corev1.ConfigMap, error) {
 	schedulerConfigMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -98,10 +100,11 @@ func createSchedulerConfigMap(kclient *k8sclient.Clientset) error {
 			"policy.cfg": "{\n\"kind\" : \"Policy\",\n\"apiVersion\" : \"v1\",\n\"predicates\" : [\n\t{\"name\" : \"PodFitsHostPorts\"},\n\t{\"name\" : \"PodFitsResources\"},\n\t{\"name\": \"NoDiskConflict\"},\n\t{\"name\" : \"NoVolumeZoneConflict\"},\n\t{\"name\": \"MatchNodeSelector\"},\n\t{\"name\" : \"HostName\"}\n\t],\n\"priorities\" : [\n\t{\"name\" : \"LeastRequestedPriority\", \"weight\" : 1},\n\t{\"name\" : \"BalancedResourceAllocation\", \"weight\" : 1},\n\t{\"name\" : \"ServiceSpreadingPriority\", \"weight\" : 5},\n\t{\"name\" : \"EqualPriority\", \"weight\" : 1}\n\t]\n}\n",
 		},
 	}
-	if _, err := kclient.CoreV1().ConfigMaps("openshift-config").Create(schedulerConfigMap); err != nil {
-		return err
+	cm, err := kclient.CoreV1().ConfigMaps("openshift-config").Create(schedulerConfigMap)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return cm, nil
 }
 
 func waitForConfigMapUpdate(kclient *k8sclient.Clientset) error {
@@ -139,7 +142,7 @@ func TestConfigMapCreation(t *testing.T) {
 		t.Fatalf("failed to get openshift config client with error %v", err)
 	}
 
-	if err = createSchedulerConfigMap(kclient); err != nil {
+	if _, err = createSchedulerConfigMap(kclient); err != nil {
 		t.Fatalf("failed creating configmap with error %v\n", err)
 	}
 
@@ -175,6 +178,110 @@ func TestConfigMapCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error waiting for config map to exist: %v\n", err)
 	}
+
+}
+
+func TestPolicyConfigMapUpdate(t *testing.T) {
+	kclient, err := getKubeClient()
+	if err != nil {
+		t.Fatalf("failed to get kubeclient with error %v", err)
+	}
+	configClient, err := getOpenShiftConfigClient()
+	if err != nil {
+		t.Fatalf("failed to get openshift config client with error %v", err)
+	}
+
+	cm, err := createSchedulerConfigMap(kclient)
+	if err != nil {
+		t.Fatalf("failed creating configmap with error %v\n", err)
+	}
+	// Get scheduler CR
+	schedulerCR, err := configClient.ConfigV1().Schedulers().Get("cluster", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error while listing scheduler with error %v\n", err)
+
+	}
+
+	// Update scheduler CR to the name of the config map we just created.
+	schedulerCR.Spec.Policy.Name = "policy-configmap"
+	if _, err = configClient.ConfigV1().Schedulers().Update(schedulerCR); err != nil {
+		t.Fatalf("Error while updating scheduler CR with error %v", err)
+	}
+	// Get the latest configmap running from openshift-kube-scheduler namespace, the configmap config should be
+	// updated with latest changes
+	if err := waitForConfigMapUpdate(kclient); err != nil {
+		t.Fatal("Timed out waiting for configmap to be updated")
+	}
+
+	// Update the configmap data in openshift-config namespace.
+	// Once the update in openshift-configmap namespace is successful
+	// the policy configmap in openshift-kube-scheduler namespace
+	// should have been updated
+	cm.Data = map[string]string{
+		"policy.cfg": "{\n\"kind\" : \"Policy\",\n\"apiVersion\" : \"v1\",\n\"predicates\" : [\n\t{\"name\" : \"PodFitsHostPorts\"},\n\t{\"name\" : \"PodFitsResources\"},\n\t{\"name\": \"NoDiskConflict\"},\n\t{\"name\" : \"NoVolumeZoneConflict\"},\n\t{\"name\": \"MatchNodeSelector\"},\n\t{\"name\" : \"HostName\"}\n\t],\n\"priorities\" : [\n\t{\"name\" : \"LeastRequestedPriority\", \"weight\" : 1},\n\t{\"name\" : \"ServiceSpreadingPriority\", \"weight\" : 5},\n\t{\"name\" : \"EqualPriority\", \"weight\" : 1}\n\t]\n}\n",
+	}
+	if _, err = kclient.CoreV1().ConfigMaps("openshift-config").Update(cm); err != nil {
+		t.Fatalf("Configmap updating failed with error %v", err)
+	}
+
+	cm, err = kclient.CoreV1().ConfigMaps("openshift-config").Get(cm.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Configmap updating failed with error %v", err)
+	}
+	policyConfigMap, err := waitForPolicyConfigMapCreation(kclient, cm)
+	if err != nil {
+		t.Fatalf("Configmap mismatch: CM generated in openshift-kube-scheduler namespace is %v and configmap in openshift-config namespace is %v", policyConfigMap.Data["policy.cfg"], cm.Data["policy.cfg"])
+	}
+
+	// Reset scheduler CR
+	schedulerCR, err = configClient.ConfigV1().Schedulers().Get("cluster", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error while listing scheduler with error %v\n", err)
+	}
+	schedulerCR.Spec = configv1.SchedulerSpec{}
+	if _, err = configClient.ConfigV1().Schedulers().Update(schedulerCR); err != nil {
+		t.Fatalf("Error while updating scheduler CR with error %v", err)
+	}
+
+	// Delete the config map that was created
+	err = kclient.CoreV1().ConfigMaps("openshift-config").Delete("policy-configmap", nil)
+	if err != nil {
+		t.Fatalf("error waiting for config map to exist: %v\n", err)
+	}
+	// We expect the configmap in openshift-kube-scheduler namespace to be deleted as well
+	if err := waitForPolicyConfigMapDeletion(kclient); err != nil {
+		t.Fatal("Expected policy configmap to be delete in openshift-kube-scheduler namespace but it still exists")
+	}
+}
+
+func waitForPolicyConfigMapCreation(kclient *k8sclient.Clientset, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	var policyCM *corev1.ConfigMap
+	err := wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+		var err error
+		policyCM, err = kclient.CoreV1().ConfigMaps("openshift-kube-scheduler").Get("policy-configmap", metav1.GetOptions{})
+		if err != nil {
+			klog.Infof("Policy configmap not yet created in openshift-kube-scheduler namespace with error %v", err)
+			return false, nil
+		}
+		if policyCM != nil && policyCM.Data != nil && reflect.DeepEqual(policyCM.Data, cm.Data) {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return policyCM, nil
+}
+
+func waitForPolicyConfigMapDeletion(kclient *k8sclient.Clientset) error {
+	return wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+		_, err := kclient.CoreV1().ConfigMaps("openshift-kube-scheduler").Get("policy-configmap", metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, nil
+	})
 }
 
 func waitForOperatorDegradedStateToBeRemoved(opClient operatorclientv1.OperatorV1Interface, status string) error {
