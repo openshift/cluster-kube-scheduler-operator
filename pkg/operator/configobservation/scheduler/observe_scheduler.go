@@ -89,7 +89,7 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 		return prevObservedConfig, errs
 	}
 
-	if err := unstructured.SetNestedField(observedConfig, configMapName, policyConfigMapNamePath...); err != nil {
+	if err := unstructured.SetNestedField(observedConfig, "policy-configmap", policyConfigMapNamePath...); err != nil {
 		errs = append(errs, err)
 	}
 	if configMapName != currentPolicyConfigMapName {

@@ -19,36 +19,51 @@ import (
 func TestObserveSchedulerConfig(t *testing.T) {
 	configMapName := "policy-configmap"
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-	if err := indexer.Add(&configv1.Scheduler{
-		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-		Spec: configv1.SchedulerSpec{
-			Policy: configv1.ConfigMapNameReference{Name: "policy-configmap"},
+	tests := []struct {
+		description   string
+		configMapName string
+	}{
+		{
+			description:   "A different configmap name but still we need to set the policy configmap to hardcoded value",
+			configMapName: "test-abc",
 		},
-	}); err != nil {
-		t.Fatal(err.Error())
+		{
+			description:   "A configmap with same name as policy-configmap but still we need to set the policy configmap to hardcoded value",
+			configMapName: "policy-configmap",
+		},
 	}
-	synced := map[string]string{}
-	listers := configobservation.Listers{
-		SchedulerLister: configlistersv1.NewSchedulerLister(indexer),
-		ResourceSync:    &mockResourceSyncer{t: t, synced: synced},
-	}
-	result, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
-	if len(errors) > 0 {
-		t.Fatalf("expected len(errors) == 0")
-	}
-	observedConfigMapName, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "name")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	observedConfigMapNamespace, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "namespace")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if observedConfigMapName != configMapName {
-		t.Fatalf("expected configmap to be %v but got %v", observedConfigMapName, configMapName)
-	}
-	if observedConfigMapNamespace != operatorclient.TargetNamespace {
-		t.Fatalf("expected target namespace to be %v but got %v", observedConfigMapName, configMapName)
+	for _, test := range tests {
+		if err := indexer.Add(&configv1.Scheduler{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+			Spec: configv1.SchedulerSpec{
+				Policy: configv1.ConfigMapNameReference{Name: test.configMapName},
+			},
+		}); err != nil {
+			t.Fatal(err.Error())
+		}
+		synced := map[string]string{}
+		listers := configobservation.Listers{
+			SchedulerLister: configlistersv1.NewSchedulerLister(indexer),
+			ResourceSync:    &mockResourceSyncer{t: t, synced: synced},
+		}
+		result, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
+		if len(errors) > 0 {
+			t.Fatalf("expected len(errors) == 0")
+		}
+		observedConfigMapName, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "name")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		observedConfigMapNamespace, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "namespace")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if observedConfigMapName != configMapName {
+			t.Fatalf("expected configmap to be %v but got %v for %v", observedConfigMapName, configMapName, test.description)
+		}
+		if observedConfigMapNamespace != operatorclient.TargetNamespace {
+			t.Fatalf("expected target namespace to be %v but got %v for %v", observedConfigMapName, configMapName, test.description)
+		}
 	}
 }
 
