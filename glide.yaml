@@ -12,15 +12,22 @@ import:
   version: kubernetes-1.14.0
 - package: k8s.io/code-generator
   version: kubernetes-1.14.0
+# matches upstream kube
+- package: k8s.io/kube-openapi
+  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
+- package: sigs.k8s.io/structured-merge-diff
+  version: e85c7b244fd2cc57bb829d73a061f93a441e63ce
+- package: k8s.io/gengo/args
+  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
+- package: github.com/evanphx/json-patch
+  version: 5858425f75500d40c52783dce87d085a483ce135
+
 - package: github.com/openshift/api
   version: master
 - package: github.com/openshift/client-go
   version: master
 - package: github.com/openshift/library-go
   version: master
+
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
-- package: k8s.io/gengo/args
-  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
-- package: github.com/evanphx/json-patch
-  version: 5858425f75500d40c52783dce87d085a483ce135

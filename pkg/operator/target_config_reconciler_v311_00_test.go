@@ -43,7 +43,9 @@ func TestCheckForFeatureGates(t *testing.T) {
 			indexer.Add(&configv1.FeatureGate{
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
 				Spec: configv1.FeatureGateSpec{
-					FeatureSet: tc.configValue,
+					FeatureGateSelection: configv1.FeatureGateSelection{
+						FeatureSet: tc.configValue,
+					},
 				},
 			})
 			featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
