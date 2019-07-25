@@ -81,7 +81,8 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	configObserver := configobservercontroller.NewConfigObserver(
 		operatorClient,
 		operatorConfigInformers,
-		kubeInformersNamespace,
+		kubeInformersForNamespaces,
+		configInformers,
 		resourceSyncController,
 		ctx.EventRecorder,
 	)
