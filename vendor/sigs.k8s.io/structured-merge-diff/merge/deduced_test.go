@@ -168,7 +168,7 @@ func TestDeduced(t *testing.T) {
 				},
 			},
 		},
-		"leaf_apply_twice_remove": {
+		"leaf_apply_twice_dangling": {
 			Ops: []Operation{
 				Apply{
 					Manager:    "default",
@@ -188,7 +188,9 @@ func TestDeduced(t *testing.T) {
 				},
 			},
 			Object: `
+				numeric: 1
 				string: "new string"
+				bool: false
 			`,
 			Managed: fieldpath.ManagedFields{
 				"default": &fieldpath.VersionedSet{
@@ -326,7 +328,9 @@ func TestDeduced(t *testing.T) {
 					Object:     ``,
 				},
 			},
-			Object:  ``,
+			Object: `
+				string: "string"
+			`,
 			Managed: fieldpath.ManagedFields{},
 		},
 		"apply_update_apply_nested": {
@@ -519,7 +523,7 @@ func TestDeduced(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if err := test.Test(typed.DeducedParseableType); err != nil {
+			if err := test.Test(typed.DeducedParseableType{}); err != nil {
 				t.Fatal(err)
 			}
 		})

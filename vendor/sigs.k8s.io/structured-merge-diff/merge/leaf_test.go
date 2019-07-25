@@ -28,7 +28,7 @@ import (
 var leafFieldsParser = func() typed.ParseableType {
 	parser, err := typed.NewParser(`types:
 - name: leafFields
-  map:
+  struct:
     fields:
     - name: numeric
       type:

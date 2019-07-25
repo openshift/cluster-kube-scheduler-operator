@@ -1,5 +1,5 @@
-hash: b99a53ed132fee4f84d57cb99611fb987fa0b4d6520079c9a2b0e80f27425a11
-updated: 2019-07-25T14:08:54.037913798-04:00
+hash: 00023239cfcc33f7c41bd646a59fc08b68940fd2e89f3ca8560404e12562de31
+updated: 2019-07-25T14:21:26.182153181-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -254,6 +254,7 @@ imports:
   - pkg/operator/condition
   - pkg/operator/configobserver
   - pkg/operator/events
+  - pkg/operator/genericoperatorclient
   - pkg/operator/loglevel
   - pkg/operator/management
   - pkg/operator/render
@@ -614,6 +615,8 @@ imports:
   subpackages:
   - discovery
   - dynamic
+  - dynamic/dynamicinformer
+  - dynamic/dynamiclister
   - informers
   - informers/admissionregistration
   - informers/admissionregistration/v1beta1
@@ -800,7 +803,7 @@ imports:
   - integer
   - trace
 - name: sigs.k8s.io/structured-merge-diff
-  version: 15d366b2352ea819e54ea9df299527b0f842a8c6
+  version: e85c7b244fd2cc57bb829d73a061f93a441e63ce
   subpackages:
   - fieldpath
   - merge
