@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/staleconditions"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -14,7 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
-
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
@@ -23,6 +20,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/status"
