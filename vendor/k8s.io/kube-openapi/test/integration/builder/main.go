@@ -109,8 +109,6 @@ func createWebServices() []*restful.WebService {
 	w.Route(buildRouteForType(w, "listtype", "AtomicList"))
 	w.Route(buildRouteForType(w, "listtype", "MapList"))
 	w.Route(buildRouteForType(w, "listtype", "SetList"))
-	w.Route(buildRouteForType(w, "uniontype", "TopLevelUnion"))
-	w.Route(buildRouteForType(w, "uniontype", "InlinedUnion"))
 	return []*restful.WebService{w}
 }
 

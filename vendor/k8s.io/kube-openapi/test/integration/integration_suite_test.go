@@ -31,7 +31,7 @@ import (
 const (
 	testdataDir              = "./testdata"
 	testPkgDir               = "k8s.io/kube-openapi/test/integration/testdata"
-	inputDir                 = testPkgDir + "/listtype" + "," + testPkgDir + "/dummytype" + "," + testPkgDir + "/uniontype"
+	inputDir                 = testPkgDir + "/listtype" + "," + testPkgDir + "/dummytype"
 	outputBase               = "pkg"
 	outputPackage            = "generated"
 	outputBaseFileName       = "openapi_generated"

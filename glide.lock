@@ -1,5 +1,5 @@
-hash: 00023239cfcc33f7c41bd646a59fc08b68940fd2e89f3ca8560404e12562de31
-updated: 2019-07-25T14:21:26.182153181-04:00
+hash: c392b3446476c8fe853be0818a1c1fd2b77f5f339595c4543bdbc3c9161b9dc6
+updated: 2019-07-25T14:22:53.37019396-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -788,7 +788,7 @@ imports:
   - pkg/client/clientset_generated/clientset/scheme
   - pkg/client/clientset_generated/clientset/typed/apiregistration/v1
 - name: k8s.io/kube-openapi
-  version: 33be087ad058f99c78e067996202b60230737e49
+  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
   subpackages:
   - pkg/builder
   - pkg/common
