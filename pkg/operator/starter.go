@@ -12,14 +12,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
-	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
@@ -51,7 +52,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		return err
 	}
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
-	operatorConfigInformers := operatorv1informers.NewSharedInformerFactory(operatorConfigClient, 10*time.Minute)
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient,
 		"",
 		operatorclient.GlobalUserSpecifiedConfigNamespace,
@@ -60,9 +60,9 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		operatorclient.TargetNamespace,
 		"kube-system",
 	)
-	operatorClient := &operatorclient.OperatorClient{
-		Informers: operatorConfigInformers,
-		Client:    operatorConfigClient.OperatorV1(),
+	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(ctx.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
+	if err != nil {
+		return err
 	}
 
 	kubeInformersClusterScoped := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
@@ -80,7 +80,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	}
 	configObserver := configobservercontroller.NewConfigObserver(
 		operatorClient,
-		operatorConfigInformers,
 		kubeInformersForNamespaces,
 		configInformers,
 		resourceSyncController,
@@ -88,8 +87,8 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	)
 
 	targetConfigReconciler := NewTargetConfigReconciler(
+		operatorClient,
 		os.Getenv("IMAGE"),
-		operatorConfigInformers.Operator().V1().KubeSchedulers(),
 		kubeInformersNamespace,
 		kubeInformersForNamespaces,
 		configInformers,
@@ -146,11 +145,11 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		ctx.EventRecorder,
 	)
 
-	operatorConfigInformers.Start(ctx.Done())
 	kubeInformersClusterScoped.Start(ctx.Done())
 	kubeInformersNamespace.Start(ctx.Done())
 	kubeInformersForNamespaces.Start(ctx.Done())
 	configInformers.Start(ctx.Done())
+	dynamicInformers.Start(ctx.Done())
 
 	go staticPodControllers.Run(ctx.Done())
 	go resourceSyncController.Run(1, ctx.Done())
