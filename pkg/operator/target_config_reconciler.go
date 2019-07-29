@@ -10,7 +10,6 @@ import (
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	operatorv1informers "github.com/openshift/client-go/operator/informers/externalversions/operator/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -42,19 +41,19 @@ type TargetConfigReconciler struct {
 }
 
 func NewTargetConfigReconciler(
+	operatorConfigClient v1helpers.OperatorClient,
 	targetImagePullSpec string,
-	operatorConfigInformer operatorv1informers.KubeSchedulerInformer,
 	namespacedKubeInformers informers.SharedInformerFactory,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
-	operatorConfigClient operatorv1client.KubeSchedulersGetter,
+	legacyOperatorConfigClient operatorv1client.KubeSchedulersGetter,
 	operatorClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
 		targetImagePullSpec:  targetImagePullSpec,
-		operatorConfigClient: operatorConfigClient,
+		operatorConfigClient: legacyOperatorConfigClient,
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
 		operatorClient:       operatorClient,
@@ -69,7 +68,7 @@ func NewTargetConfigReconciler(
 
 	// TODO: @ravig Remove this and move this to config observer code.
 	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
-	operatorConfigInformer.Informer().AddEventHandler(c.eventHandler())
+	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Rbac().V1().Roles().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Rbac().V1().RoleBindings().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
