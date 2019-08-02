@@ -48,7 +48,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig, c.SchedulerLister)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -85,7 +85,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, schedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
 	defaultConfig := v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
