@@ -82,6 +82,10 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 		sourceTargetLocation,
 	)
 	if len(configMapName) == 0 {
+		if len(currentPolicyConfigMapName) > 0 {
+			recorder.Eventf("ObservedConfigMapNameChanged", "scheduler configmap removed")
+			unstructured.RemoveNestedField(prevObservedConfig, "algorithmSource")
+		}
 		return prevObservedConfig, errs
 	}
 	if err != nil {
