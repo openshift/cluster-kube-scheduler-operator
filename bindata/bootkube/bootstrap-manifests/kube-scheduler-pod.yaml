@@ -13,15 +13,29 @@ spec:
   - name: kube-scheduler
     image: {{ .Image }}
     imagePullPolicy: {{ .ImagePullPolicy }}
-    command: ["/bin/bash", "-c"]
+    command: ["hyperkube", "kube-scheduler"]
     args:
-    - exec hyperkube kube-scheduler --kubeconfig=/etc/kubernetes/secrets/kubeconfig --leader-elect=true --cert-dir=/var/run/kubernetes --port 0 --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
+    - --kubeconfig=/etc/kubernetes/secrets/kubeconfig
+    - --leader-elect=true
+    - --cert-dir=/var/run/kubernetes
+    - --port=0
+    - --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig
+    - --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
+    - --logtostderr=false
+    - --alsologtostderr
+    - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
     volumeMounts:
     - mountPath: /etc/kubernetes/secrets
       name: secrets
       readOnly: true
+    - mountPath: /var/log/bootstrap-control-plane
+
+      name: logs
   hostNetwork: true
   volumes:
   - hostPath:
       path: {{ .SecretsHostPath }}
     name: secrets
+  - hostPath:
+      path: /var/log/bootstrap-control-plane
+    name: logs
