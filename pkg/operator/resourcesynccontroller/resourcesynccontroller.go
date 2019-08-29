@@ -21,8 +21,8 @@ func NewResourceSyncController(
 	resourceSyncController := resourcesynccontroller.NewResourceSyncController(
 		operatorConfigClient,
 		kubeInformersForNamespaces,
-		kubeClient.CoreV1(),
-		kubeClient.CoreV1(),
+		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
+		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		eventRecorder,
 	)
 
