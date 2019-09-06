@@ -16,6 +16,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configmetrics"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
@@ -144,6 +145,8 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		operatorClient,
 		ctx.EventRecorder,
 	)
+
+	configmetrics.Register(configInformers)
 
 	kubeInformersClusterScoped.Start(ctx.Done())
 	kubeInformersNamespace.Start(ctx.Done())
