@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v311_00_assets"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,15 +33,15 @@ const TargetPolicyConfigMapName = "policy-configmap"
 func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (bool, error) {
 	errors := []error{}
 
-	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, v311_00_assets.Asset,
-		"v3.11.0/kube-scheduler/ns.yaml",
-		"v3.11.0/kube-scheduler/kubeconfig-cm.yaml",
-		"v3.11.0/kube-scheduler/leader-election-rolebinding.yaml",
-		"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
-		"v3.11.0/kube-scheduler/policyconfigmap-role.yaml",
-		"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
-		"v3.11.0/kube-scheduler/svc.yaml",
-		"v3.11.0/kube-scheduler/sa.yaml",
+	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, v410_00_assets.Asset,
+		"v4.1.0/kube-scheduler/ns.yaml",
+		"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
+		"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
+		"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
+		"v4.1.0/kube-scheduler/policyconfigmap-role.yaml",
+		"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
+		"v4.1.0/kube-scheduler/svc.yaml",
+		"v4.1.0/kube-scheduler/sa.yaml",
 	)
 	for _, currResult := range directResourceResults {
 		if currResult.Error != nil {
@@ -86,8 +86,8 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 }
 
 func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (*corev1.ConfigMap, bool, error) {
-	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/cm.yaml"))
-	defaultConfig := v311_00_assets.MustAsset("v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
+	defaultConfig := v410_00_assets.MustAsset("v4.1.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
 	if err != nil {
 		return nil, false, err
@@ -96,7 +96,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 }
 
 func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter, secretsGetter coreclientv1.SecretsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, imagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
-	required := resourceread.ReadPodV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod.yaml"))
+	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
 		if len(required.Spec.InitContainers) > 0 {
@@ -130,7 +130,7 @@ func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter,
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
 	}
 
-	configMap := resourceread.ReadConfigMapV1OrDie(v311_00_assets.MustAsset("v3.11.0/kube-scheduler/pod-cm.yaml"))
+	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorConfig.Spec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
