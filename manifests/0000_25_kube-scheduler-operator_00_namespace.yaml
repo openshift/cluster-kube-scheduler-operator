@@ -5,4 +5,5 @@ metadata:
     openshift.io/node-selector: ""
   labels:
     openshift.io/run-level: "0"
+    openshift.io/cluster-monitoring: "true"
   name: openshift-kube-scheduler-operator
