@@ -2,7 +2,6 @@
 // sources:
 // bindata/v3.11.0/kube-scheduler/cm.yaml
 // bindata/v3.11.0/kube-scheduler/configmap-leaderelection-rolebinding.yaml
-// bindata/v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml
 // bindata/v3.11.0/kube-scheduler/defaultconfig.yaml
 // bindata/v3.11.0/kube-scheduler/kubeconfig-cm.yaml
@@ -110,35 +109,6 @@ func v3110KubeSchedulerConfigmapLeaderelectionRolebindingYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/configmap-leaderelection-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
-kind: KubeSchedulerConfiguration
-clientConnection:
-  kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
-leaderElection:
-  lockObjectNamespace: "openshift-kube-scheduler"
-  resourceLock: "configmaps"
-algorithmSource:
-  policy:
-    configMap:
-      name: "policy-configmap"
-      namespace: "openshift-kube-scheduler"
-`)
-
-func v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYamlBytes() ([]byte, error) {
-	return _v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml, nil
-}
-
-func v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml() (*asset, error) {
-	bytes, err := v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -618,22 +588,21 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"v3.11.0/kube-scheduler/cm.yaml":                                      v3110KubeSchedulerCmYaml,
-	"v3.11.0/kube-scheduler/configmap-leaderelection-rolebinding.yaml":    v3110KubeSchedulerConfigmapLeaderelectionRolebindingYaml,
-	"v3.11.0/kube-scheduler/defaultconfig-postbootstrap-with-policy.yaml": v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml,
-	"v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml":             v3110KubeSchedulerDefaultconfigPostbootstrapYaml,
-	"v3.11.0/kube-scheduler/defaultconfig.yaml":                           v3110KubeSchedulerDefaultconfigYaml,
-	"v3.11.0/kube-scheduler/kubeconfig-cm.yaml":                           v3110KubeSchedulerKubeconfigCmYaml,
-	"v3.11.0/kube-scheduler/leader-election-configmap-role.yaml":          v3110KubeSchedulerLeaderElectionConfigmapRoleYaml,
-	"v3.11.0/kube-scheduler/leader-election-rolebinding.yaml":             v3110KubeSchedulerLeaderElectionRolebindingYaml,
-	"v3.11.0/kube-scheduler/ns.yaml":                                      v3110KubeSchedulerNsYaml,
-	"v3.11.0/kube-scheduler/pod-cm.yaml":                                  v3110KubeSchedulerPodCmYaml,
-	"v3.11.0/kube-scheduler/pod.yaml":                                     v3110KubeSchedulerPodYaml,
-	"v3.11.0/kube-scheduler/policyconfigmap-role.yaml":                    v3110KubeSchedulerPolicyconfigmapRoleYaml,
-	"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml":             v3110KubeSchedulerPolicyconfigmapRolebindingYaml,
-	"v3.11.0/kube-scheduler/sa.yaml":                                      v3110KubeSchedulerSaYaml,
-	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml":            v3110KubeSchedulerSchedulerClusterrolebindingYaml,
-	"v3.11.0/kube-scheduler/svc.yaml":                                     v3110KubeSchedulerSvcYaml,
+	"v3.11.0/kube-scheduler/cm.yaml":                                   v3110KubeSchedulerCmYaml,
+	"v3.11.0/kube-scheduler/configmap-leaderelection-rolebinding.yaml": v3110KubeSchedulerConfigmapLeaderelectionRolebindingYaml,
+	"v3.11.0/kube-scheduler/defaultconfig-postbootstrap.yaml":          v3110KubeSchedulerDefaultconfigPostbootstrapYaml,
+	"v3.11.0/kube-scheduler/defaultconfig.yaml":                        v3110KubeSchedulerDefaultconfigYaml,
+	"v3.11.0/kube-scheduler/kubeconfig-cm.yaml":                        v3110KubeSchedulerKubeconfigCmYaml,
+	"v3.11.0/kube-scheduler/leader-election-configmap-role.yaml":       v3110KubeSchedulerLeaderElectionConfigmapRoleYaml,
+	"v3.11.0/kube-scheduler/leader-election-rolebinding.yaml":          v3110KubeSchedulerLeaderElectionRolebindingYaml,
+	"v3.11.0/kube-scheduler/ns.yaml":                                   v3110KubeSchedulerNsYaml,
+	"v3.11.0/kube-scheduler/pod-cm.yaml":                               v3110KubeSchedulerPodCmYaml,
+	"v3.11.0/kube-scheduler/pod.yaml":                                  v3110KubeSchedulerPodYaml,
+	"v3.11.0/kube-scheduler/policyconfigmap-role.yaml":                 v3110KubeSchedulerPolicyconfigmapRoleYaml,
+	"v3.11.0/kube-scheduler/policyconfigmap-rolebinding.yaml":          v3110KubeSchedulerPolicyconfigmapRolebindingYaml,
+	"v3.11.0/kube-scheduler/sa.yaml":                                   v3110KubeSchedulerSaYaml,
+	"v3.11.0/kube-scheduler/scheduler-clusterrolebinding.yaml":         v3110KubeSchedulerSchedulerClusterrolebindingYaml,
+	"v3.11.0/kube-scheduler/svc.yaml":                                  v3110KubeSchedulerSvcYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -680,21 +649,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	"v3.11.0": {nil, map[string]*bintree{
 		"kube-scheduler": {nil, map[string]*bintree{
 			"cm.yaml": {v3110KubeSchedulerCmYaml, map[string]*bintree{}},
-			"configmap-leaderelection-rolebinding.yaml":    {v3110KubeSchedulerConfigmapLeaderelectionRolebindingYaml, map[string]*bintree{}},
-			"defaultconfig-postbootstrap-with-policy.yaml": {v3110KubeSchedulerDefaultconfigPostbootstrapWithPolicyYaml, map[string]*bintree{}},
-			"defaultconfig-postbootstrap.yaml":             {v3110KubeSchedulerDefaultconfigPostbootstrapYaml, map[string]*bintree{}},
-			"defaultconfig.yaml":                           {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
-			"kubeconfig-cm.yaml":                           {v3110KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
-			"leader-election-configmap-role.yaml":          {v3110KubeSchedulerLeaderElectionConfigmapRoleYaml, map[string]*bintree{}},
-			"leader-election-rolebinding.yaml":             {v3110KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
-			"ns.yaml":                                      {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
-			"pod-cm.yaml":                                  {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
-			"pod.yaml":                                     {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
-			"policyconfigmap-role.yaml":                    {v3110KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
-			"policyconfigmap-rolebinding.yaml":             {v3110KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
-			"sa.yaml":                                      {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
-			"scheduler-clusterrolebinding.yaml":            {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
-			"svc.yaml":                                     {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
+			"configmap-leaderelection-rolebinding.yaml": {v3110KubeSchedulerConfigmapLeaderelectionRolebindingYaml, map[string]*bintree{}},
+			"defaultconfig-postbootstrap.yaml":          {v3110KubeSchedulerDefaultconfigPostbootstrapYaml, map[string]*bintree{}},
+			"defaultconfig.yaml":                        {v3110KubeSchedulerDefaultconfigYaml, map[string]*bintree{}},
+			"kubeconfig-cm.yaml":                        {v3110KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
+			"leader-election-configmap-role.yaml":       {v3110KubeSchedulerLeaderElectionConfigmapRoleYaml, map[string]*bintree{}},
+			"leader-election-rolebinding.yaml":          {v3110KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
+			"ns.yaml":                                   {v3110KubeSchedulerNsYaml, map[string]*bintree{}},
+			"pod-cm.yaml":                               {v3110KubeSchedulerPodCmYaml, map[string]*bintree{}},
+			"pod.yaml":                                  {v3110KubeSchedulerPodYaml, map[string]*bintree{}},
+			"policyconfigmap-role.yaml":                 {v3110KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
+			"policyconfigmap-rolebinding.yaml":          {v3110KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
+			"sa.yaml":                                   {v3110KubeSchedulerSaYaml, map[string]*bintree{}},
+			"scheduler-clusterrolebinding.yaml":         {v3110KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
+			"svc.yaml":                                  {v3110KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},
 }}
