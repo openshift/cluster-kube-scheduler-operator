@@ -23,4 +23,4 @@ spec:
     - openshift-kube-scheduler-operator
   selector:
     matchLabels:
-      app: kube-scheduler-operator
+      app: openshift-kube-scheduler-operator
