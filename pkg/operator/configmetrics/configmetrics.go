@@ -31,12 +31,12 @@ func (m *configMetrics) Describe(ch chan<- *prometheus.Desc) {
 // Collect calculates metrics from the cached config and reports them to the prometheus collector.
 func (m *configMetrics) Collect(ch chan<- prometheus.Metric) {
 	if config, err := m.configLister.Get("cluster"); err == nil {
-		var g prometheus.Gauge
-		var value float64
+		g := m.config
 		if config.Spec.MastersSchedulable {
-			value = 1
+			g.Set(1)
+		} else {
+			g.Set(0)
 		}
-		g.Set(value)
 		ch <- g
 	}
 }
