@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -32,6 +33,8 @@ type TargetConfigReconciler struct {
 	kubeClient           kubernetes.Interface
 	eventRecorder        events.Recorder
 	configMapLister      corev1listers.ConfigMapLister
+	configMapsGetter     corev1client.ConfigMapsGetter
+	secretMapsGetter     corev1client.SecretsGetter
 	featureGateLister    configlistersv1.FeatureGateLister
 	featureGateCacheSync cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
@@ -54,9 +57,10 @@ func NewTargetConfigReconciler(
 		operatorConfigClient: legacyOperatorConfigClient,
 		kubeClient:           kubeClient,
 		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
+		configMapsGetter:     v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
+		secretMapsGetter:     v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		operatorClient:       operatorClient,
 		eventRecorder:        eventRecorder,
-
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
 		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
 		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),

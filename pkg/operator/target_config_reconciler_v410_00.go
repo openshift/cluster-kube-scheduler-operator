@@ -48,15 +48,15 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.configMapsGetter, recorder, operatorConfig)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
-	_, _, err = manageServiceAccountCABundle(c.configMapLister, c.kubeClient.CoreV1(), recorder)
+	_, _, err = manageServiceAccountCABundle(c.configMapLister, c.configMapsGetter, recorder)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorConfig, c.targetImagePullSpec, c.featureGateLister)
+	_, _, err = managePod_v311_00_to_latest(c.configMapsGetter, c.secretMapsGetter, recorder, operatorConfig, c.targetImagePullSpec, c.featureGateLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
