@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -60,9 +59,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		return err
 	}
 
-	kubeInformersClusterScoped := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	kubeInformersNamespace := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithNamespace(operatorclient.TargetNamespace))
-
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
 		operatorClient,
 		kubeInformersForNamespaces,
@@ -84,7 +80,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	targetConfigReconciler := NewTargetConfigReconciler(
 		operatorClient,
 		os.Getenv("IMAGE"),
-		kubeInformersNamespace,
+		kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace),
 		kubeInformersForNamespaces,
 		configInformers,
 		operatorClient,
@@ -141,8 +137,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 
 	configmetrics.Register(configInformers)
 
-	kubeInformersClusterScoped.Start(ctx.Done())
-	kubeInformersNamespace.Start(ctx.Done())
 	kubeInformersForNamespaces.Start(ctx.Done())
 	configInformers.Start(ctx.Done())
 	dynamicInformers.Start(ctx.Done())
