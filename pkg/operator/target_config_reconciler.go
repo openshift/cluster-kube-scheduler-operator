@@ -9,12 +9,10 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -27,7 +25,6 @@ import (
 
 type TargetConfigReconciler struct {
 	targetImagePullSpec  string
-	operatorConfigClient operatorv1client.KubeSchedulersGetter
 	operatorClient       v1helpers.StaticPodOperatorClient
 	kubeClient           kubernetes.Interface
 	eventRecorder        events.Recorder
@@ -44,18 +41,16 @@ func NewTargetConfigReconciler(
 	namespacedKubeInformers informers.SharedInformerFactory,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
-	legacyOperatorConfigClient operatorv1client.KubeSchedulersGetter,
 	operatorClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
-		targetImagePullSpec:  targetImagePullSpec,
-		operatorConfigClient: legacyOperatorConfigClient,
-		kubeClient:           kubeClient,
-		configMapLister:      kubeInformersForNamespaces.ConfigMapLister(),
-		operatorClient:       operatorClient,
-		eventRecorder:        eventRecorder,
+		targetImagePullSpec: targetImagePullSpec,
+		kubeClient:          kubeClient,
+		configMapLister:     kubeInformersForNamespaces.ConfigMapLister(),
+		operatorClient:      operatorClient,
+		eventRecorder:       eventRecorder,
 
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
 		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
@@ -82,12 +77,12 @@ func NewTargetConfigReconciler(
 }
 
 func (c TargetConfigReconciler) sync() error {
-	operatorConfig, err := c.operatorConfigClient.KubeSchedulers().Get("cluster", metav1.GetOptions{})
+	operatorSpec, _, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
 
-	switch operatorConfig.Spec.ManagementState {
+	switch operatorSpec.ManagementState {
 	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
@@ -96,10 +91,10 @@ func (c TargetConfigReconciler) sync() error {
 		// TODO probably just fail
 		return nil
 	default:
-		c.eventRecorder.Warningf("ManagementStateUnknown", "Unrecognized operator management state %q", operatorConfig.Spec.ManagementState)
+		c.eventRecorder.Warningf("ManagementStateUnknown", "Unrecognized operator management state %q", operatorSpec.ManagementState)
 		return nil
 	}
-	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorConfig)
+	requeue, err := createTargetConfigReconciler_v311_00_to_latest(c, c.eventRecorder, operatorSpec)
 	if err != nil {
 		return err
 	}

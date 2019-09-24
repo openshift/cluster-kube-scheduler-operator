@@ -30,7 +30,7 @@ const TargetPolicyConfigMapName = "policy-configmap"
 
 // syncKubeScheduler_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (bool, error) {
+func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
 	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, v410_00_assets.Asset,
@@ -48,7 +48,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorConfig)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -56,7 +56,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorConfig, c.targetImagePullSpec, c.featureGateLister)
+	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.featureGateLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -85,17 +85,17 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
 	defaultConfig := v410_00_assets.MustAsset("v4.1.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
-	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorConfig.Spec.ObservedConfig.Raw, operatorConfig.Spec.UnsupportedConfigOverrides.Raw)
+	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorSpec.ObservedConfig.Raw, operatorSpec.UnsupportedConfigOverrides.Raw)
 	if err != nil {
 		return nil, false, err
 	}
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter, secretsGetter coreclientv1.SecretsGetter, recorder events.Recorder, operatorConfig *operatorv1.KubeScheduler, imagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter, secretsGetter coreclientv1.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	if len(imagePullSpec) > 0 {
 		required.Spec.Containers[0].Image = imagePullSpec
@@ -110,7 +110,7 @@ func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter,
 	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGates)
 	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
-	switch operatorConfig.Spec.LogLevel {
+	switch operatorSpec.LogLevel {
 	case operatorv1.Normal:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
 	case operatorv1.Debug:
@@ -132,7 +132,7 @@ func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter,
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
-	configMap.Data["forceRedeploymentReason"] = operatorConfig.Spec.ForceRedeploymentReason
+	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
 	return resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
 }
