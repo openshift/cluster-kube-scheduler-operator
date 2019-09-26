@@ -8,14 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
-	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configmetrics"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
@@ -38,20 +36,15 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	if err != nil {
 		return err
 	}
-	operatorConfigClient, err := operatorversionedclient.NewForConfig(ctx.KubeConfig)
-	if err != nil {
-		return err
-	}
-
 	dynamicClient, err := dynamic.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
-
 	configClient, err := configv1client.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
+
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient,
 		"",
@@ -65,9 +58,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	if err != nil {
 		return err
 	}
-
-	kubeInformersClusterScoped := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	kubeInformersNamespace := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithNamespace(operatorclient.TargetNamespace))
 
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
 		operatorClient,
@@ -90,10 +80,9 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	targetConfigReconciler := NewTargetConfigReconciler(
 		operatorClient,
 		os.Getenv("IMAGE"),
-		kubeInformersNamespace,
+		kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace),
 		kubeInformersForNamespaces,
 		configInformers,
-		operatorConfigClient.OperatorV1(),
 		operatorClient,
 		kubeClient,
 		ctx.EventRecorder,
@@ -148,8 +137,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 
 	configmetrics.Register(configInformers)
 
-	kubeInformersClusterScoped.Start(ctx.Done())
-	kubeInformersNamespace.Start(ctx.Done())
 	kubeInformersForNamespaces.Start(ctx.Done())
 	configInformers.Start(ctx.Done())
 	dynamicInformers.Start(ctx.Done())
