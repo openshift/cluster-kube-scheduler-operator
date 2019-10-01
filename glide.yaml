@@ -1,33 +1,34 @@
 package: github.com/openshift/cluster-kube-scheduler-operator
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/api
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/apiserver
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/client-go
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/kube-aggregator
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/code-generator
-  version: kubernetes-1.14.0
-# matches upstream kube
-- package: k8s.io/kube-openapi
-  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
-- package: sigs.k8s.io/structured-merge-diff
-  version: e85c7b244fd2cc57bb829d73a061f93a441e63ce
-- package: k8s.io/gengo/args
-  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
-- package: github.com/evanphx/json-patch
-  version: 5858425f75500d40c52783dce87d085a483ce135
-
+  version: kubernetes-1.16.0
+- package: k8s.io/component-base
+  version: release-1.16
 - package: github.com/openshift/api
   version: master
 - package: github.com/openshift/client-go
   version: master
 - package: github.com/openshift/library-go
   version: master
-
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
+- package: k8s.io/gengo/args
+  version: 26a664648505d962332bda642b27306bc10d1082
+- package: github.com/stretchr/testify
+  version: c679ae2cc0cb27ec3293fea7e254e47386f05d69
+
+# pinned to a level that kubernetes uses.
+- package: github.com/evanphx/json-patch
+  version: v4.2.0
+- package: k8s.io/klog
+  version: v0.4.0
