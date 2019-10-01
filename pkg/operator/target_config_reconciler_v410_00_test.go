@@ -24,6 +24,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
 				"LocalStorageCapacityIsolation":     false,
+				"TLSSecurityProfile":                true,
 			},
 		},
 		{
@@ -34,6 +35,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"RotateKubeletServerCertificate":    true,
 				"SupportPodPidsLimit":               true,
 				"LocalStorageCapacityIsolation":     false,
+				"TLSSecurityProfile":                true,
 			},
 		},
 	}
