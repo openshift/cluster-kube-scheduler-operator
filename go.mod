@@ -6,6 +6,7 @@ require (
 	github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2 // indirect
 	github.com/getsentry/raven-go v0.0.0-20190513200303-c977f96e1095 // indirect
 	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
+	github.com/jteeuwen/go-bindata v0.0.0-00010101000000-000000000000
 	github.com/openshift/api v0.0.0-20191001124347-8033e226059b
 	github.com/openshift/client-go v0.0.0-20191001081553-3b0e988f8cb0
 	github.com/openshift/library-go v0.0.0-20190927184318-c355e2019bb3
