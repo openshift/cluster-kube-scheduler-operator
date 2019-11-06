@@ -7,4 +7,4 @@ spec:
         spec:
           properties:
             managementState:
-              pattern: "^(Managed|Unmanaged|Force|Removed)$"
+              pattern: "^(Managed|Force)$"
