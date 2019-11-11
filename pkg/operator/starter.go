@@ -104,7 +104,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
 		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
-		WithServiceMonitor(dynamicClient).
 		WithVersioning(operatorclient.OperatorNamespace, "kube-scheduler", versionRecorder).
 		ToControllers()
 	if err != nil {
