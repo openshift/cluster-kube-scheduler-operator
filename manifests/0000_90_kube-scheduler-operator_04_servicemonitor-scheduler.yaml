@@ -5,6 +5,8 @@ metadata:
     k8s-app: kube-scheduler
   name: kube-scheduler
   namespace: openshift-kube-scheduler
+  annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
 spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

@@ -5,6 +5,8 @@ metadata:
   name: openshift-kube-scheduler-operator
   labels:
     app: openshift-kube-scheduler-operator
+  annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
 spec:
   replicas: 1
   selector:
