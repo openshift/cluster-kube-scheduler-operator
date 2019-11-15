@@ -3,6 +3,8 @@ kind: ServiceMonitor
 metadata:
   name: kube-scheduler-operator
   namespace: openshift-kube-scheduler-operator
+  annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
 spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -30,6 +32,8 @@ kind: PrometheusRule
 metadata:
   name: kube-scheduler-operator
   namespace: openshift-kube-scheduler-operator
+  annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
 spec:
   groups:
   - name: cluster-version
