@@ -3,6 +3,7 @@ module github.com/openshift/cluster-kube-scheduler-operator
 go 1.12
 
 require (
+	github.com/blang/semver v3.5.0+incompatible
 	github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2 // indirect
 	github.com/getsentry/raven-go v0.0.0-20190513200303-c977f96e1095 // indirect
 	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
@@ -29,7 +30,7 @@ replace (
 	github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
 	github.com/openshift/api => github.com/openshift/api v0.0.0-20191105205100-610e47be70db
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20191022152013-2823239d2298
-	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20191112181215-0597a29991ca
+	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20191118102510-4e2c7112d252
 	github.com/stretchr/testify => github.com/stretchr/testify v1.2.2-0.20180319223459-c679ae2cc0cb
 	k8s.io/api => k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
