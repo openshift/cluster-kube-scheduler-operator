@@ -1,5 +1,5 @@
-hash: 443a2629c6f8eccf499e59789147e9c719ff40ae6b57f9e1a174371caedf74d4
-updated: 2019-08-13T13:48:22.617675538-04:00
+hash: 89f0b0f2254084443b5fed38488f95a84bc5c293f0da4f572c7743a20e37ca8c
+updated: 2019-11-14T22:38:36.891921558+01:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -170,7 +170,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: b5570061b31fed3b06c24077c534b1a1bf7ecf8b
+  version: d4a64ec2cbd86f11ea74dfdcf6520d5833d0c6cd
   subpackages:
   - apps
   - apps/v1
@@ -216,7 +216,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: e9678e3b850da36470c5554609c6cd110aace47e
+  version: 5a5508328169b8a6992ea4ef711add89ddce3c6d
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
@@ -231,7 +231,7 @@ imports:
   - operator/clientset/versioned/typed/operator/v1
   - operator/clientset/versioned/typed/operator/v1alpha1
 - name: github.com/openshift/library-go
-  version: 1eb1131507bff6d494f05b23c8ecf850836d7328
+  version: 8ab60e64997ac0990ef30a4e01481056dec95568
   subpackages:
   - pkg/assets
   - pkg/config/client
@@ -262,6 +262,7 @@ imports:
   - pkg/operator/staticpod/controller/backingresource/bindata
   - pkg/operator/staticpod/controller/installer
   - pkg/operator/staticpod/controller/installer/bindata
+  - pkg/operator/staticpod/controller/installerstate
   - pkg/operator/staticpod/controller/monitoring
   - pkg/operator/staticpod/controller/monitoring/bindata
   - pkg/operator/staticpod/controller/node
@@ -354,7 +355,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
   - internal
   - internal/base
@@ -758,7 +759,7 @@ imports:
 - name: k8s.io/code-generator
   version: 50b561225d70b3eb79a1faafd3dfe7b1a62cbe73
 - name: k8s.io/component-base
-  version: f0322db00a103489b85cb3835886741a3911636b
+  version: 4a91899592f42b2f5859587cc5a676a5b94d2ee3
   subpackages:
   - cli/flag
   - logs
