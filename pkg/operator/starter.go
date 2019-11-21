@@ -7,7 +7,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -33,10 +32,6 @@ const (
 
 func RunOperator(ctx *controllercmd.ControllerContext) error {
 	kubeClient, err := kubernetes.NewForConfig(ctx.ProtoKubeConfig)
-	if err != nil {
-		return err
-	}
-	dynamicClient, err := dynamic.NewForConfig(ctx.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -104,7 +99,6 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
 		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
-		WithServiceMonitor(dynamicClient).
 		WithVersioning(operatorclient.OperatorNamespace, "kube-scheduler", versionRecorder).
 		ToControllers()
 	if err != nil {
