@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -12,12 +13,18 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
 	operatorclientv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/openshift/library-go/test/library/metrics"
+
+	"github.com/prometheus/common/model"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -62,6 +69,19 @@ func getOpenShiftOperatorConfigClient() (*operatorversionedclient.Clientset, err
 		return nil, err
 	}
 	return operatorClient, nil
+}
+
+func getOpenShiftRouteClient() (*routeclient.Clientset, error) {
+	kubeconfig := os.Getenv("KUBECONFIG")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+	routeClient, err := routeclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return routeClient, nil
 }
 
 func waitForOperator(kclient *k8sclient.Clientset) error {
@@ -252,6 +272,50 @@ func TestPolicyConfigMapUpdate(t *testing.T) {
 	if err := waitForPolicyConfigMapDeletion(kclient); err != nil {
 		t.Fatal("Expected policy configmap to be delete in openshift-kube-scheduler namespace but it still exists")
 	}
+}
+
+func TestMetricsAccessible(t *testing.T) {
+	kClient, err := getKubeClient()
+	if err != nil {
+		t.Fatalf("failed to get kubeclient with error %v", err)
+	}
+	routeClient, err := getOpenShiftRouteClient()
+	if err != nil {
+		t.Fatalf("failed to get routeclient with error %v", err)
+	}
+	name := names.SimpleNameGenerator.GenerateName("ksotest-metrics-")
+	_, err = kClient.CoreV1().Namespaces().Create(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+	if err != nil {
+		t.Fatalf("could not create test namespace: %v", err)
+	}
+	defer kClient.CoreV1().Namespaces().Delete(name, &metav1.DeleteOptions{})
+
+	// Now verify kso metrics are accessible
+	prometheusClient, err := metrics.NewPrometheusClient(kClient, routeClient)
+	if err != nil {
+		t.Fatalf("error creating route client for prometheus: %v", err)
+	}
+	var response model.Value
+	err = wait.PollImmediate(time.Second*1, time.Second*30, func() (bool, error) {
+		response, _, err = prometheusClient.Query(context.Background(), `scheduler_scheduling_duration_seconds_sum`, time.Now())
+		if err != nil {
+			return false, fmt.Errorf("error querying prometheus: %v", err)
+		}
+		if len(response.String()) == 0 {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("prometheus returned unexpected results: %v", err)
+	}
+
+	// do something with result, eventually this will be tested b4 and after rotation to ensure values differ
+	t.Logf("result from prometheus query `scheduler_scheduling_duration_seconds_sum`: %v", response)
 }
 
 func waitForPolicyConfigMapCreation(kclient *k8sclient.Clientset, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
