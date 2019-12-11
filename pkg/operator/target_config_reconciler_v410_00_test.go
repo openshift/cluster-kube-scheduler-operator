@@ -21,13 +21,12 @@ func TestCheckForFeatureGates(t *testing.T) {
 			configValue: configv1.Default,
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
-				"ExperimentalCriticalPodAnnotation": true,
-				"RotateKubeletServerCertificate":    true,
-				"SupportPodPidsLimit":               true,
-				"TLSSecurityProfile":                true,
-				"NodeDisruptionExclusion":           true,
-				"ServiceNodeExclusion":              true,
-				"LegacyNodeRoleBehavior":            false,
+				"LegacyNodeRoleBehavior":         false,
+				"NodeDisruptionExclusion":        true,
+				"RotateKubeletServerCertificate": true,
+				"SCTPSupport":                    true,
+				"ServiceNodeExclusion":           true,
+				"SupportPodPidsLimit":            true,
 			},
 		},
 		{
@@ -35,13 +34,11 @@ func TestCheckForFeatureGates(t *testing.T) {
 			configValue: configv1.TechPreviewNoUpgrade,
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
-				"ExperimentalCriticalPodAnnotation": true,
-				"RotateKubeletServerCertificate":    true,
-				"SupportPodPidsLimit":               true,
-				"TLSSecurityProfile":                true,
-				"NodeDisruptionExclusion":           true,
-				"ServiceNodeExclusion":              true,
-				"LegacyNodeRoleBehavior":            false,
+				"LegacyNodeRoleBehavior":         false,
+				"NodeDisruptionExclusion":        true,
+				"RotateKubeletServerCertificate": true,
+				"ServiceNodeExclusion":           true,
+				"SupportPodPidsLimit":            true,
 			},
 		},
 	}
