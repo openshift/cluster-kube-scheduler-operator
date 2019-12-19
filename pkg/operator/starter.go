@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -30,12 +31,12 @@ const (
 	workQueueKey = "key"
 )
 
-func RunOperator(ctx *controllercmd.ControllerContext) error {
-	kubeClient, err := kubernetes.NewForConfig(ctx.ProtoKubeConfig)
+func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error {
+	kubeClient, err := kubernetes.NewForConfig(cc.ProtoKubeConfig)
 	if err != nil {
 		return err
 	}
-	configClient, err := configv1client.NewForConfig(ctx.KubeConfig)
+	configClient, err := configv1client.NewForConfig(cc.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -49,7 +50,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		operatorclient.TargetNamespace,
 		"kube-system",
 	)
-	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(ctx.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
+	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(cc.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		kubeInformersForNamespaces,
 		configInformers,
 		kubeClient,
-		ctx.EventRecorder,
+		cc.EventRecorder,
 	)
 	if err != nil {
 		return err
@@ -69,7 +70,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		kubeInformersForNamespaces,
 		configInformers,
 		resourceSyncController,
-		ctx.EventRecorder,
+		cc.EventRecorder,
 	)
 
 	targetConfigReconciler := NewTargetConfigReconciler(
@@ -80,7 +81,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		configInformers,
 		operatorClient,
 		kubeClient,
-		ctx.EventRecorder,
+		cc.EventRecorder,
 	)
 
 	// don't change any versions until we sync
@@ -95,7 +96,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 	versionRecorder.SetVersion("raw-internal", status.VersionForOperatorFromEnv())
 
 	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces).
-		WithEvents(ctx.EventRecorder).
+		WithEvents(cc.EventRecorder).
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
 		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
@@ -117,7 +118,7 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 		configInformers.Config().V1().ClusterOperators(),
 		operatorClient,
 		versionRecorder,
-		ctx.EventRecorder,
+		cc.EventRecorder,
 	)
 
 	staleConditions := staleconditions.NewRemoveStaleConditions(
@@ -126,23 +127,23 @@ func RunOperator(ctx *controllercmd.ControllerContext) error {
 			"Degraded",
 		},
 		operatorClient,
-		ctx.EventRecorder,
+		cc.EventRecorder,
 	)
 
 	configmetrics.Register(configInformers)
 
-	kubeInformersForNamespaces.Start(ctx.Ctx.Done())
-	configInformers.Start(ctx.Ctx.Done())
-	dynamicInformers.Start(ctx.Ctx.Done())
+	kubeInformersForNamespaces.Start(ctx.Done())
+	configInformers.Start(ctx.Done())
+	dynamicInformers.Start(ctx.Done())
 
-	go staticPodControllers.Run(ctx.Ctx, 1)
-	go resourceSyncController.Run(ctx.Ctx, 1)
-	go targetConfigReconciler.Run(1, ctx.Ctx.Done())
-	go configObserver.Run(ctx.Ctx, 1)
-	go clusterOperatorStatus.Run(ctx.Ctx, 1)
-	go staleConditions.Run(1, ctx.Ctx.Done())
+	go staticPodControllers.Run(ctx, 1)
+	go resourceSyncController.Run(ctx, 1)
+	go targetConfigReconciler.Run(1, ctx.Done())
+	go configObserver.Run(ctx, 1)
+	go clusterOperatorStatus.Run(ctx, 1)
+	go staleConditions.Run(1, ctx.Done())
 
-	<-ctx.Ctx.Done()
+	<-ctx.Done()
 	return fmt.Errorf("stopped")
 }
 
