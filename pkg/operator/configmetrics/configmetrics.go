@@ -25,6 +25,8 @@ type configMetrics struct {
 	config       prometheus.Gauge
 }
 
+func (m *configMetrics) ClearState() {}
+
 func (m *configMetrics) Create(version *semver.Version) bool {
 	return true
 }
