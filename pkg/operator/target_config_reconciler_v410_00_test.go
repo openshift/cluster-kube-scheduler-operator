@@ -27,6 +27,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"SCTPSupport":                    true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
+				"IPv6DualStack":                  true,
 			},
 		},
 		{
@@ -37,8 +38,10 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
+				"SCTPSupport":                    true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
+				"IPv6DualStack":                  true,
 			},
 		},
 	}
