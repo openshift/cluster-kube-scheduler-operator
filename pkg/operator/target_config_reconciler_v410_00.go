@@ -33,7 +33,7 @@ const TargetPolicyConfigMapName = "policy-configmap"
 func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
-	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, v410_00_assets.Asset,
+	directResourceResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(c.kubeClient), c.eventRecorder, v410_00_assets.Asset,
 		"v4.1.0/kube-scheduler/ns.yaml",
 		"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
 		"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
