@@ -141,7 +141,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go targetConfigReconciler.Run(1, ctx.Done())
 	go configObserver.Run(ctx, 1)
 	go clusterOperatorStatus.Run(ctx, 1)
-	go staleConditions.Run(1, ctx.Done())
+	go staleConditions.Run(ctx, 1)
 
 	<-ctx.Done()
 	return fmt.Errorf("stopped")
