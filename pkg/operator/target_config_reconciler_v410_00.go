@@ -87,7 +87,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 
 func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
-	defaultConfig := v410_00_assets.MustAsset("v4.1.0/kube-scheduler/defaultconfig-postbootstrap.yaml")
+	defaultConfig := v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap.yaml")
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorSpec.ObservedConfig.Raw, operatorSpec.UnsupportedConfigOverrides.Raw)
 	if err != nil {
 		return nil, false, err
