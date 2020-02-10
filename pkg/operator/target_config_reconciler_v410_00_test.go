@@ -27,7 +27,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"SCTPSupport":                    true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
-				"IPv6DualStack":                  true,
 			},
 		},
 		{
@@ -41,7 +40,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"SCTPSupport":                    true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
-				"IPv6DualStack":                  true,
 			},
 		},
 	}

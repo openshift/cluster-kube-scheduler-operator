@@ -6,10 +6,6 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -25,6 +21,9 @@ import (
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -123,8 +122,9 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 
 	staleConditions := staleconditions.NewRemoveStaleConditions(
 		[]string{
-			// in 4.1.0 this was accidentally in the list.  This can be removed in 4.3.
-			"Degraded",
+			// the static pod operator used to directly set these. this removes those conditions since the static pod operator was updated.
+			// these can be removed in 4.5
+			"Available", "Progressing",
 		},
 		operatorClient,
 		cc.EventRecorder,

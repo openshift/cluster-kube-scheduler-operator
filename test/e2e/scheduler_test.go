@@ -9,12 +9,10 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
-	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
 	operatorclientv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/openshift/library-go/test/library/metrics"
 
 	"github.com/prometheus/common/model"
@@ -363,31 +361,4 @@ func waitForOperatorDegradedStateToBeRemoved(opClient operatorclientv1.OperatorV
 		}
 		return true, nil
 	})
-}
-
-// TestStaleConditionRemoval ensures that KSO returns to normal condition even if it had some degraded conditions
-// in the past
-func TestStaleConditionRemoval(t *testing.T) {
-	operatorConfigClient, err := getOpenShiftOperatorConfigClient()
-	if err != nil {
-		t.Fatalf("failed to get openshift operator client with error %v", err)
-	}
-	opClient := operatorConfigClient.OperatorV1()
-	operatorConfig, err := opClient.KubeSchedulers().Get("cluster", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("failed to get scheduler operator config with error %v", err)
-	}
-	// Assuming the operator is not in degraded state.
-	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, operatorv1.OperatorCondition{
-		Type:    "Degraded",
-		Status:  operatorv1.ConditionTrue,
-		Reason:  "Synchronization error",
-		Message: "Forced Error",
-	})
-	if _, err := opClient.KubeSchedulers().UpdateStatus(operatorConfig); err != nil {
-		t.Fatalf("failed to update scheduler operator status with error %v", err)
-	}
-	if err := waitForOperatorDegradedStateToBeRemoved(opClient, "Degraded"); err != nil {
-		t.Fatalf("Timed out waiting for scheduler operator status to be updated")
-	}
 }
