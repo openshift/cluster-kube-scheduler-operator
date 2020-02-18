@@ -64,12 +64,9 @@ func NewTargetConfigReconciler(
 	}
 
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
-	namespacedKubeInformers.Rbac().V1().Roles().Informer().AddEventHandler(c.eventHandler())
-	namespacedKubeInformers.Rbac().V1().RoleBindings().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
 	namespacedKubeInformers.Core().V1().ServiceAccounts().Informer().AddEventHandler(c.eventHandler())
-	namespacedKubeInformers.Core().V1().Services().Informer().AddEventHandler(c.eventHandler())
 
 	configInformer.Config().V1().FeatureGates().Informer().AddEventHandler(c.eventHandler())
 	// we react to some config changes
