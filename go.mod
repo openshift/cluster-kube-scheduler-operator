@@ -22,4 +22,7 @@ require (
 	k8s.io/klog v1.0.0
 )
 
-replace github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
+replace (
+	github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
+	github.com/openshift/library-go => github.com/tnozicka/library-go v0.0.0-20200303090052-264cf31d26e6
+)
