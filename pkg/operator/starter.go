@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -21,7 +22,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -72,9 +73,24 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.EventRecorder,
 	)
 
+	imagePullSpec, ok := os.LookupEnv("IMAGE")
+	if !ok {
+		return errors.New("environment variable 'IMAGE' is missing")
+	}
+	if len(imagePullSpec) == 0 {
+		return errors.New("environment variable 'IMAGE' can't be empty")
+	}
+	operatorImagePullSpec, ok := os.LookupEnv("OPERATOR_IMAGE")
+	if !ok {
+		return errors.New("environment variable 'OPERATOR_IMAGE' is missing")
+	}
+	if len(operatorImagePullSpec) == 0 {
+		return errors.New("environment variable 'OPERATOR_IMAGE' can't be empty")
+	}
 	targetConfigReconciler := NewTargetConfigReconciler(
+		imagePullSpec,
+		operatorImagePullSpec,
 		operatorClient,
-		os.Getenv("IMAGE"),
 		kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace),
 		kubeInformersForNamespaces,
 		configInformers,
@@ -86,7 +102,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	// don't change any versions until we sync
 	versionRecorder := status.NewVersionGetter()
 	clusterOperator, err := configClient.ConfigV1().ClusterOperators().Get("kube-scheduler-operator", metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 	for _, version := range clusterOperator.Status.Versions {
@@ -99,6 +115,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
 		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
+		WithCerts("kube-scheduler-certs", CertConfigMaps, CertSecrets).
 		WithVersioning(operatorclient.OperatorNamespace, "kube-scheduler", versionRecorder).
 		ToControllers()
 	if err != nil {
@@ -151,15 +168,22 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 // the first element should be the configmap that contains the static pod manifest
 var deploymentConfigMaps = []revision.RevisionResource{
 	{Name: "kube-scheduler-pod"},
-
 	{Name: "config"},
-	{Name: "scheduler-kubeconfig"},
 	{Name: "serviceaccount-ca"},
 	{Name: "policy-configmap", Optional: true},
+
+	{Name: "scheduler-kubeconfig"},
+	{Name: "kube-scheduler-cert-syncer-kubeconfig"},
 }
 
 // deploymentSecrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
 var deploymentSecrets = []revision.RevisionResource{
-	{Name: "kube-scheduler-client-cert-key"},
 	{Name: "serving-cert", Optional: true},
+	{Name: "localhost-recovery-client-token"},
+}
+
+var CertConfigMaps = []revision.RevisionResource{}
+
+var CertSecrets = []revision.RevisionResource{
+	{Name: "kube-scheduler-client-cert-key"},
 }
