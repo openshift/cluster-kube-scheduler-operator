@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 
@@ -36,12 +36,16 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	directResourceResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(c.kubeClient), c.eventRecorder, v410_00_assets.Asset,
 		"v4.1.0/kube-scheduler/ns.yaml",
 		"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
+		"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml",
 		"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
 		"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
 		"v4.1.0/kube-scheduler/policyconfigmap-role.yaml",
 		"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
 		"v4.1.0/kube-scheduler/svc.yaml",
 		"v4.1.0/kube-scheduler/sa.yaml",
+		"v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml",
+		"v4.1.0/kube-scheduler/localhost-recovery-sa.yaml",
+		"v4.1.0/kube-scheduler/localhost-recovery-token.yaml",
 	)
 	for _, currResult := range directResourceResults {
 		if currResult.Error != nil {
@@ -56,7 +60,11 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.featureGateLister)
+	err = ensureLocalhostRecoverySAToken(c.kubeClient.CoreV1(), recorder)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q: %v", "serviceaccount/localhost-recovery-client", err))
+	}
+	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -85,7 +93,7 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
 	defaultConfig := v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap.yaml")
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorSpec.ObservedConfig.Raw, operatorSpec.UnsupportedConfigOverrides.Raw)
@@ -95,12 +103,26 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(configMapsGetter coreclientv1.ConfigMapsGetter, secretsGetter coreclientv1.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
-	if len(imagePullSpec) > 0 {
-		required.Spec.Containers[0].Image = imagePullSpec
-		if len(required.Spec.InitContainers) > 0 {
-			required.Spec.InitContainers[0].Image = imagePullSpec
+	images := map[string]string{
+		"${IMAGE}":          imagePullSpec,
+		"${OPERATOR_IMAGE}": operatorImagePullSpec,
+	}
+	for i := range required.Spec.Containers {
+		for pat, img := range images {
+			if required.Spec.Containers[i].Image == pat {
+				required.Spec.Containers[i].Image = img
+				break
+			}
+		}
+	}
+	for i := range required.Spec.InitContainers {
+		for pat, img := range images {
+			if required.Spec.InitContainers[i].Image == pat {
+				required.Spec.InitContainers[i].Image = img
+				break
+			}
 		}
 	}
 
@@ -186,7 +208,7 @@ func generateFeatureGates(enabledFeatureGates, disabledFeatureGates []string, fe
 	return featureGates
 }
 
-func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client coreclientv1.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
+func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
 	requiredConfigMap, err := resourcesynccontroller.CombineCABundleConfigMaps(
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "serviceaccount-ca"},
 		lister,
@@ -200,4 +222,53 @@ func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client c
 		return nil, false, err
 	}
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
+}
+
+func ensureLocalhostRecoverySAToken(client corev1client.CoreV1Interface, recorder events.Recorder) error {
+	requiredSA := resourceread.ReadServiceAccountV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-sa.yaml"))
+	requiredToken := resourceread.ReadSecretV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-token.yaml"))
+
+	saClient := client.ServiceAccounts(operatorclient.TargetNamespace)
+	serviceAccount, err := saClient.Get(requiredSA.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// The default token secrets get random names so we have created a custom secret
+	// to be populated with SA token so we have a stable name.
+	secretsClient := client.Secrets(operatorclient.TargetNamespace)
+	token, err := secretsClient.Get(requiredToken.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Token creation / injection for a SA is asynchronous.
+	// We will report and error if it's missing, go degraded and get re-queued when the SA token is updated.
+
+	uid := token.Annotations[corev1.ServiceAccountUIDKey]
+	if len(uid) == 0 {
+		return fmt.Errorf("secret %s/%s hasn't been populated with SA token yet: missing SA UID", token.Namespace, token.Name)
+	}
+
+	if uid != string(serviceAccount.UID) {
+		return fmt.Errorf("secret %s/%s hasn't been populated with current SA token yet: SA UID mismatch", token.Namespace, token.Name)
+	}
+
+	if len(token.Data) == 0 {
+		return fmt.Errorf("secret %s/%s hasn't been populated with any data yet", token.Namespace, token.Name)
+	}
+
+	// Explicitly check that the fields we use are there, so we find out easily if some are removed or renamed.
+
+	_, ok := token.Data["token"]
+	if !ok {
+		return fmt.Errorf("secret %s/%s hasn't been populated with current SA token yet", token.Namespace, token.Name)
+	}
+
+	_, ok = token.Data["ca.crt"]
+	if !ok {
+		return fmt.Errorf("secret %s/%s hasn't been populated with current SA token root CA yet", token.Namespace, token.Name)
+	}
+
+	return err
 }

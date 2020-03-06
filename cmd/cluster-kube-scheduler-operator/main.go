@@ -14,7 +14,9 @@ import (
 	"k8s.io/component-base/logs"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/cmd/render"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
+	operatorcmd "github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator"
+	"github.com/openshift/library-go/pkg/operator/staticpod/certsyncpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/installerpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/prune"
 )
@@ -45,10 +47,11 @@ func NewSchedulerOperatorCommand() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(operator.NewOperator())
+	cmd.AddCommand(operatorcmd.NewOperator())
 	cmd.AddCommand(render.NewRenderCommand())
 	cmd.AddCommand(installerpod.NewInstaller())
 	cmd.AddCommand(prune.NewPrune())
+	cmd.AddCommand(certsyncpod.NewCertSyncControllerCommand(operator.CertConfigMaps, operator.CertSecrets))
 
 	return cmd
 }
