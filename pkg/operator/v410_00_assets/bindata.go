@@ -3,8 +3,12 @@
 // bindata/v4.1.0/config/defaultconfig-postbootstrap.yaml
 // bindata/v4.1.0/config/defaultconfig.yaml
 // bindata/v4.1.0/kube-scheduler/cm.yaml
+// bindata/v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml
 // bindata/v4.1.0/kube-scheduler/kubeconfig-cm.yaml
 // bindata/v4.1.0/kube-scheduler/leader-election-rolebinding.yaml
+// bindata/v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml
+// bindata/v4.1.0/kube-scheduler/localhost-recovery-sa.yaml
+// bindata/v4.1.0/kube-scheduler/localhost-recovery-token.yaml
 // bindata/v4.1.0/kube-scheduler/ns.yaml
 // bindata/v4.1.0/kube-scheduler/pod-cm.yaml
 // bindata/v4.1.0/kube-scheduler/pod.yaml
@@ -125,6 +129,49 @@ func v410KubeSchedulerCmYaml() (*asset, error) {
 	return a, nil
 }
 
+var _v410KubeSchedulerKubeconfigCertSyncerYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-scheduler-cert-syncer-kubeconfig
+  namespace: openshift-kube-scheduler
+data:
+  kubeconfig: |
+    apiVersion: v1
+    clusters:
+      - cluster:
+          certificate-authority: /etc/kubernetes/static-pod-resources/secrets/localhost-recovery-client-token/ca.crt
+          server: https://localhost:6443
+          tls-server-name: localhost-recovery
+        name: loopback
+    contexts:
+      - context:
+          cluster: loopback
+          user: kube-scheduler
+        name: kube-scheduler
+    current-context: kube-scheduler
+    kind: Config
+    preferences: {}
+    users:
+      - name: kube-scheduler
+        user:
+          tokenFile: /etc/kubernetes/static-pod-resources/secrets/localhost-recovery-client-token/token
+`)
+
+func v410KubeSchedulerKubeconfigCertSyncerYamlBytes() ([]byte, error) {
+	return _v410KubeSchedulerKubeconfigCertSyncerYaml, nil
+}
+
+func v410KubeSchedulerKubeconfigCertSyncerYaml() (*asset, error) {
+	bytes, err := v410KubeSchedulerKubeconfigCertSyncerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _v410KubeSchedulerKubeconfigCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -149,8 +196,8 @@ data:
     users:
       - name: kube-scheduler
         user:
-          client-certificate: /etc/kubernetes/static-pod-resources/secrets/kube-scheduler-client-cert-key/tls.crt
-          client-key: /etc/kubernetes/static-pod-resources/secrets/kube-scheduler-client-cert-key/tls.key
+          client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+          client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
 `)
 
 func v410KubeSchedulerKubeconfigCmYamlBytes() ([]byte, error) {
@@ -192,6 +239,81 @@ func v410KubeSchedulerLeaderElectionRolebindingYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "v4.1.0/kube-scheduler/leader-election-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v410KubeSchedulerLocalhostRecoveryClientCrbYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:operator:kube-scheduler-recovery
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: localhost-recovery-client
+  namespace: openshift-kube-scheduler
+`)
+
+func v410KubeSchedulerLocalhostRecoveryClientCrbYamlBytes() ([]byte, error) {
+	return _v410KubeSchedulerLocalhostRecoveryClientCrbYaml, nil
+}
+
+func v410KubeSchedulerLocalhostRecoveryClientCrbYaml() (*asset, error) {
+	bytes, err := v410KubeSchedulerLocalhostRecoveryClientCrbYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v410KubeSchedulerLocalhostRecoverySaYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: localhost-recovery-client
+  namespace: openshift-kube-scheduler
+`)
+
+func v410KubeSchedulerLocalhostRecoverySaYamlBytes() ([]byte, error) {
+	return _v410KubeSchedulerLocalhostRecoverySaYaml, nil
+}
+
+func v410KubeSchedulerLocalhostRecoverySaYaml() (*asset, error) {
+	bytes, err := v410KubeSchedulerLocalhostRecoverySaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v4.1.0/kube-scheduler/localhost-recovery-sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _v410KubeSchedulerLocalhostRecoveryTokenYaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: localhost-recovery-client-token
+  namespace: openshift-kube-scheduler
+  annotations:
+    kubernetes.io/service-account.name: localhost-recovery-client
+type: kubernetes.io/service-account-token
+`)
+
+func v410KubeSchedulerLocalhostRecoveryTokenYamlBytes() ([]byte, error) {
+	return _v410KubeSchedulerLocalhostRecoveryTokenYaml, nil
+}
+
+func v410KubeSchedulerLocalhostRecoveryTokenYaml() (*asset, error) {
+	bytes, err := v410KubeSchedulerLocalhostRecoveryTokenYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "v4.1.0/kube-scheduler/localhost-recovery-token.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -272,7 +394,7 @@ spec:
         sleep 1
       done
   containers:
-  - name: scheduler
+  - name: kube-scheduler
     image: ${IMAGE}
     imagePullPolicy: IfNotPresent
     terminationMessagePolicy: FallbackToLogsOnError
@@ -291,6 +413,8 @@ spec:
     volumeMounts:
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
+    - mountPath: /etc/kubernetes/static-pod-certs
+      name: cert-dir
     livenessProbe:
       httpGet:
         scheme: HTTP
@@ -305,6 +429,33 @@ spec:
         path: healthz
       initialDelaySeconds: 45
       timeOutSeconds: 10
+  - name: kube-scheduler-cert-syncer
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    image: ${OPERATOR_IMAGE}
+    imagePullPolicy: IfNotPresent
+    terminationMessagePolicy: FallbackToLogsOnError
+    command: ["cluster-kube-scheduler-operator", "cert-syncer"]
+    args:
+      - --kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/kube-scheduler-cert-syncer-kubeconfig/kubeconfig
+      - --namespace=$(POD_NAMESPACE)
+      - --destination-dir=/etc/kubernetes/static-pod-certs
+    resources:
+      requests:
+        memory: 50Mi
+        cpu: 10m
+    volumeMounts:
+      - mountPath: /etc/kubernetes/static-pod-resources
+        name: resource-dir
+      - mountPath: /etc/kubernetes/static-pod-certs
+        name: cert-dir
   hostNetwork: true
   priorityClassName: system-node-critical
   tolerations:
@@ -313,6 +464,9 @@ spec:
   - hostPath:
       path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION
     name: resource-dir
+  - hostPath:
+      path: /etc/kubernetes/static-pod-resources/kube-scheduler-certs
+    name: cert-dir
 `)
 
 func v410KubeSchedulerPodYamlBytes() ([]byte, error) {
@@ -527,19 +681,23 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"v4.1.0/config/defaultconfig-postbootstrap.yaml":          v410ConfigDefaultconfigPostbootstrapYaml,
-	"v4.1.0/config/defaultconfig.yaml":                        v410ConfigDefaultconfigYaml,
-	"v4.1.0/kube-scheduler/cm.yaml":                           v410KubeSchedulerCmYaml,
-	"v4.1.0/kube-scheduler/kubeconfig-cm.yaml":                v410KubeSchedulerKubeconfigCmYaml,
-	"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml":  v410KubeSchedulerLeaderElectionRolebindingYaml,
-	"v4.1.0/kube-scheduler/ns.yaml":                           v410KubeSchedulerNsYaml,
-	"v4.1.0/kube-scheduler/pod-cm.yaml":                       v410KubeSchedulerPodCmYaml,
-	"v4.1.0/kube-scheduler/pod.yaml":                          v410KubeSchedulerPodYaml,
-	"v4.1.0/kube-scheduler/policyconfigmap-role.yaml":         v410KubeSchedulerPolicyconfigmapRoleYaml,
-	"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml":  v410KubeSchedulerPolicyconfigmapRolebindingYaml,
-	"v4.1.0/kube-scheduler/sa.yaml":                           v410KubeSchedulerSaYaml,
-	"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml": v410KubeSchedulerSchedulerClusterrolebindingYaml,
-	"v4.1.0/kube-scheduler/svc.yaml":                          v410KubeSchedulerSvcYaml,
+	"v4.1.0/config/defaultconfig-postbootstrap.yaml":           v410ConfigDefaultconfigPostbootstrapYaml,
+	"v4.1.0/config/defaultconfig.yaml":                         v410ConfigDefaultconfigYaml,
+	"v4.1.0/kube-scheduler/cm.yaml":                            v410KubeSchedulerCmYaml,
+	"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml":        v410KubeSchedulerKubeconfigCertSyncerYaml,
+	"v4.1.0/kube-scheduler/kubeconfig-cm.yaml":                 v410KubeSchedulerKubeconfigCmYaml,
+	"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml":   v410KubeSchedulerLeaderElectionRolebindingYaml,
+	"v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml": v410KubeSchedulerLocalhostRecoveryClientCrbYaml,
+	"v4.1.0/kube-scheduler/localhost-recovery-sa.yaml":         v410KubeSchedulerLocalhostRecoverySaYaml,
+	"v4.1.0/kube-scheduler/localhost-recovery-token.yaml":      v410KubeSchedulerLocalhostRecoveryTokenYaml,
+	"v4.1.0/kube-scheduler/ns.yaml":                            v410KubeSchedulerNsYaml,
+	"v4.1.0/kube-scheduler/pod-cm.yaml":                        v410KubeSchedulerPodCmYaml,
+	"v4.1.0/kube-scheduler/pod.yaml":                           v410KubeSchedulerPodYaml,
+	"v4.1.0/kube-scheduler/policyconfigmap-role.yaml":          v410KubeSchedulerPolicyconfigmapRoleYaml,
+	"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml":   v410KubeSchedulerPolicyconfigmapRolebindingYaml,
+	"v4.1.0/kube-scheduler/sa.yaml":                            v410KubeSchedulerSaYaml,
+	"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml":  v410KubeSchedulerSchedulerClusterrolebindingYaml,
+	"v4.1.0/kube-scheduler/svc.yaml":                           v410KubeSchedulerSvcYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -589,17 +747,21 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"defaultconfig.yaml":               {v410ConfigDefaultconfigYaml, map[string]*bintree{}},
 		}},
 		"kube-scheduler": {nil, map[string]*bintree{
-			"cm.yaml":                           {v410KubeSchedulerCmYaml, map[string]*bintree{}},
-			"kubeconfig-cm.yaml":                {v410KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
-			"leader-election-rolebinding.yaml":  {v410KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
-			"ns.yaml":                           {v410KubeSchedulerNsYaml, map[string]*bintree{}},
-			"pod-cm.yaml":                       {v410KubeSchedulerPodCmYaml, map[string]*bintree{}},
-			"pod.yaml":                          {v410KubeSchedulerPodYaml, map[string]*bintree{}},
-			"policyconfigmap-role.yaml":         {v410KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
-			"policyconfigmap-rolebinding.yaml":  {v410KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
-			"sa.yaml":                           {v410KubeSchedulerSaYaml, map[string]*bintree{}},
-			"scheduler-clusterrolebinding.yaml": {v410KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
-			"svc.yaml":                          {v410KubeSchedulerSvcYaml, map[string]*bintree{}},
+			"cm.yaml":                            {v410KubeSchedulerCmYaml, map[string]*bintree{}},
+			"kubeconfig-cert-syncer.yaml":        {v410KubeSchedulerKubeconfigCertSyncerYaml, map[string]*bintree{}},
+			"kubeconfig-cm.yaml":                 {v410KubeSchedulerKubeconfigCmYaml, map[string]*bintree{}},
+			"leader-election-rolebinding.yaml":   {v410KubeSchedulerLeaderElectionRolebindingYaml, map[string]*bintree{}},
+			"localhost-recovery-client-crb.yaml": {v410KubeSchedulerLocalhostRecoveryClientCrbYaml, map[string]*bintree{}},
+			"localhost-recovery-sa.yaml":         {v410KubeSchedulerLocalhostRecoverySaYaml, map[string]*bintree{}},
+			"localhost-recovery-token.yaml":      {v410KubeSchedulerLocalhostRecoveryTokenYaml, map[string]*bintree{}},
+			"ns.yaml":                            {v410KubeSchedulerNsYaml, map[string]*bintree{}},
+			"pod-cm.yaml":                        {v410KubeSchedulerPodCmYaml, map[string]*bintree{}},
+			"pod.yaml":                           {v410KubeSchedulerPodYaml, map[string]*bintree{}},
+			"policyconfigmap-role.yaml":          {v410KubeSchedulerPolicyconfigmapRoleYaml, map[string]*bintree{}},
+			"policyconfigmap-rolebinding.yaml":   {v410KubeSchedulerPolicyconfigmapRolebindingYaml, map[string]*bintree{}},
+			"sa.yaml":                            {v410KubeSchedulerSaYaml, map[string]*bintree{}},
+			"scheduler-clusterrolebinding.yaml":  {v410KubeSchedulerSchedulerClusterrolebindingYaml, map[string]*bintree{}},
+			"svc.yaml":                           {v410KubeSchedulerSvcYaml, map[string]*bintree{}},
 		}},
 	}},
 }}
