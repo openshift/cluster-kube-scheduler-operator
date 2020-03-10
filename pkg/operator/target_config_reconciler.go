@@ -24,20 +24,21 @@ import (
 )
 
 type TargetConfigReconciler struct {
-	targetImagePullSpec  string
-	operatorClient       v1helpers.StaticPodOperatorClient
-	kubeClient           kubernetes.Interface
-	eventRecorder        events.Recorder
-	configMapLister      corev1listers.ConfigMapLister
-	featureGateLister    configlistersv1.FeatureGateLister
-	featureGateCacheSync cache.InformerSynced
+	targetImagePullSpec   string
+	operatorImagePullSpec string
+	operatorClient        v1helpers.StaticPodOperatorClient
+	kubeClient            kubernetes.Interface
+	eventRecorder         events.Recorder
+	configMapLister       corev1listers.ConfigMapLister
+	featureGateLister     configlistersv1.FeatureGateLister
+	featureGateCacheSync  cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
 
 func NewTargetConfigReconciler(
+	targetImagePullSpec, operatorImagePullSpec string,
 	operatorConfigClient v1helpers.OperatorClient,
-	targetImagePullSpec string,
 	namespacedKubeInformers informers.SharedInformerFactory,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
@@ -46,11 +47,12 @@ func NewTargetConfigReconciler(
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
-		targetImagePullSpec: targetImagePullSpec,
-		kubeClient:          kubeClient,
-		configMapLister:     kubeInformersForNamespaces.ConfigMapLister(),
-		operatorClient:      operatorClient,
-		eventRecorder:       eventRecorder,
+		targetImagePullSpec:   targetImagePullSpec,
+		operatorImagePullSpec: operatorImagePullSpec,
+		kubeClient:            kubeClient,
+		configMapLister:       kubeInformersForNamespaces.ConfigMapLister(),
+		operatorClient:        operatorClient,
+		eventRecorder:         eventRecorder,
 
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
 		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
