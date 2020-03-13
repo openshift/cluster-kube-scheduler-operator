@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -60,11 +61,11 @@ func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
-	err = ensureLocalhostRecoverySAToken(c.kubeClient.CoreV1(), recorder)
+	err = ensureLocalhostRecoverySAToken(c.ctx, c.kubeClient.CoreV1(), recorder)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "serviceaccount/localhost-recovery-client", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister)
+	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -103,7 +104,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -145,7 +146,7 @@ func managePod_v311_00_to_latest(configMapsGetter corev1client.ConfigMapsGetter,
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
 	}
 
-	if _, err := secretsGetter.Secrets(required.Namespace).Get("serving-cert", metav1.GetOptions{}); err != nil && !apierrors.IsNotFound(err) {
+	if _, err := secretsGetter.Secrets(required.Namespace).Get(ctx, "serving-cert", metav1.GetOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		return nil, false, err
 	} else if err == nil {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-cert-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.crt")
@@ -224,12 +225,12 @@ func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client c
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func ensureLocalhostRecoverySAToken(client corev1client.CoreV1Interface, recorder events.Recorder) error {
+func ensureLocalhostRecoverySAToken(ctx context.Context, client corev1client.CoreV1Interface, recorder events.Recorder) error {
 	requiredSA := resourceread.ReadServiceAccountV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-sa.yaml"))
 	requiredToken := resourceread.ReadSecretV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-token.yaml"))
 
 	saClient := client.ServiceAccounts(operatorclient.TargetNamespace)
-	serviceAccount, err := saClient.Get(requiredSA.Name, metav1.GetOptions{})
+	serviceAccount, err := saClient.Get(ctx, requiredSA.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -237,7 +238,7 @@ func ensureLocalhostRecoverySAToken(client corev1client.CoreV1Interface, recorde
 	// The default token secrets get random names so we have created a custom secret
 	// to be populated with SA token so we have a stable name.
 	secretsClient := client.Secrets(operatorclient.TargetNamespace)
-	token, err := secretsClient.Get(requiredToken.Name, metav1.GetOptions{})
+	token, err := secretsClient.Get(ctx, requiredToken.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
