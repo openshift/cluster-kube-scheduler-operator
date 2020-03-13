@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/klog"
 
 	"github.com/openshift/library-go/pkg/crypto"
 )
@@ -18,7 +19,8 @@ func CombineCABundleConfigMaps(destinationConfigMap ResourceLocation, lister cor
 	certificates := []*x509.Certificate{}
 	for _, input := range inputConfigMaps {
 		inputConfigMap, err := lister.ConfigMaps(input.Namespace).Get(input.Name)
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) && !input.Required {
+			klog.V(2).Infof("Optional ConfigMap %s/%s doesn't exist yet. Skipping.", input.Namespace, input.Name)
 			continue
 		}
 		if err != nil {
@@ -28,6 +30,11 @@ func CombineCABundleConfigMaps(destinationConfigMap ResourceLocation, lister cor
 		// configmaps must conform to this
 		inputContent := inputConfigMap.Data["ca-bundle.crt"]
 		if len(inputContent) == 0 {
+			if input.Required {
+				return nil, fmt.Errorf("configmap %s/%s doesn't contain 'ca-bundle.crt'", input.Namespace, input.Name)
+			}
+
+			klog.V(2).Infof("Optional ConfigMap %s/%s doesn't contain 'ca-bundle.crt' yet. Skipping.", input.Namespace, input.Name)
 			continue
 		}
 		inputCerts, err := cert.ParseCertsPEM([]byte(inputContent))
