@@ -153,7 +153,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	configInformers.Start(ctx.Done())
 	dynamicInformers.Start(ctx.Done())
 
-	go staticPodControllers.Run(ctx, 1)
+	go staticPodControllers.Start(ctx)
 	go resourceSyncController.Run(ctx, 1)
 	go targetConfigReconciler.Run(1, ctx.Done())
 	go configObserver.Run(ctx, 1)
