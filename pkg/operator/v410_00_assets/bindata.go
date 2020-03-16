@@ -375,6 +375,8 @@ kind: Pod
 metadata:
   name: openshift-kube-scheduler
   namespace: openshift-kube-scheduler
+  annotations:
+    kubectl.kubernetes.io/default-logs-container: kube-scheduler
   labels:
     app: openshift-kube-scheduler
     scheduler: "true"
