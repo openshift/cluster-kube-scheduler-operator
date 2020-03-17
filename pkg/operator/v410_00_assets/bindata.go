@@ -408,6 +408,7 @@ spec:
     resources:
       requests:
         memory: 50Mi
+        cpu: 15m
     ports:
     - containerPort: 10259
     volumeMounts:
@@ -450,7 +451,7 @@ spec:
     resources:
       requests:
         memory: 50Mi
-        cpu: 10m
+        cpu: 5m
     volumeMounts:
       - mountPath: /etc/kubernetes/static-pod-resources
         name: resource-dir
