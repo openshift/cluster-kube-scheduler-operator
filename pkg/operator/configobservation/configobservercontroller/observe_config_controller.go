@@ -7,6 +7,8 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/scheduler"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
+	"github.com/openshift/library-go/pkg/controller/factory"
+
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
@@ -14,7 +16,7 @@ import (
 )
 
 type ConfigObserver struct {
-	*configobserver.ConfigObserver
+	factory.Controller
 }
 
 func NewConfigObserver(
@@ -24,7 +26,6 @@ func NewConfigObserver(
 	resourceSyncer resourcesynccontroller.ResourceSyncer,
 	eventRecorder events.Recorder,
 ) *ConfigObserver {
-
 	interestingNamespaces := []string{
 		operatorclient.GlobalUserSpecifiedConfigNamespace,
 		operatorclient.GlobalMachineSpecifiedConfigNamespace,
@@ -32,12 +33,21 @@ func NewConfigObserver(
 		operatorclient.OperatorNamespace,
 	}
 
+	informers := []factory.Informer{
+		operatorClient.Informer(),
+		configInformer.Config().V1().Schedulers().Informer(),
+	}
+	for _, ns := range interestingNamespaces {
+		informers = append(informers, kubeInformersForNamespaces.InformersFor(ns).Core().V1().ConfigMaps().Informer())
+	}
+
+	// TODO: This is probably not necessary anymore, please investigate deeper.
 	configMapPreRunCacheSynced := []cache.InformerSynced{}
 	for _, ns := range interestingNamespaces {
 		configMapPreRunCacheSynced = append(configMapPreRunCacheSynced, kubeInformersForNamespaces.InformersFor(ns).Core().V1().ConfigMaps().Informer().HasSynced)
 	}
 	c := &ConfigObserver{
-		ConfigObserver: configobserver.NewConfigObserver(
+		Controller: configobserver.NewConfigObserver(
 			operatorClient,
 			eventRecorder,
 			configobservation.Listers{
@@ -49,14 +59,10 @@ func NewConfigObserver(
 					configInformer.Config().V1().Schedulers().Informer().HasSynced,
 				),
 			},
+			informers,
 			scheduler.ObserveSchedulerConfig,
 		),
 	}
-	operatorClient.Informer().AddEventHandler(c.EventHandler())
-	for _, ns := range interestingNamespaces {
-		kubeInformersForNamespaces.InformersFor(ns).Core().V1().ConfigMaps().Informer().AddEventHandler(c.EventHandler())
-	}
 
-	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.EventHandler())
 	return c
 }
