@@ -23,6 +23,7 @@ spec:
     - --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
     - --logtostderr=false
     - --alsologtostderr
+    - --v=2
     - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
     volumeMounts:
     - mountPath: /etc/kubernetes/secrets
