@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/scheduler"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/controller/factory"
-
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
@@ -46,6 +45,7 @@ func NewConfigObserver(
 	for _, ns := range interestingNamespaces {
 		configMapPreRunCacheSynced = append(configMapPreRunCacheSynced, kubeInformersForNamespaces.InformersFor(ns).Core().V1().ConfigMaps().Informer().HasSynced)
 	}
+
 	c := &ConfigObserver{
 		Controller: configobserver.NewConfigObserver(
 			operatorClient,

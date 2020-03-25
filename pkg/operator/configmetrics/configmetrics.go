@@ -48,3 +48,7 @@ func (m *configMetrics) Collect(ch chan<- prometheus.Metric) {
 		ch <- g
 	}
 }
+
+func (m *configMetrics) FQName() string {
+	return "cluster_master_schedulable"
+}

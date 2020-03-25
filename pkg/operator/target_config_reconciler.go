@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 )
 
 type TargetConfigReconciler struct {
+	ctx                   context.Context
 	targetImagePullSpec   string
 	operatorImagePullSpec string
 	operatorClient        v1helpers.StaticPodOperatorClient
@@ -37,6 +39,7 @@ type TargetConfigReconciler struct {
 }
 
 func NewTargetConfigReconciler(
+	ctx context.Context,
 	targetImagePullSpec, operatorImagePullSpec string,
 	operatorConfigClient v1helpers.OperatorClient,
 	namespacedKubeInformers informers.SharedInformerFactory,
@@ -47,6 +50,7 @@ func NewTargetConfigReconciler(
 	eventRecorder events.Recorder,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
+		ctx:                   ctx,
 		targetImagePullSpec:   targetImagePullSpec,
 		operatorImagePullSpec: operatorImagePullSpec,
 		kubeClient:            kubeClient,
