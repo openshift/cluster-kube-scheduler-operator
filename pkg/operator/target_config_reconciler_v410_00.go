@@ -141,7 +141,9 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	case operatorv1.Trace:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 6))
 	case operatorv1.TraceAll:
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 8))
+		// We use V(10) here because many critical debugging logs from the scheduler are set to loglevel 10 upstream,
+		// such as node scores when running priority plugins. See https://github.com/openshift/cluster-kube-scheduler-operator/pull/232
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 10))
 	default:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
 	}
