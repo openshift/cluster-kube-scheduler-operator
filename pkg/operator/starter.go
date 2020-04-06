@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"errors"
 	"os"
 	"time"
 
@@ -14,11 +13,14 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
+	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -72,24 +74,32 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.EventRecorder,
 	)
 
-	imagePullSpec, ok := os.LookupEnv("IMAGE")
-	if !ok {
-		return errors.New("environment variable 'IMAGE' is missing")
-	}
-	if len(imagePullSpec) == 0 {
-		return errors.New("environment variable 'IMAGE' can't be empty")
-	}
-	operatorImagePullSpec, ok := os.LookupEnv("OPERATOR_IMAGE")
-	if !ok {
-		return errors.New("environment variable 'OPERATOR_IMAGE' is missing")
-	}
-	if len(operatorImagePullSpec) == 0 {
-		return errors.New("environment variable 'OPERATOR_IMAGE' can't be empty")
-	}
+	staticResourceController := staticresourcecontroller.NewStaticResourceController(
+		"KubeControllerManagerStaticResources",
+		v410_00_assets.Asset,
+		[]string{
+			"v4.1.0/kube-scheduler/ns.yaml",
+			"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
+			"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml",
+			"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
+			"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
+			"v4.1.0/kube-scheduler/policyconfigmap-role.yaml",
+			"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
+			"v4.1.0/kube-scheduler/svc.yaml",
+			"v4.1.0/kube-scheduler/sa.yaml",
+			"v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml",
+			"v4.1.0/kube-scheduler/localhost-recovery-sa.yaml",
+			"v4.1.0/kube-scheduler/localhost-recovery-token.yaml",
+		},
+		(&resourceapply.ClientHolder{}).WithKubernetes(kubeClient),
+		operatorClient,
+		cc.EventRecorder,
+	).AddKubeInformers(kubeInformersForNamespaces)
+
 	targetConfigReconciler := NewTargetConfigReconciler(
 		ctx,
-		imagePullSpec,
-		operatorImagePullSpec,
+		os.Getenv("IMAGE"),
+		os.Getenv("OPERATOR_IMAGE"),
 		operatorClient,
 		kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace),
 		kubeInformersForNamespaces,
@@ -154,6 +164,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	dynamicInformers.Start(ctx.Done())
 
 	go staticPodControllers.Start(ctx)
+	go staticResourceController.Run(ctx, 1)
 	go resourceSyncController.Run(ctx, 1)
 	go targetConfigReconciler.Run(1, ctx.Done())
 	go configObserver.Run(ctx, 1)

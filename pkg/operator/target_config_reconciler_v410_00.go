@@ -34,25 +34,6 @@ const TargetPolicyConfigMapName = "policy-configmap"
 func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
-	directResourceResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(c.kubeClient), c.eventRecorder, v410_00_assets.Asset,
-		"v4.1.0/kube-scheduler/ns.yaml",
-		"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
-		"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml",
-		"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
-		"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
-		"v4.1.0/kube-scheduler/policyconfigmap-role.yaml",
-		"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
-		"v4.1.0/kube-scheduler/svc.yaml",
-		"v4.1.0/kube-scheduler/sa.yaml",
-		"v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml",
-		"v4.1.0/kube-scheduler/localhost-recovery-sa.yaml",
-		"v4.1.0/kube-scheduler/localhost-recovery-token.yaml",
-	)
-	for _, currResult := range directResourceResults {
-		if currResult.Error != nil {
-			errors = append(errors, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
-		}
-	}
 	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
