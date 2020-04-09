@@ -4,10 +4,12 @@ import (
 	"context"
 	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/key"
+	apitrace "go.opentelemetry.io/otel/api/trace"
 	"os"
 	"time"
-	
+
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
+	"go.opentelemetry.io/otel/exporters/trace/stdout"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -47,25 +49,39 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		return err
 	}
 
-	// Set up opentelemetry tracing exporter and provider
-	traceProvider, flush, err := jaeger.NewExportPipeline(
-		jaeger.WithCollectorEndpoint("http://localhost:14268/api/traces"),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: "trace-demo",
-			Tags: []core.KeyValue{
-				key.String("exporter", "jaeger"),
-				key.Float64("float", 312.23),
-			},
-		}),
-		jaeger.RegisterAsGlobal(),
-		jaeger.WithSDK(&sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
-	)
-	if err != nil {
-		return err
-	}
-	defer flush()
-	if err != nil {
-		return err
+	jaegerUrl := os.Getenv("JAEGER_URL")
+	var traceProvider apitrace.Provider
+	if jaegerUrl == "" {
+		// Set up opentelemetry tracing exporter and provider
+		exporter, err := stdout.NewExporter(stdout.Options{PrettyPrint: true})
+		if err != nil {
+			return err
+		}
+		provider, err := sdktrace.NewProvider(sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+			sdktrace.WithSyncer(exporter))
+		if err != nil {
+			return err
+		}
+		traceProvider = provider
+	} else {
+		// Set up opentelemetry tracing exporter and provider
+		provider, flush, err := jaeger.NewExportPipeline(
+			jaeger.WithCollectorEndpoint(jaegerUrl),
+			jaeger.WithProcess(jaeger.Process{
+				ServiceName: "kube-scheduler-operator",
+				Tags: []core.KeyValue{
+					key.String("exporter", "jaeger"),
+					key.Float64("float", 312.23),
+				},
+			}),
+			jaeger.RegisterAsGlobal(),
+			jaeger.WithSDK(&sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		)
+		if err != nil {
+			return err
+		}
+		defer flush()
+		traceProvider = provider
 	}
 
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)

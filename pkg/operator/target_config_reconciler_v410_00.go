@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"go.opentelemetry.io/otel/api/core"
+
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
@@ -66,6 +68,7 @@ func createTargetConfigReconciler_v311_00_to_latest(ctx context.Context, c Targe
 		return true, nil
 	}
 
+	span.AddEvent(ctx, "updated controller condition", core.KeyValue{Key: "TargetConfigControllerDegraded", Value: core.String(string(operatorv1.ConditionFalse))})
 	condition := operatorv1.OperatorCondition{
 		Type:   "TargetConfigControllerDegraded",
 		Status: operatorv1.ConditionFalse,
