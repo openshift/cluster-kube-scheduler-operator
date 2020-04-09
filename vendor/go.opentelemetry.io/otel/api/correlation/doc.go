@@ -12,5 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package stdout contains an OpenTelemetry tracing exporter for writing to stdout.
-package stdout // import "go.opentelemetry.io/otel/exporters/trace/stdout"
+// This package implements the correlation functionality as specified
+// in the OpenTelemetry specification. Currently it provides a data
+// structure for storing correlations (Map) and a way of putting Map
+// object into the context and retrieving it from context.
+package correlation // import "go.opentelemetry.io/otel/api/correlation"
