@@ -1,4 +1,4 @@
-// Copyright 2015 CoreOS, Inc.
+// Copyright 2013-2015 CoreOS, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package capnslog
+package semver
 
-import "os"
+import (
+	"sort"
+)
 
-func init() {
-	initHijack()
+type Versions []*Version
 
-	// Go `log` package uses os.Stderr.
-	SetFormatter(NewPrettyFormatter(os.Stderr, false))
-	SetGlobalLogLevel(INFO)
+func (s Versions) Len() int {
+	return len(s)
+}
+
+func (s Versions) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s Versions) Less(i, j int) bool {
+	return s[i].LessThan(*s[j])
+}
+
+// Sort sorts the given slice of Version
+func Sort(versions []*Version) {
+	sort.Sort(Versions(versions))
 }
