@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/klog"
 
-	apitrace "go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/global"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -38,7 +38,6 @@ type TargetConfigReconciler struct {
 	featureGateCacheSync  cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue  workqueue.RateLimitingInterface
-	Tracer apitrace.Tracer
 }
 
 func NewTargetConfigReconciler(
@@ -51,7 +50,6 @@ func NewTargetConfigReconciler(
 	operatorClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
-	tracer apitrace.Tracer,
 ) *TargetConfigReconciler {
 	c := &TargetConfigReconciler{
 		ctx:                   ctx,
@@ -65,7 +63,6 @@ func NewTargetConfigReconciler(
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
 		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
 		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
-		Tracer:               tracer,
 	}
 
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
@@ -84,7 +81,7 @@ func NewTargetConfigReconciler(
 }
 
 func (c TargetConfigReconciler) sync() error {
-	ctx, span := c.Tracer.Start(context.Background(), "sync")
+	ctx, span := global.TraceProvider().Tracer("target-config-reconciler").Start(context.Background(), "sync")
 	defer span.End()
 	span.AddEvent(ctx, "syncing target config")
 

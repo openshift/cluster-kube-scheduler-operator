@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/otel/api/core"
+	"go.opentelemetry.io/otel/api/global"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
@@ -35,10 +36,10 @@ const TargetPolicyConfigMapName = "policy-configmap"
 // most of the time the sync method will be good for a large span of minor versions
 func createTargetConfigReconciler_v311_00_to_latest(ctx context.Context, c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
-	ctx, span := c.Tracer.Start(ctx, "creatingTargetConfigReconciler")
+	ctx, span := global.TraceProvider().Tracer("target-config-reconciler").Start(ctx, "creatingTargetConfigReconciler")
 	defer span.End()
 
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(ctx, c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -80,7 +81,9 @@ func createTargetConfigReconciler_v311_00_to_latest(ctx context.Context, c Targe
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (*corev1.ConfigMap, bool, error) {
+	_, span := global.TraceProvider().Tracer("target-config-reconciler").Start(ctx, "managing kubeschedulerconfigmap")
+	defer span.End()
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
 	defaultConfig := v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap.yaml")
 	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, defaultConfig, operatorSpec.ObservedConfig.Raw, operatorSpec.UnsupportedConfigOverrides.Raw)

@@ -2,12 +2,12 @@ package operator
 
 import (
 	"context"
-	"go.opentelemetry.io/otel/api/core"
-	"go.opentelemetry.io/otel/api/key"
-	apitrace "go.opentelemetry.io/otel/api/trace"
 	"os"
 	"time"
 
+	"go.opentelemetry.io/otel/api/core"
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/key"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 	"go.opentelemetry.io/otel/exporters/trace/stdout"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -50,7 +50,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 
 	jaegerUrl := os.Getenv("JAEGER_URL")
-	var traceProvider apitrace.Provider
 	if jaegerUrl == "" {
 		// Set up opentelemetry tracing exporter and provider
 		exporter, err := stdout.NewExporter(stdout.Options{PrettyPrint: true})
@@ -62,10 +61,10 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		if err != nil {
 			return err
 		}
-		traceProvider = provider
+		global.SetTraceProvider(provider)
 	} else {
 		// Set up opentelemetry tracing exporter and provider
-		provider, flush, err := jaeger.NewExportPipeline(
+		_, flush, err := jaeger.NewExportPipeline(
 			jaeger.WithCollectorEndpoint(jaegerUrl),
 			jaeger.WithProcess(jaeger.Process{
 				ServiceName: "kube-scheduler-operator",
@@ -81,7 +80,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 			return err
 		}
 		defer flush()
-		traceProvider = provider
 	}
 
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
@@ -149,7 +147,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		operatorClient,
 		kubeClient,
 		cc.EventRecorder,
-		traceProvider.Tracer("target-config-reconciler"),
 	)
 
 	// don't change any versions until we sync
