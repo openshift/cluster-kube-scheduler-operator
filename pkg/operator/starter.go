@@ -5,6 +5,9 @@ import (
 	"os"
 	"time"
 
+	"go.opentelemetry.io/otel/exporters/trace/stdout"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -38,6 +41,17 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		return err
 	}
 	configClient, err := configv1client.NewForConfig(cc.KubeConfig)
+	if err != nil {
+		return err
+	}
+
+	// Set up opentelemetry tracing exporter and provider
+	exporter, err := stdout.NewExporter(stdout.Options{PrettyPrint: true})
+	if err != nil {
+		return err
+	}
+	traceProvider, err := sdktrace.NewProvider(sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		sdktrace.WithSyncer(exporter))
 	if err != nil {
 		return err
 	}
@@ -107,6 +121,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		operatorClient,
 		kubeClient,
 		cc.EventRecorder,
+		traceProvider.Tracer("target-config-reconciler"),
 	)
 
 	// don't change any versions until we sync

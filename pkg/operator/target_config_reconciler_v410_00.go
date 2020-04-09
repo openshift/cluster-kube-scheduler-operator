@@ -31,8 +31,10 @@ const TargetPolicyConfigMapName = "policy-configmap"
 
 // syncKubeScheduler_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func createTargetConfigReconciler_v311_00_to_latest(c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
+func createTargetConfigReconciler_v311_00_to_latest(ctx context.Context, c TargetConfigReconciler, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
+	ctx, span := c.Tracer.Start(ctx, "creatingTargetConfigReconciler")
+	defer span.End()
 
 	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec)
 	if err != nil {
