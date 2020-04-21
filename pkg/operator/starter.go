@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/targetconfigcontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
@@ -26,10 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-)
-
-const (
-	workQueueKey = "key"
 )
 
 func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error {
@@ -96,7 +93,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.EventRecorder,
 	).AddKubeInformers(kubeInformersForNamespaces)
 
-	targetConfigReconciler := NewTargetConfigReconciler(
+	targetConfigController := targetconfigcontroller.NewTargetConfigController(
 		ctx,
 		os.Getenv("IMAGE"),
 		os.Getenv("OPERATOR_IMAGE"),
@@ -166,7 +163,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go staticPodControllers.Start(ctx)
 	go staticResourceController.Run(ctx, 1)
 	go resourceSyncController.Run(ctx, 1)
-	go targetConfigReconciler.Run(1, ctx.Done())
+	go targetConfigController.Run(1, ctx.Done())
 	go configObserver.Run(ctx, 1)
 	go clusterOperatorStatus.Run(ctx, 1)
 	go staleConditions.Run(ctx, 1)
