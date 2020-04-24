@@ -5,11 +5,8 @@ import (
 	"os"
 	"time"
 
-	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/key"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/exporters/trace/stdout"
+	"go.opentelemetry.io/otel/exporters/otlp"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -50,37 +47,27 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 
 	jaegerUrl := os.Getenv("JAEGER_URL")
-	if jaegerUrl == "" {
-		// Set up opentelemetry tracing exporter and provider
-		exporter, err := stdout.NewExporter(stdout.Options{PrettyPrint: true})
-		if err != nil {
-			return err
-		}
-		provider, err := sdktrace.NewProvider(sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
-			sdktrace.WithSyncer(exporter))
-		if err != nil {
-			return err
-		}
-		global.SetTraceProvider(provider)
-	} else {
-		// Set up opentelemetry tracing exporter and provider
-		_, flush, err := jaeger.NewExportPipeline(
-			jaeger.WithCollectorEndpoint(jaegerUrl),
-			jaeger.WithProcess(jaeger.Process{
-				ServiceName: "kube-scheduler-operator",
-				Tags: []core.KeyValue{
-					key.String("exporter", "jaeger"),
-					key.Float64("float", 312.23),
-				},
-			}),
-			jaeger.RegisterAsGlobal(),
-			jaeger.WithSDK(&sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
-		)
-		if err != nil {
-			return err
-		}
-		defer flush()
+	exp, err := otlp.NewExporter(
+		otlp.WithInsecure(),
+		otlp.WithAddress(jaegerUrl),
+	)
+	if err != nil {
+		return err
 	}
+	defer func() {
+		_ = exp.Stop()
+	}()
+	tp, _ := sdktrace.NewProvider(
+		sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		sdktrace.WithBatcher(exp, // add following two options to ensure flush
+			sdktrace.WithScheduleDelayMillis(5),
+			sdktrace.WithMaxExportBatchSize(10),
+		))
+	if err != nil {
+		return err
+	}
+
+	global.SetTraceProvider(tp)
 
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient,

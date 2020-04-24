@@ -16,6 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200407032746-7eae024eade9 // indirect
 	go.opentelemetry.io/otel v0.4.2
+	go.opentelemetry.io/otel/exporters/otlp v0.4.2
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.4.2
 	k8s.io/api v0.18.0
 	k8s.io/apimachinery v0.18.0
