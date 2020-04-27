@@ -21,6 +21,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 			configValue: configv1.Default,
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
+				"APIPriorityAndFairness":         true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
@@ -34,6 +35,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 			configValue: configv1.TechPreviewNoUpgrade,
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
+				"APIPriorityAndFairness":         true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
