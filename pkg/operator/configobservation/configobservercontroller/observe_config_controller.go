@@ -1,7 +1,9 @@
 package configobservercontroller
 
 import (
+	"context"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	"github.com/openshift/library-go/pkg/operator/trace"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
@@ -19,12 +21,16 @@ type ConfigObserver struct {
 }
 
 func NewConfigObserver(
+	ctx context.Context,
 	operatorClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
 	resourceSyncer resourcesynccontroller.ResourceSyncer,
 	eventRecorder events.Recorder,
 ) *ConfigObserver {
+	_, span := trace.TraceProvider().Tracer("observe-config-controller").Start(ctx, "NewConfigObserver")
+	defer span.End()
+
 	interestingNamespaces := []string{
 		operatorclient.GlobalUserSpecifiedConfigNamespace,
 		operatorclient.GlobalMachineSpecifiedConfigNamespace,

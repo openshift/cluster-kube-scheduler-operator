@@ -34,6 +34,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	"github.com/openshift/library-go/pkg/operator/trace"
 )
 
 const (
@@ -66,6 +68,9 @@ func NewTargetConfigController(
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *TargetConfigController {
+	_, span := trace.TraceProvider().Tracer("targetconfigcontroller").Start(ctx, "NewTargetConfigController")
+	defer span.End()
+
 	c := &TargetConfigController{
 		ctx:                   ctx,
 		targetImagePullSpec:   targetImagePullSpec,

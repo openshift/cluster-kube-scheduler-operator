@@ -1,6 +1,8 @@
 package resourcesynccontroller
 
 import (
+	"context"
+	"github.com/openshift/library-go/pkg/operator/trace"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
@@ -12,11 +14,15 @@ import (
 )
 
 func NewResourceSyncController(
+	ctx context.Context,
 	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder) (*resourcesynccontroller.ResourceSyncController, error) {
+
+	_, span := trace.TraceProvider().Tracer("resourcesynccontroller").Start(ctx, "NewResourceSyncController")
+	defer span.End()
 
 	resourceSyncController := resourcesynccontroller.NewResourceSyncController(
 		operatorConfigClient,

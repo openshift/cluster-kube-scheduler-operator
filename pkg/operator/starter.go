@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 	"github.com/openshift/library-go/pkg/operator/status"
+	"github.com/openshift/library-go/pkg/operator/trace"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,10 @@ import (
 )
 
 func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error {
+	_, flush, err := trace.NewJaegerProvider(os.Getenv("JAEGER_ENDPOINT"), "openshift-kube-scheduler-operator")
+	defer flush()
+	ctx, span := trace.TraceProvider().Tracer("kube-scheduler-operator").Start(ctx, "RunOperator")
+
 	kubeClient, err := kubernetes.NewForConfig(cc.ProtoKubeConfig)
 	if err != nil {
 		return err
@@ -40,7 +45,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 
 	configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
-	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient,
+	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(ctx, kubeClient,
 		"",
 		operatorclient.GlobalUserSpecifiedConfigNamespace,
 		operatorclient.GlobalMachineSpecifiedConfigNamespace,
@@ -54,6 +59,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
+		ctx,
 		operatorClient,
 		kubeInformersForNamespaces,
 		configInformers,
@@ -64,6 +70,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		return err
 	}
 	configObserver := configobservercontroller.NewConfigObserver(
+		ctx,
 		operatorClient,
 		kubeInformersForNamespaces,
 		configInformers,
@@ -168,6 +175,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go clusterOperatorStatus.Run(ctx, 1)
 	go staleConditions.Run(ctx, 1)
 
+	span.End()
 	<-ctx.Done()
 	return nil
 }
