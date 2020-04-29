@@ -3,6 +3,7 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -323,6 +324,16 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 10))
 	default:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
+	}
+
+	if len(os.Getenv("JAEGER_ENDPOINT")) != 0 {
+		required.Spec.Containers[0].Env = append(required.Spec.Containers[0].Env, corev1.EnvVar{Name:"JAEGER_ENDPOINT", Value:os.Getenv("JAEGER_ENDPOINT")})
+	}
+	if len(os.Getenv("SCHEDULER_IMAGE")) != 0 {
+		required.Spec.Containers[0].Image = os.Getenv("SCHEDULER_IMAGE")
+		required.Spec.Containers[0].Command = []string{"kube-scheduler"}
+		required.Spec.Containers[0].ImagePullPolicy = "Always"
+		//required.Spec.Containers[0].Env = append(required.Spec.Containers[0].Env, corev1.EnvVar{Name:"NODE_NAME",ValueFrom:&corev1.EnvVarSource{FieldRef:&corev1.ObjectFieldSelector{FieldPath:"spec.nodeName"}}})
 	}
 
 	if _, err := secretsGetter.Secrets(required.Namespace).Get(ctx, "serving-cert", metav1.GetOptions{}); err != nil && !apierrors.IsNotFound(err) {

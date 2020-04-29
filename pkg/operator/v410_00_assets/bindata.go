@@ -70,13 +70,13 @@ func (fi bindataFileInfo) Sys() interface{} {
 	return nil
 }
 
-var _v410ConfigDefaultconfigPostbootstrapYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
+var _v410ConfigDefaultconfigPostbootstrapYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha2
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: /etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
 leaderElection:
   leaderElect: true
-  lockObjectNamespace: "openshift-kube-scheduler"
+  resourceNamespace: "openshift-kube-scheduler"
   resourceLock: "configmaps"
 `)
 
@@ -95,7 +95,7 @@ func v410ConfigDefaultconfigPostbootstrapYaml() (*asset, error) {
 	return a, nil
 }
 
-var _v410ConfigDefaultconfigYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha1
+var _v410ConfigDefaultconfigYaml = []byte(`apiVersion: kubescheduler.config.k8s.io/v1alpha2
 kind: KubeSchedulerConfiguration
 `)
 
@@ -406,6 +406,11 @@ spec:
       done
   containers:
   - name: kube-scheduler
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
     image: ${IMAGE}
     imagePullPolicy: IfNotPresent
     terminationMessagePolicy: FallbackToLogsOnError
