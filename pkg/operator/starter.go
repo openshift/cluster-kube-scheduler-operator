@@ -53,7 +53,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		operatorclient.TargetNamespace,
 		"kube-system",
 	)
-	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(cc.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
+	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(ctx, cc.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
 	if err != nil {
 		return err
 	}
@@ -79,6 +79,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	)
 
 	staticResourceController := staticresourcecontroller.NewStaticResourceController(
+		ctx,
 		"KubeControllerManagerStaticResources",
 		v410_00_assets.Asset,
 		[]string{
@@ -124,7 +125,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 	versionRecorder.SetVersion("raw-internal", status.VersionForOperatorFromEnv())
 
-	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces).
+	staticPodControllers, err := staticpod.NewBuilder(ctx, operatorClient, kubeClient, kubeInformersForNamespaces).
 		WithEvents(cc.EventRecorder).
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").

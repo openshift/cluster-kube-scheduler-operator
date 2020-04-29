@@ -71,8 +71,8 @@ github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea h1:n2Ltr3SrfQlf/9nOna1D
 github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
-github.com/damemi/library-go v0.0.0-20200429135234-b19df339a8f0 h1:vjgTUGs0pZmaNjcMe+n2A74DxhZxaH2r8UriknMjfjA=
-github.com/damemi/library-go v0.0.0-20200429135234-b19df339a8f0/go.mod h1:w2M691Ids/pFinVB6ku04MRGdtXUzRMHXE+vfHjQQb8=
+github.com/damemi/library-go v0.0.0-20200429140651-f8c2dc27f524 h1:mafoPBdPKkuU/hY9hQD7hTnNEe8OM0oZl8/2V68X7jg=
+github.com/damemi/library-go v0.0.0-20200429140651-f8c2dc27f524/go.mod h1:w2M691Ids/pFinVB6ku04MRGdtXUzRMHXE+vfHjQQb8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
