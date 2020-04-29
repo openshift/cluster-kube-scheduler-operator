@@ -114,6 +114,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.EventRecorder,
 	)
 
+	_, newVersionSpan := trace.TraceProvider().Tracer("kube-scheduler-operator").Start(ctx, "NewVersionGetter")
 	// don't change any versions until we sync
 	versionRecorder := status.NewVersionGetter()
 	clusterOperator, err := configClient.ConfigV1().ClusterOperators().Get(ctx, "kube-scheduler-operator", metav1.GetOptions{})
@@ -124,6 +125,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		versionRecorder.SetVersion(version.Name, version.Version)
 	}
 	versionRecorder.SetVersion("raw-internal", status.VersionForOperatorFromEnv())
+	newVersionSpan.End()
 
 	staticPodControllers, err := staticpod.NewBuilder(ctx, operatorClient, kubeClient, kubeInformersForNamespaces).
 		WithEvents(cc.EventRecorder).
