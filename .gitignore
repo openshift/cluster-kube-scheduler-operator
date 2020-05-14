@@ -18,6 +18,6 @@ origin.iml
 *.go~
 tags
 .envrc
-
+telepresence.log
 
 cluster-kube-scheduler-operator

@@ -7,6 +7,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	targets/openshift/bindata.mk \
 	targets/openshift/images.mk \
 	targets/openshift/deps.mk \
+	targets/openshift/operator/telepresence.mk \
 )
 
 # Exclude e2e tests from unit testing
@@ -40,3 +41,8 @@ e2e: test-unit
 clean:
 	$(RM) ./cluster-kube-scheduler-operator
 .PHONY: clean
+
+# Configure the 'telepresence' target
+# See vendor/github.com/openshift/build-machinery-go/scripts/run-telepresence.sh for usage and configuration details
+export TP_DEPLOYMENT_YAML ?=./manifests/0000_25_kube-scheduler-operator_06_deployment.yaml
+export TP_CMD_PATH ?=./cmd/cluster-kube-scheduler-operator
