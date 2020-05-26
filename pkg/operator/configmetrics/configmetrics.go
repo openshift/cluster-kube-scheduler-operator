@@ -16,6 +16,10 @@ func Register(configInformer configinformers.SharedInformerFactory) {
 			Name: "cluster_master_schedulable",
 			Help: "Reports whether the cluster master nodes are schedulable.",
 		}),
+		policy: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "cluster_legacy_scheduler_policy",
+			Help: "Reports whether the cluster scheduler is configured with a legacy KubeScheduler Policy.",
+		}),
 	})
 }
 
@@ -23,6 +27,7 @@ func Register(configInformer configinformers.SharedInformerFactory) {
 type configMetrics struct {
 	configLister configlisters.SchedulerLister
 	config       prometheus.Gauge
+	policy       prometheus.Gauge
 }
 
 func (m *configMetrics) ClearState() {}
@@ -39,16 +44,20 @@ func (m *configMetrics) Describe(ch chan<- *prometheus.Desc) {
 // Collect calculates metrics from the cached config and reports them to the prometheus collector.
 func (m *configMetrics) Collect(ch chan<- prometheus.Metric) {
 	if config, err := m.configLister.Get("cluster"); err == nil {
-		g := m.config
-		if config.Spec.MastersSchedulable {
-			g.Set(1)
-		} else {
-			g.Set(0)
-		}
-		ch <- g
+		ch <- booleanGaugeValue(m.config, config.Spec.MastersSchedulable)
+		ch <- booleanGaugeValue(m.policy, len(config.Spec.Policy.Name) > 0)
 	}
 }
 
 func (m *configMetrics) FQName() string {
-	return "cluster_master_schedulable"
+	return "cluster_kube_scheduler_operator"
+}
+
+func booleanGaugeValue(g prometheus.Gauge, value bool) prometheus.Gauge {
+	if value {
+		g.Set(1)
+	} else {
+		g.Set(0)
+	}
+	return g
 }
