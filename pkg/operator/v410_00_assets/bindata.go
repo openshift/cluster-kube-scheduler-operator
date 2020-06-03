@@ -399,8 +399,8 @@ spec:
     command: ['/usr/bin/timeout', '30', '/bin/bash', '-c']
     args:
     - |
-      echo -n "Waiting for port :10259 and :10251 to be released."
-      while [ -n "$(lsof -ni :10251)" -o -n "$(lsof -i :10259)" ]; do
+      echo -n "Waiting for port :10251 and :10259 to be released."
+      while [ -n "$(ss -Htan '( sport = 10251 or sport = 10259 )')" ]; do
         echo -n "."
         sleep 1
       done
