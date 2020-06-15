@@ -28,13 +28,28 @@ spec:
     image: ${IMAGE}
     imagePullPolicy: IfNotPresent
     terminationMessagePolicy: FallbackToLogsOnError
-    command: ["hyperkube", "kube-scheduler"]
+    command: ["/bin/bash", "-ec"]
     args:
-    - --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml
-    - --cert-dir=/var/run/kubernetes
-    - --port=0
-    - --authentication-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
-    - --authorization-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
+    - |
+      echo -n "Waiting kube-apiserver to respond."
+      tries=0
+      until curl --output /dev/null --silent -k https://localhost:6443/version; do
+        echo -n "."
+        sleep 1
+        (( tries += 1 ))
+        if [[ "${tries}" -gt 180 ]]; then
+          echo "timed out waiting for kube-apiserver to respond."
+          exit 1
+        fi
+      done
+      echo
+
+      exec hyperkube kube-scheduler
+        --config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml \
+        --cert-dir=/var/run/kubernetes \
+        --port=0 \
+        --authentication-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig \
+        --authorization-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig
     resources:
       requests:
         memory: 50Mi
