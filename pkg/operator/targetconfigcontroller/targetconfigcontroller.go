@@ -299,33 +299,43 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		}
 	}
 
+	containerArgsWithLoglevel := required.Spec.Containers[0].Args
+	if argsCount := len(containerArgsWithLoglevel); argsCount > 1 {
+		return nil, false, fmt.Errorf("expected only one container argument, got %d", argsCount)
+	}
+	if !strings.Contains(containerArgsWithLoglevel[0], "exec hyperkube kube-scheduler") {
+		return nil, false, fmt.Errorf("exec hyperkube kube-scheduler not found in first argument %q", containerArgsWithLoglevel[0])
+	}
+
 	// check for feature gates from feature lister.
 	featureGates := checkForFeatureGates(featureGateLister)
 	sortedFeatureGates := getSortedFeatureGates(featureGates)
 	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGates)
-	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
+	containerArgsWithLoglevel[0] = strings.TrimSpace(containerArgsWithLoglevel[0])
+	containerArgsWithLoglevel[0] += fmt.Sprintf(" --feature-gates=%v", allFeatureGates)
 
 	switch operatorSpec.LogLevel {
 	case operatorv1.Normal:
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
+		containerArgsWithLoglevel[0] += fmt.Sprintf(" -v=%d", 2)
 	case operatorv1.Debug:
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 4))
+		containerArgsWithLoglevel[0] += fmt.Sprintf(" -v=%d", 4)
 	case operatorv1.Trace:
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 6))
+		containerArgsWithLoglevel[0] += fmt.Sprintf(" -v=%d", 6)
 	case operatorv1.TraceAll:
 		// We use V(10) here because many critical debugging logs from the scheduler are set to loglevel 10 upstream,
 		// such as node scores when running priority plugins. See https://github.com/openshift/cluster-kube-scheduler-operator/pull/232
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 10))
+		containerArgsWithLoglevel[0] += fmt.Sprintf(" -v=%d", 10)
 	default:
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
+		containerArgsWithLoglevel[0] += fmt.Sprintf(" -v=%d", 2)
 	}
 
 	if _, err := secretsGetter.Secrets(required.Namespace).Get(ctx, "serving-cert", metav1.GetOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		return nil, false, err
 	} else if err == nil {
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-cert-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.crt")
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
+		containerArgsWithLoglevel[0] += " --tls-cert-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.crt"
+		containerArgsWithLoglevel[0] += " --tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key"
 	}
+	containerArgsWithLoglevel[0] = strings.TrimSpace(containerArgsWithLoglevel[0])
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
