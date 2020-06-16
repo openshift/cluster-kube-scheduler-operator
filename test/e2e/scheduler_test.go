@@ -127,22 +127,22 @@ func createSchedulerConfigMap(ctx context.Context, kclient *k8sclient.Clientset)
 
 func waitForConfigMapUpdate(ctx context.Context, kclient *k8sclient.Clientset) error {
 	return wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
-		configMap, err := kclient.CoreV1().ConfigMaps("openshift-kube-scheduler").Get(ctx, "config", metav1.GetOptions{})
+		configMap, err := kclient.CoreV1().ConfigMaps("openshift-kube-scheduler").Get(ctx, "policy-configmap", metav1.GetOptions{})
 		if err != nil {
 			klog.Infof("error waiting for config map to exist: %v\n", err)
 			return false, nil
 		}
 		klog.Infof("Found configmap")
 		// We should have algorithmSource as key in our map which shows we have configured policy.
-		if data, ok := configMap.Data["config.yaml"]; !ok {
+		if data, ok := configMap.Data["policy.cfg"]; !ok {
 			klog.Info("Still waiting for configmap created with my policy")
 			return false, nil
 		} else {
-			if strings.Contains(data, "policy-configmap") {
-				klog.Info("Configmap created with required policy name")
+			if strings.Contains(data, "predicates") {
+				klog.Info("Configmap created")
 				return true, nil
 			} else {
-				klog.Info("Still waiting for configmap to be created with my policy-configmap")
+				klog.Info("Still waiting for configmap to be created")
 			}
 		}
 		klog.Infof("configmap %v is not yet available", configMap.Name)

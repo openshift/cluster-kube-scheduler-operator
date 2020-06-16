@@ -5,19 +5,19 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 )
 
+// TODO(@damemi): Update this to test to re-include checks that policy config is properly merged into ComponentConfig
+//  (Once we support ComponentConfig/Plugins and deprecate Policy config)
+//  Re: https://github.com/openshift/cluster-kube-scheduler-operator/pull/255
 func TestObserveSchedulerConfig(t *testing.T) {
-	configMapName := "policy-configmap"
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 
 	tests := []struct {
@@ -42,61 +42,40 @@ func TestObserveSchedulerConfig(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		if err := indexer.Add(&configv1.Scheduler{
-			ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-			Spec: configv1.SchedulerSpec{
-				Policy: configv1.ConfigMapNameReference{Name: test.configMapName},
-			},
-		}); err != nil {
-			t.Fatal(err.Error())
-		}
-		synced := map[string]string{}
-		listers := configobservation.Listers{
-			SchedulerLister: configlistersv1.NewSchedulerLister(indexer),
-			ResourceSync:    &mockResourceSyncer{t: t, synced: synced},
-		}
-		result, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
-		if len(errors) > 0 {
-			t.Fatalf("expected len(errors) == 0")
-		}
-		observedConfigMapName, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "name")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		observedConfigMapNamespace, _, err := unstructured.NestedString(result, "algorithmSource", "policy", "configMap", "namespace")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if observedConfigMapName != configMapName {
-			t.Fatalf("expected configmap to be %v but got %v for %v", observedConfigMapName, configMapName, test.description)
-		}
-		if observedConfigMapNamespace != operatorclient.TargetNamespace {
-			t.Fatalf("expected target namespace to be %v but got %v for %v", observedConfigMapName, configMapName, test.description)
-		}
-		if !test.updateName {
-			continue
-		}
-
-		// clear the configmap name in scheduler config to test that this also carries to the observed config
-		if err := indexer.Update(&configv1.Scheduler{
-			ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-			Spec: configv1.SchedulerSpec{
-				Policy: configv1.ConfigMapNameReference{Name: ""},
-			},
-		}); err != nil {
-			t.Fatal(err.Error())
-		}
-		result, errors = ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
-		if len(errors) > 0 {
-			t.Fatalf("expected len(errors) == 0")
-		}
-		source, found, err := unstructured.NestedString(result, "algorithmSource")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if found {
-			t.Fatalf("expected observed algorithmSource to be nil, was %v for %v", source, test.description)
-		}
+		t.Run(test.description, func(t *testing.T) {
+			if err := indexer.Add(&configv1.Scheduler{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Spec: configv1.SchedulerSpec{
+					Policy: configv1.ConfigMapNameReference{Name: test.configMapName},
+				},
+			}); err != nil {
+				t.Fatal(err.Error())
+			}
+			synced := map[string]string{}
+			listers := configobservation.Listers{
+				SchedulerLister: configlistersv1.NewSchedulerLister(indexer),
+				ResourceSync:    &mockResourceSyncer{t: t, synced: synced},
+			}
+			_, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
+			if len(errors) > 0 {
+				t.Fatalf("expected len(errors) == 0")
+			}
+			if test.updateName {
+				// clear the configmap name in scheduler config to test that this also carries to the observed config
+				if err := indexer.Update(&configv1.Scheduler{
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+					Spec: configv1.SchedulerSpec{
+						Policy: configv1.ConfigMapNameReference{Name: ""},
+					},
+				}); err != nil {
+					t.Fatal(err.Error())
+				}
+				_, errors = ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
+				if len(errors) > 0 {
+					t.Fatalf("expected len(errors) == 0")
+				}
+			}
+		})
 	}
 }
 
