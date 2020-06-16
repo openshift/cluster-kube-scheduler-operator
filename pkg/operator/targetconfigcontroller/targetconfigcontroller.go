@@ -3,6 +3,7 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -51,6 +52,7 @@ type TargetConfigController struct {
 	configMapLister       corev1listers.ConfigMapLister
 	featureGateLister     configlistersv1.FeatureGateLister
 	featureGateCacheSync  cache.InformerSynced
+	configInformer        configinformers.SharedInformerFactory
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
@@ -74,6 +76,7 @@ func NewTargetConfigController(
 		configMapLister:       kubeInformersForNamespaces.ConfigMapLister(),
 		operatorClient:        operatorClient,
 		eventRecorder:         eventRecorder,
+		configInformer:        configInformer,
 
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
 		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
@@ -237,7 +240,7 @@ func createTargetConfigController_v311_00_to_latest(c TargetConfigController, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "serviceaccount/localhost-recovery-client", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister)
+	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configInformer)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -276,7 +279,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -305,6 +308,12 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGates)
 	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
+	if len(os.Getenv("SCHEDULER_IMAGE")) != 0 {
+		required.Spec.Containers[0].Image = os.Getenv("SCHEDULER_IMAGE")
+		required.Spec.Containers[0].Command = []string{"kube-scheduler"}
+		required.Spec.Containers[0].ImagePullPolicy = "Always"
+	}
+
 	switch operatorSpec.LogLevel {
 	case operatorv1.Normal:
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", 2))
@@ -325,6 +334,15 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	} else if err == nil {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-cert-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.crt")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
+	}
+
+	config, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
+	if err != nil {
+		return nil, false, err
+	}
+	if len(config.Spec.Policy.Name) > 0 {
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
 	}
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
