@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
@@ -18,29 +17,7 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 	listers := genericListers.(configobservation.Listers)
 	errs := []error{}
 	prevObservedConfig := map[string]interface{}{}
-	policyConfigMapRootPath := []string{"algorithmSource", "policy", "configMap"}
-	// Name of the policy configmap. This should come after the policyConfigMapRootPath
-	policyConfigMapNamePath := append(policyConfigMapRootPath, "name")
-	// Namespace where the policy configmap exists. This should come after the policyConfigMapRootPath
-	policyConfigMapNamespacePath := append(policyConfigMapRootPath, "namespace")
-	currentPolicyConfigMapName, _, err := unstructured.NestedString(existingConfig, policyConfigMapNamePath...)
-	if err != nil {
-		return prevObservedConfig, append(errs, err)
-	}
-	if len(currentPolicyConfigMapName) > 0 {
-		if err := unstructured.SetNestedField(prevObservedConfig, currentPolicyConfigMapName, policyConfigMapNamePath...); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	currentPolicyConfigMapNamespace, _, err := unstructured.NestedString(existingConfig, policyConfigMapNamespacePath...)
-	if err != nil {
-		return prevObservedConfig, append(errs, err)
-	}
-	if len(currentPolicyConfigMapNamespace) > 0 {
-		if err := unstructured.SetNestedField(prevObservedConfig, currentPolicyConfigMapNamespace, policyConfigMapNamespacePath...); err != nil {
-			errs = append(errs, err)
-		}
-	}
+
 	sourceTargetLocation := resourcesynccontroller.ResourceLocation{}
 	observedConfig := map[string]interface{}{}
 	schedulerConfig, err := listers.SchedulerLister.Get("cluster")
@@ -81,26 +58,9 @@ func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder even
 		},
 		sourceTargetLocation,
 	)
-	if len(configMapName) == 0 {
-		if len(currentPolicyConfigMapName) > 0 {
-			recorder.Eventf("ObservedConfigMapNameChanged", "scheduler configmap removed")
-			unstructured.RemoveNestedField(prevObservedConfig, "algorithmSource")
-		}
-		return prevObservedConfig, errs
-	}
 	if err != nil {
 		errs = append(errs, err)
 		return prevObservedConfig, errs
-	}
-
-	if err := unstructured.SetNestedField(observedConfig, "policy-configmap", policyConfigMapNamePath...); err != nil {
-		errs = append(errs, err)
-	}
-	if configMapName != currentPolicyConfigMapName {
-		recorder.Eventf("ObservedConfigMapNameChanged", "scheduler configmap changed to %q", configMapName)
-	}
-	if err := unstructured.SetNestedField(observedConfig, operatorclient.TargetNamespace, policyConfigMapNamespacePath...); err != nil {
-		errs = append(errs, err)
 	}
 	return observedConfig, errs
 }
