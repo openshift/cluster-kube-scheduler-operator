@@ -1,8 +1,11 @@
 package targetconfigcontroller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sort"
 	"strings"
 	"time"
@@ -327,11 +330,130 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
 	}
 
+	// In order to transition from v1alpha1 componentconfig to v1beta1, we need a bridge hack, here.
+	// (This is because v1alpha1 and v1beta1 are not available in the same version, so we can't simply transition)
+	// This reads the componentconfig info and turns it into the corresponding kube-scheduler args
+	// TODO(@damemi): This should only exist to land the 1.19 rebase
+	schedulerComponentConfig, err := configMapsGetter.ConfigMaps(operatorclient.TargetNamespace).Get(ctx, "config", metav1.GetOptions{})
+	if err != nil {
+		return nil, false, err
+	}
+	flags := getFlagsFromComponentConfig(schedulerComponentConfig)
+	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, flags...)
+
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
 	return resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
+}
+
+// getFlagsFromComponentConfig turns CC args into their matching (though possibly deprecated) kube-scheduler args
+// Because v1alpha1 and v1beta1 aren't available in the same version, we can't parse the fields automatically and
+// we need to manually go through each possible config option and add a flag if necessary.
+// This goes one-by-one through every possible CC field found in KubeSchedulerConfiguration: https://github.com/kubernetes/kube-scheduler/blob/release-1.18/config/v1alpha1/types.go
+// TODO(@damemi): Remove this immediately.
+func getFlagsFromComponentConfig(cm *corev1.ConfigMap) []string {
+	args := make([]string, 0)
+
+	data := cm.Data["config.yaml"]
+	existingConfig := map[string]interface{}{}
+	if err := json.NewDecoder(bytes.NewBuffer([]byte(data))).Decode(&existingConfig); err != nil {
+		klog.V(4).Infof("decode of existing config failed with error: %v", err)
+	}
+
+	// Get SchedulerName
+	if schedulerName, ok, err := unstructured.NestedString(existingConfig, "schedulerName"); ok && err == nil {
+		args = append(args, fmt.Sprintf("--scheduler-name=%s", schedulerName))
+	}
+
+	// Get Policy config args
+	// We only allow configmap policy source, and it is always synced to the same location in the TargetNamespace
+	// So if algorithmSource is set, we know that we have the same configmap. See observe_scheduler.go
+	if _, ok, err := unstructured.NestedStringMap(existingConfig, "algorithmSource"); ok && err == nil {
+		args = append(args, "--policy-configmap=policy-configmap")
+		args = append(args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
+	}
+
+	// Get HardPodAffinitySymmetricWeight
+	if hardPodAffinitySymmetricWeight, ok, err := unstructured.NestedString(existingConfig, "hardPodAffinitySymmetricWeight"); ok && err == nil {
+		args = append(args, fmt.Sprintf("--hard-pod-affinity-symmetric-weight=%s", hardPodAffinitySymmetricWeight))
+	}
+
+	// Get leaderelection args
+	if leaderElection, ok, err := unstructured.NestedStringMap(existingConfig, "leaderElection"); ok && err == nil {
+		if leaderElect, ok := leaderElection["leaderElect"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect=%s", leaderElect))
+		}
+		if leaseDuration, ok := leaderElection["leaseDuration"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-lease-duration=%s", leaseDuration))
+		}
+		if renewDeadline, ok := leaderElection["renewDeadline"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-renew-deadline=%s", renewDeadline))
+		}
+		if retryPeriod, ok := leaderElection["retryPeriod"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-retry-period=%s", retryPeriod))
+		}
+		if resourceLock, ok := leaderElection["resourceLock"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-resource-lock=%s", resourceLock))
+		}
+
+		// lockObjectNamespace and lockObjectName are replaced in v1beta1 by ResourceName and ResourceNamespace
+		if lockObjectNamespace, ok := leaderElection["lockObjectNamespace"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-resource-namespace=%s", lockObjectNamespace))
+		}
+		if lockObjectName, ok := leaderElection["lockObjectName"]; ok {
+			args = append(args, fmt.Sprintf("--leader-elect-resource-name=%s", lockObjectName))
+		}
+	}
+
+	// Get clientconnection args
+	if clientConnection, ok, err := unstructured.NestedStringMap(existingConfig, "clientConnection"); ok && err == nil {
+		if kubeconfig, ok := clientConnection["kubeconfig"]; ok {
+			args = append(args, fmt.Sprintf("--kubeconfig=%s", kubeconfig))
+		}
+		if contentType, ok := clientConnection["contentType"]; ok {
+			args = append(args, fmt.Sprintf("--kube-api-content-type=%s", contentType))
+		}
+		if qps, ok := clientConnection["qps"]; ok {
+			args = append(args, fmt.Sprintf("--kube-api-qps=%s", qps))
+		}
+		if burst, ok := clientConnection["burst"]; ok {
+			args = append(args, fmt.Sprintf("--kube-api-burst=%s", burst))
+		}
+		// TODO: Missing AcceptContentTypes flag
+	}
+
+	// Get healthzbindaddress
+	// TODO?
+
+	// Get metricsbindaddress
+	// TODO?
+
+	// Get debugging config args
+	if enableProfiling, ok, err := unstructured.NestedString(existingConfig, "enableProfiling"); ok && err == nil {
+		args = append(args, fmt.Sprintf("--profiling=%s", enableProfiling))
+	}
+	if enableContentionProfiling, ok, err := unstructured.NestedString(existingConfig, "enableContentionProfiling"); ok && err == nil {
+		args = append(args, fmt.Sprintf("--contention-profiling=%s", enableContentionProfiling))
+	}
+
+	// Get DisablePreemption
+	// TODO?
+
+	// Get PercentageOfNodesToScore
+	// TODO?
+
+	// Get BindTimeoutSeconds
+	// TODO?
+
+	// Get PodInitialBackoffSeconds
+	// TODO?
+
+	// Get PodMaxBackoffSeconds
+	// TODO?
+
+	return args
 }
 
 func getSortedFeatureGates(featureGates map[string]bool) []string {
