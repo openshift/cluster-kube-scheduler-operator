@@ -20,6 +20,10 @@ func Register(configInformer configinformers.SharedInformerFactory) {
 			Name: "cluster_legacy_scheduler_policy",
 			Help: "Reports whether the cluster scheduler is configured with a legacy KubeScheduler Policy.",
 		}),
+		nodeSelector: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "cluster_default_node_selector",
+			Help: "Reports whether the cluster scheduler is configured with a default node selector.",
+		}),
 	})
 }
 
@@ -28,6 +32,7 @@ type configMetrics struct {
 	configLister configlisters.SchedulerLister
 	config       prometheus.Gauge
 	policy       prometheus.Gauge
+	nodeSelector prometheus.Gauge
 }
 
 func (m *configMetrics) ClearState() {}
@@ -46,6 +51,7 @@ func (m *configMetrics) Collect(ch chan<- prometheus.Metric) {
 	if config, err := m.configLister.Get("cluster"); err == nil {
 		ch <- booleanGaugeValue(m.config, config.Spec.MastersSchedulable)
 		ch <- booleanGaugeValue(m.policy, len(config.Spec.Policy.Name) > 0)
+		ch <- booleanGaugeValue(m.nodeSelector, len(config.Spec.DefaultNodeSelector) > 0)
 	}
 }
 
