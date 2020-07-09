@@ -12,9 +12,10 @@ import (
 
 func TestCheckForFeatureGates(t *testing.T) {
 	tests := []struct {
-		name           string
-		configValue    configv1.FeatureSet
-		expectedResult map[string]bool
+		name                    string
+		configValue             configv1.FeatureSet
+		inputCustomFeatureGates *configv1.CustomFeatureGates
+		expectedResult          map[string]bool
 	}{
 		{
 			name:        "default",
@@ -44,6 +45,19 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"SupportPodPidsLimit":            true,
 			},
 		},
+		{
+			name:        "custom",
+			configValue: configv1.CustomNoUpgrade,
+			inputCustomFeatureGates: &configv1.CustomFeatureGates{
+				Enabled:  []string{"CSIMigration", "CSIMigrationAWS"},
+				Disabled: []string{"CSIMigrationGCE"},
+			},
+			expectedResult: map[string]bool{
+				"CSIMigration":    true,
+				"CSIMigrationAWS": true,
+				"CSIMigrationGCE": false,
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -52,7 +66,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
 				Spec: configv1.FeatureGateSpec{
 					FeatureGateSelection: configv1.FeatureGateSelection{
-						FeatureSet: tc.configValue,
+						FeatureSet:      tc.configValue,
+						CustomNoUpgrade: tc.inputCustomFeatureGates,
 					},
 				},
 			})
