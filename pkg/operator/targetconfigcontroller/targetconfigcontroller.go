@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	"github.com/openshift/api/config/v1"
+	v1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
@@ -363,13 +363,18 @@ func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) m
 		return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
 	}
 
-	currentFeatureSetConfig := featureGateListConfig.Spec.FeatureSet
-	if featureSet, ok := v1.FeatureSets[currentFeatureSetConfig]; ok {
+	if featureGateListConfig.Spec.FeatureSet == v1.CustomNoUpgrade {
+		if featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade != nil {
+			enabledFeatureSets = featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade.Enabled
+			disabledFeatureSets = featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade.Disabled
+		}
+	} else if featureSet, ok := v1.FeatureSets[featureGateListConfig.Spec.FeatureSet]; ok {
 		enabledFeatureSets = featureSet.Enabled
 		disabledFeatureSets = featureSet.Disabled
 	} else {
-		klog.Infof("Invalid feature set config found in features.config.openshift.io/cluster %v. Please look at allowed features", currentFeatureSetConfig)
+		klog.Infof("Invalid feature set config found in features.config.openshift.io/cluster %v. Please look at allowed features", featureGateListConfig.Spec.FeatureSet)
 	}
+
 	return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
 }
 
