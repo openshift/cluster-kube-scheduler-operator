@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"context"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 	"testing"
 )
