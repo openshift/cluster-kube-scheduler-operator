@@ -2,7 +2,7 @@ package resourcesynccontroller
 
 import (
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"

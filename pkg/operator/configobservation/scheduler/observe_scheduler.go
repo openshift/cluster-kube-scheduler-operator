@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
