@@ -13,3 +13,24 @@ status:
     version: "0.0.1-snapshot"
   - name: kube-scheduler
     version: "0.0.1-snapshot-kubernetes"
+  relatedObjects:
+    - group: operator.openshift.io
+      name: cluster
+      resource: kubeschedulers
+    - group: config.openshift.io
+      resource: schedulers
+    - group: ""
+      name: openshift-config
+      resource: namespaces
+    - group: ""
+      name: openshift-config-managed
+      resource: namespaces
+    - group: ""
+      name: openshift-kube-scheduler-operator
+      resource: namespaces
+    - group: ""
+      name: openshift-kube-scheduler
+      resource: namespaces
+    - group: controlplane.operator.openshift.io
+      resource: podnetworkconnectivitychecks
+      namespace: openshift-kube-scheduler

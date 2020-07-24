@@ -133,9 +133,12 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		"kube-scheduler",
 		[]configv1.ObjectReference{
 			{Group: "operator.openshift.io", Resource: "kubeschedulers", Name: "cluster"},
+			{Group: "config.openshift.io", Resource: "schedulers"},
 			{Resource: "namespaces", Name: operatorclient.GlobalUserSpecifiedConfigNamespace},
+			{Resource: "namespaces", Name: operatorclient.GlobalMachineSpecifiedConfigNamespace},
 			{Resource: "namespaces", Name: operatorclient.TargetNamespace},
 			{Resource: "namespaces", Name: "openshift-kube-scheduler-operator"},
+			{Group: "controlplane.operator.openshift.io", Resource: "podnetworkconnectivitychecks", Namespace: "openshift-kube-apiserver"},
 		},
 		configClient.ConfigV1(),
 		configInformers.Config().V1().ClusterOperators(),
