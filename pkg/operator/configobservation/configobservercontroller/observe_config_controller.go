@@ -2,8 +2,6 @@ package configobservercontroller
 
 import (
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/scheduler"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
@@ -12,6 +10,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	"k8s.io/client-go/tools/cache"
 )
 
 type ConfigObserver struct {
@@ -51,12 +50,14 @@ func NewConfigObserver(
 			operatorClient,
 			eventRecorder,
 			configobservation.Listers{
-				SchedulerLister: configInformer.Config().V1().Schedulers().Lister(),
-				ConfigmapLister: kubeInformersForNamespaces.ConfigMapLister(),
-				ResourceSync:    resourceSyncer,
+				InfrastructureLister_: configInformer.Config().V1().Infrastructures().Lister(),
+				SchedulerLister:       configInformer.Config().V1().Schedulers().Lister(),
+				ConfigmapLister:       kubeInformersForNamespaces.ConfigMapLister(),
+				ResourceSync:          resourceSyncer,
 				PreRunCachesSynced: append(configMapPreRunCacheSynced,
 					operatorClient.Informer().HasSynced,
 					configInformer.Config().V1().Schedulers().Informer().HasSynced,
+					configInformer.Config().V1().Infrastructures().Informer().HasSynced,
 				),
 			},
 			informers,
