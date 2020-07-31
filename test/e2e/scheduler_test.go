@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -26,7 +27,10 @@ import (
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"reflect"
+)
+
+const (
+	customPolicyCMName = "custom-policy-configmap"
 )
 
 func getKubeClient() (*k8sclient.Clientset, error) {
@@ -112,7 +116,7 @@ func createSchedulerConfigMap(ctx context.Context, kclient *k8sclient.Clientset)
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "policy-configmap",
+			Name: customPolicyCMName,
 		},
 		Data: map[string]string{
 			"policy.cfg": "{\n\"kind\" : \"Policy\",\n\"apiVersion\" : \"v1\",\n\"predicates\" : [\n\t{\"name\" : \"PodFitsHostPorts\"},\n\t{\"name\" : \"PodFitsResources\"},\n\t{\"name\": \"NoDiskConflict\"},\n\t{\"name\" : \"NoVolumeZoneConflict\"},\n\t{\"name\": \"MatchNodeSelector\"},\n\t{\"name\" : \"HostName\"}\n\t],\n\"priorities\" : [\n\t{\"name\" : \"LeastRequestedPriority\", \"weight\" : 1},\n\t{\"name\" : \"BalancedResourceAllocation\", \"weight\" : 1},\n\t{\"name\" : \"ServiceSpreadingPriority\", \"weight\" : 5},\n\t{\"name\" : \"EqualPriority\", \"weight\" : 1}\n\t]\n}\n",
@@ -173,7 +177,7 @@ func TestConfigMapCreation(t *testing.T) {
 
 	}
 	// Update scheduler CR to the name of the config map we just created.
-	schedulerCR.Spec.Policy.Name = "policy-configmap"
+	schedulerCR.Spec.Policy.Name = customPolicyCMName
 	if _, err = configClient.ConfigV1().Schedulers().Update(ctx, schedulerCR, metav1.UpdateOptions{}); err != nil {
 		t.Fatalf("Error while updating scheduler CR with error %v", err)
 	}
@@ -194,7 +198,7 @@ func TestConfigMapCreation(t *testing.T) {
 	}
 
 	// Delete the config map that was created
-	err = kclient.CoreV1().ConfigMaps("openshift-config").Delete(ctx, "policy-configmap", metav1.DeleteOptions{})
+	err = kclient.CoreV1().ConfigMaps("openshift-config").Delete(ctx, customPolicyCMName, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("error waiting for config map to exist: %v\n", err)
 	}
@@ -225,7 +229,7 @@ func TestPolicyConfigMapUpdate(t *testing.T) {
 	}
 
 	// Update scheduler CR to the name of the config map we just created.
-	schedulerCR.Spec.Policy.Name = "policy-configmap"
+	schedulerCR.Spec.Policy.Name = customPolicyCMName
 	if _, err = configClient.ConfigV1().Schedulers().Update(ctx, schedulerCR, metav1.UpdateOptions{}); err != nil {
 		t.Fatalf("Error while updating scheduler CR with error %v", err)
 	}
@@ -266,7 +270,7 @@ func TestPolicyConfigMapUpdate(t *testing.T) {
 	}
 
 	// Delete the config map that was created
-	err = kclient.CoreV1().ConfigMaps("openshift-config").Delete(ctx, "policy-configmap", metav1.DeleteOptions{})
+	err = kclient.CoreV1().ConfigMaps("openshift-config").Delete(ctx, customPolicyCMName, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("error waiting for config map to exist: %v\n", err)
 	}
