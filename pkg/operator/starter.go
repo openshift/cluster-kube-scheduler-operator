@@ -56,7 +56,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	resourceSyncController, err := resourcesynccontroller.NewResourceSyncController(
 		operatorClient,
 		kubeInformersForNamespaces,
-		configInformers,
 		kubeClient,
 		cc.EventRecorder,
 	)
