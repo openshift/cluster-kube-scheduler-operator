@@ -94,6 +94,9 @@ func NewTargetConfigController(
 	// we only watch some namespaces
 	namespacedKubeInformers.Core().V1().Namespaces().Informer().AddEventHandler(c.namespaceEventHandler())
 
+	// to set/unset custom scheduler image
+	configInformer.Config().V1().Schedulers().Informer().AddEventHandler(c.eventHandler())
+
 	return c
 }
 
@@ -280,22 +283,34 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 
 func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
+
+	config, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
+	if err != nil {
+		return nil, false, err
+	}
+
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
 		"${OPERATOR_IMAGE}": operatorImagePullSpec,
 	}
-	for i := range required.Spec.Containers {
-		for pat, img := range images {
-			if required.Spec.Containers[i].Image == pat {
-				required.Spec.Containers[i].Image = img
-				break
-			}
-		}
-	}
+
 	for i := range required.Spec.InitContainers {
 		for pat, img := range images {
 			if required.Spec.InitContainers[i].Image == pat {
 				required.Spec.InitContainers[i].Image = img
+				break
+			}
+		}
+	}
+
+	if config.Spec.CustomSchedulerImage != "" {
+		images["${IMAGE}"] = config.Spec.CustomSchedulerImage
+	}
+
+	for i := range required.Spec.Containers {
+		for pat, img := range images {
+			if required.Spec.Containers[i].Image == pat {
+				required.Spec.Containers[i].Image = img
 				break
 			}
 		}
@@ -329,10 +344,6 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
 	}
 
-	config, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
-	if err != nil {
-		return nil, false, err
-	}
 	if len(config.Spec.Policy.Name) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
