@@ -7,7 +7,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/openshift/api v0.0.0-20200722204502-c33fd0aa6ffa
-	github.com/openshift/build-machinery-go v0.0.0-20200713135615-1f43d26dccc7
+	github.com/openshift/build-machinery-go v0.0.0-20200731024703-cd7e6e844b55
 	github.com/openshift/client-go v0.0.0-20200722173614-5a1b0aaeff15
 	github.com/openshift/library-go v0.0.0-20200722204747-e3f2c82ff290
 	github.com/prometheus/client_golang v1.7.1
