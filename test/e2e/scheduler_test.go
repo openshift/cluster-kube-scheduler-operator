@@ -307,7 +307,7 @@ func TestMetricsAccessible(t *testing.T) {
 		t.Fatalf("error creating route client for prometheus: %v", err)
 	}
 	var response model.Value
-	err = wait.PollImmediate(time.Second*1, time.Second*30, func() (bool, error) {
+	err = wait.PollImmediate(time.Second*1, time.Minute*3, func() (bool, error) {
 		response, _, err = prometheusClient.Query(ctx, `scheduler_scheduling_duration_seconds_sum`, time.Now())
 		if err != nil {
 			return false, fmt.Errorf("error querying prometheus: %v", err)
