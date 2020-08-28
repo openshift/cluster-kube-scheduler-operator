@@ -9,7 +9,7 @@ require (
 	github.com/openshift/api v0.0.0-20200824145854-a7f2798b4b7c
 	github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
 	github.com/openshift/client-go v0.0.0-20200729195840-c2b1adc6bed6
-	github.com/openshift/library-go v0.0.0-20200817190841-5e77ffd3a44f
+	github.com/openshift/library-go v0.0.0-20200826135324-025aa3f9ff11
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.10.0
 	github.com/spf13/cobra v1.0.0
@@ -23,3 +23,5 @@ require (
 )
 
 replace github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
+
+replace vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
