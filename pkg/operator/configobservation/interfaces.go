@@ -9,15 +9,10 @@ import (
 )
 
 type Listers struct {
-	InfrastructureLister_ configlistersv1.InfrastructureLister
-	ConfigmapLister       corelistersv1.ConfigMapLister
-	SchedulerLister       configlistersv1.SchedulerLister
-	ResourceSync          resourcesynccontroller.ResourceSyncer
-	PreRunCachesSynced    []cache.InformerSynced
-}
-
-func (l Listers) InfrastructureLister() configlistersv1.InfrastructureLister {
-	return l.InfrastructureLister_
+	ConfigmapLister    corelistersv1.ConfigMapLister
+	SchedulerLister    configlistersv1.SchedulerLister
+	ResourceSync       resourcesynccontroller.ResourceSyncer
+	PreRunCachesSynced []cache.InformerSynced
 }
 
 func (l Listers) ResourceSyncer() resourcesynccontroller.ResourceSyncer {

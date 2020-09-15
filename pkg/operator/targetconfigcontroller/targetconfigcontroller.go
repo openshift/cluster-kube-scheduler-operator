@@ -50,11 +50,10 @@ type TargetConfigController struct {
 	eventRecorder         events.Recorder
 	configMapLister       corev1listers.ConfigMapLister
 	featureGateLister     configlistersv1.FeatureGateLister
-	infrastructureLister  configlistersv1.InfrastructureLister
+	featureGateCacheSync  cache.InformerSynced
 	configInformer        configinformers.SharedInformerFactory
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue        workqueue.RateLimitingInterface
-	cachesToSync []cache.InformerSynced
+	queue workqueue.RateLimitingInterface
 }
 
 func NewTargetConfigController(
@@ -79,12 +78,8 @@ func NewTargetConfigController(
 		configInformer:        configInformer,
 
 		featureGateLister:    configInformer.Config().V1().FeatureGates().Lister(),
-		infrastructureLister: configInformer.Config().V1().Infrastructures().Lister(),
-		cachesToSync: []cache.InformerSynced{
-			configInformer.Config().V1().FeatureGates().Informer().HasSynced,
-			configInformer.Config().V1().Infrastructures().Informer().HasSynced,
-		},
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigController"),
+		featureGateCacheSync: configInformer.Config().V1().FeatureGates().Informer().HasSynced,
+		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigController"),
 	}
 
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
@@ -93,7 +88,6 @@ func NewTargetConfigController(
 	namespacedKubeInformers.Core().V1().ServiceAccounts().Informer().AddEventHandler(c.eventHandler())
 
 	configInformer.Config().V1().FeatureGates().Informer().AddEventHandler(c.eventHandler())
-	configInformer.Config().V1().Infrastructures().Informer().AddEventHandler(c.eventHandler())
 	// we react to some config changes
 	kubeInformersForNamespaces.InformersFor(operatorclient.GlobalUserSpecifiedConfigNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 
@@ -140,7 +134,7 @@ func (c *TargetConfigController) Run(workers int, stopCh <-chan struct{}) {
 	klog.Infof("Starting TargetConfigController")
 	defer klog.Infof("Shutting down TargetConfigController")
 
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(stopCh, c.featureGateCacheSync) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
 		return
 	}
@@ -245,7 +239,7 @@ func createTargetConfigController_v311_00_to_latest(c TargetConfigController, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "serviceaccount/localhost-recovery-client", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.infrastructureLister, c.configInformer)
+	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configInformer)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -284,7 +278,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, infrastructureLister configlistersv1.InfrastructureLister, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -342,13 +336,6 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	if len(config.Spec.Policy.Name) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
-	}
-	if infrastructure, err := infrastructureLister.Get("cluster"); err == nil {
-		if masterURL := infrastructure.Status.APIServerInternalURL; len(masterURL) > 0 {
-			required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--master="+masterURL)
-		}
-	} else {
-		return nil, false, err
 	}
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
