@@ -75,7 +75,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		v410_00_assets.Asset,
 		[]string{
 			"v4.1.0/kube-scheduler/ns.yaml",
-			"v4.1.0/kube-scheduler/kubeconfig-cm.yaml",
 			"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml",
 			"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
 			"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
