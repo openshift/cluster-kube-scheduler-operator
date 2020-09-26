@@ -6,10 +6,10 @@ require (
 	github.com/blang/semver v3.5.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
-	github.com/openshift/api v0.0.0-20200210091934-a0e53e94816b
+	github.com/openshift/api v0.0.0-20200618202633-7192180f496a
 	github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160
 	github.com/openshift/client-go v0.0.0-20200116152001-92a2713fa240
-	github.com/openshift/library-go v0.0.0-20200403110656-d90e89b206c5
+	github.com/openshift/library-go v0.0.0-20200921144613-67f7770bf823
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/common v0.6.0
 	github.com/spf13/cobra v0.0.5
