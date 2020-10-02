@@ -1,24 +1,24 @@
 package main
 
 import (
+	"context"
 	goflag "flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-
 	"github.com/openshift/cluster-kube-scheduler-operator/cmd/render"
 	operatorcmd "github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/recoverycontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator"
 	"github.com/openshift/library-go/pkg/operator/staticpod/certsyncpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/installerpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/prune"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
 )
 
 func main() {
@@ -30,14 +30,14 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	command := NewSchedulerOperatorCommand()
+	command := NewSchedulerOperatorCommand(context.Background())
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
 
-func NewSchedulerOperatorCommand() *cobra.Command {
+func NewSchedulerOperatorCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cluster-kube-scheduler-operator",
 		Short: "OpenShift cluster kube-scheduler operator",
@@ -52,6 +52,7 @@ func NewSchedulerOperatorCommand() *cobra.Command {
 	cmd.AddCommand(installerpod.NewInstaller())
 	cmd.AddCommand(prune.NewPrune())
 	cmd.AddCommand(certsyncpod.NewCertSyncControllerCommand(operator.CertConfigMaps, operator.CertSecrets))
+	cmd.AddCommand(recoverycontroller.NewCertRecoveryControllerCommand(ctx))
 
 	return cmd
 }
