@@ -8,9 +8,9 @@ require (
 	github.com/getsentry/raven-go v0.0.0-20190513200303-c977f96e1095 // indirect
 	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
 	github.com/jteeuwen/go-bindata v0.0.0-00010101000000-000000000000
-	github.com/openshift/api v0.0.0-20191001124347-8033e226059b
-	github.com/openshift/client-go v0.0.0-20191001081553-3b0e988f8cb0
-	github.com/openshift/library-go v0.0.0-20200114162033-e8b3a065ded2
+	github.com/openshift/api v0.0.0-20200527184302-a843dc3262a0
+	github.com/openshift/client-go v0.0.0-20191125132246-f6563a70e19a
+	github.com/openshift/library-go v0.0.0-20200917064228-204460295f3c
 	github.com/pkg/profile v1.3.0 // indirect
 	github.com/prometheus/client_golang v0.9.2
 	github.com/spf13/cobra v0.0.5
@@ -28,9 +28,6 @@ require (
 
 replace (
 	github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
-	github.com/openshift/api => github.com/openshift/api v3.9.1-0.20191202033935-e7263773f60c+incompatible
-	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20191022152013-2823239d2298
-	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20200622145626-b0d5e5380f2c
 	github.com/stretchr/testify => github.com/stretchr/testify v1.2.2-0.20180319223459-c679ae2cc0cb
 	k8s.io/api => k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
