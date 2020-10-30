@@ -344,6 +344,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		return nil, false, err
 	}
 	if len(config.Spec.Policy.Name) > 0 {
+		klog.Warningf("spec.Policy is deprecated, please use spec.Profiles instead")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
 	}
