@@ -73,10 +73,22 @@ spec:
                 after doing due diligence.'
               type: boolean
             policy:
-              description: policy is a reference to a ConfigMap containing scheduler
-                policy which has user specified predicates and priorities. If this
-                ConfigMap is not available scheduler will default to use DefaultAlgorithmProvider.
-                The namespace for this configmap is openshift-config.
+              description: 'DEPRECATED: policy is a reference to a ConfigMap containing
+                scheduler policy which has user specified predicates and priorities.
+                If this ConfigMap is not available scheduler will default to use DefaultAlgorithmProvider.
+                The namespace for this configmap is openshift-config.'
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  description: name is the metadata.name of the referenced config
+                    map
+                  type: string
+            profiles:
+              description: profiles is a reference to a ConfigMap containing a list
+                of custom scheduler profiles Note that this config will eventually
+                replace the Policy config currently available
               type: object
               required:
               - name

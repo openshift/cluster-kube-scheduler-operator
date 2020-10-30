@@ -3445,6 +3445,7 @@ func (in *SchedulerList) DeepCopyObject() runtime.Object {
 func (in *SchedulerSpec) DeepCopyInto(out *SchedulerSpec) {
 	*out = *in
 	out.Policy = in.Policy
+	out.Profiles = in.Profiles
 	return
 }
 

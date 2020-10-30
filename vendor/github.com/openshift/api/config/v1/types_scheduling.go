@@ -22,12 +22,16 @@ type Scheduler struct {
 }
 
 type SchedulerSpec struct {
-	// policy is a reference to a ConfigMap containing scheduler policy which has
+	// DEPRECATED: policy is a reference to a ConfigMap containing scheduler policy which has
 	// user specified predicates and priorities. If this ConfigMap is not available
 	// scheduler will default to use DefaultAlgorithmProvider.
 	// The namespace for this configmap is openshift-config.
 	// +optional
 	Policy ConfigMapNameReference `json:"policy"`
+	// profiles is a reference to a ConfigMap containing a list of custom scheduler profiles
+	// Note that this config will eventually replace the Policy config currently available
+	// +optional
+	Profiles ConfigMapNameReference `json:"profiles"`
 	// defaultNodeSelector helps set the cluster-wide default node selector to
 	// restrict pod placement to specific nodes. This is applied to the pods
 	// created in all namespaces and creates an intersection with any existing
