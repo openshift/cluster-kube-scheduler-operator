@@ -469,7 +469,6 @@ spec:
       - mountPath: /etc/kubernetes/static-pod-certs
         name: cert-dir
   hostNetwork: true
-  dnsPolicy: ClusterFirstWithHostNet
   priorityClassName: system-node-critical
   tolerations:
   - operator: "Exists"

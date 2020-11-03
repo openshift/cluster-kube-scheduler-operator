@@ -33,7 +33,6 @@ spec:
 
       name: logs
   hostNetwork: true
-  dnsPolicy: ClusterFirstWithHostNet
   volumes:
   - hostPath:
       path: {{ .SecretsHostPath }}
