@@ -8,10 +8,10 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/openshift/api v0.0.0-20201119144013-9f0856e7c657
+	github.com/openshift/api v0.0.0-20201202154616-6e9423fef259
 	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
-	github.com/openshift/client-go v0.0.0-20201119144744-148025d790a9
-	github.com/openshift/library-go v0.0.0-20201119162840-a8387fdfa05b
+	github.com/openshift/client-go v0.0.0-20201202195122-30169f98c901
+	github.com/openshift/library-go v0.0.0-20201203100026-05875a6586d0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.10.0
 	github.com/spf13/cobra v1.1.1
