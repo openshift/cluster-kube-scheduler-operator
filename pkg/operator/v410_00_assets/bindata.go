@@ -473,6 +473,11 @@ spec:
         echo -n "."
         sleep 1
       done
+
+    resources:
+      requests:
+        memory: 50Mi
+        cpu: 15m
   containers:
   - name: kube-scheduler
     image: ${IMAGE}
