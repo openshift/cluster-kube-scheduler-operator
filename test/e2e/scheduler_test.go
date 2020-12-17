@@ -306,23 +306,26 @@ func TestMetricsAccessible(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating route client for prometheus: %v", err)
 	}
-	var response model.Value
-	err = wait.PollImmediate(time.Second*1, time.Minute*3, func() (bool, error) {
-		response, _, err = prometheusClient.Query(ctx, `scheduler_scheduling_duration_seconds_sum`, time.Now())
+	for _, metric := range []string{
+		"scheduler_schedule_attempts_total", // returned by /metrics
+		"kube_pod_resource_request",         // returned by /metrics/resources
+	} {
+		var response model.Value
+		err = wait.PollImmediate(time.Second*1, time.Minute*3, func() (bool, error) {
+			response, _, err = prometheusClient.Query(ctx, metric, time.Now())
+			if err != nil {
+				return false, fmt.Errorf("error querying prometheus: %v", err)
+			}
+			if len(response.String()) == 0 {
+				return false, nil
+			}
+			return true, nil
+		})
 		if err != nil {
-			return false, fmt.Errorf("error querying prometheus: %v", err)
+			t.Fatalf("prometheus returned unexpected results: %v", err)
 		}
-		if len(response.String()) == 0 {
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		t.Fatalf("prometheus returned unexpected results: %v", err)
+		t.Logf("result from prometheus query `%s`: %v", metric, response)
 	}
-
-	// do something with result, eventually this will be tested b4 and after rotation to ensure values differ
-	t.Logf("result from prometheus query `scheduler_scheduling_duration_seconds_sum`: %v", response)
 }
 
 func waitForPolicyConfigMapCreation(ctx context.Context, kclient *k8sclient.Clientset, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
