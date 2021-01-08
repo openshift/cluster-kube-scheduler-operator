@@ -296,7 +296,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 		switch config.Spec.Profile {
 		case v1.LowNodeUtilization, "":
 			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
-		case v1.HighNodeUtililzation:
+		case v1.HighNodeUtilization:
 			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-highnodeutilization.yaml")
 		case v1.NoScoring:
 			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-noscoring.yaml")
