@@ -307,8 +307,8 @@ func TestMetricsAccessible(t *testing.T) {
 		t.Fatalf("error creating route client for prometheus: %v", err)
 	}
 	for _, metric := range []string{
-		"scheduler_schedule_attempts_total", // returned by /metrics
-		"kube_pod_resource_request",         // returned by /metrics/resources
+		"scheduler_schedule_attempts_total",    // returned by /metrics
+		"kube_pod_container_resource_requests", // returned by /metrics/resources
 	} {
 		var response model.Value
 		err = wait.PollImmediate(time.Second*1, time.Minute*3, func() (bool, error) {
