@@ -11,6 +11,19 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
+func AddSyncClientCertKeySecret(resourceSyncController *resourcesynccontroller.ResourceSyncController) error {
+	return resourceSyncController.SyncSecret(
+		resourcesynccontroller.ResourceLocation{
+			Namespace: operatorclient.TargetNamespace,
+			Name:      "kube-scheduler-client-cert-key",
+		},
+		resourcesynccontroller.ResourceLocation{
+			Namespace: operatorclient.GlobalMachineSpecifiedConfigNamespace,
+			Name:      "kube-scheduler-client-cert-key",
+		},
+	)
+}
+
 func NewResourceSyncController(
 	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
@@ -37,10 +50,7 @@ func NewResourceSyncController(
 			return nil, err
 		}
 	}
-	if err := resourceSyncController.SyncSecret(
-		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "kube-scheduler-client-cert-key"},
-		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.GlobalMachineSpecifiedConfigNamespace, Name: "kube-scheduler-client-cert-key"},
-	); err != nil {
+	if err := AddSyncClientCertKeySecret(resourceSyncController); err != nil {
 		return nil, err
 	}
 	return resourceSyncController, nil
