@@ -24,6 +24,12 @@ spec:
         sleep 1
       done
 
+      echo -n "Waiting for kube-apiserver to respond."
+      until curl --output /dev/null --silent -k https://localhost:6443/readyz; do
+        echo -n "."
+        sleep 1
+      done
+
     resources:
       requests:
         memory: 50Mi
