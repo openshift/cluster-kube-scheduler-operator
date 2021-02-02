@@ -8,7 +8,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/openshift/api v0.0.0-20210126182445-bb6857301efe
+	github.com/openshift/api v0.0.0
 	github.com/openshift/build-machinery-go v0.0.0-20210115170933-e575b44a7a94
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/openshift/library-go v0.0.0-20210127081712-a4f002827e42
@@ -27,3 +27,5 @@ require (
 replace github.com/jteeuwen/go-bindata => github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
 
 replace vbom.ml/util => github.com/fvbommel/util v0.0.0-20180919145318-efcd4e0f9787
+
+replace github.com/openshift/api => ../api
