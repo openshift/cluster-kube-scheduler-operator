@@ -1,16 +1,12 @@
 reviewers:
-  - ravisantoshgudimetla
   - sttts
   - damemi
   - soltysh
   - ingvagabund
-  - tnozicka
 approvers:
   - mfojtik
-  - ravisantoshgudimetla
   - sttts
   - damemi
   - soltysh
   - ingvagabund
-  - tnozicka
 component: "kube-scheduler"
