@@ -291,7 +291,6 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	// Until that, ignore profiles if the policy API is used.
 	if len(config.Spec.Policy.Name) > 0 {
 		kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
-		klog.Warningf("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
 	} else {
 		switch config.Spec.Profile {
 		case v1.LowNodeUtilization, "":
@@ -376,7 +375,11 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
-	return resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
+	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
+	if changed && len(config.Spec.Policy.Name) > 0 {
+		klog.Warningf("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
+	}
+	return appliedConfigMap, changed, err
 }
 
 func getSortedFeatureGates(featureGates map[string]bool) []string {
