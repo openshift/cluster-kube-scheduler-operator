@@ -11,6 +11,7 @@ import (
 type Listers struct {
 	ConfigmapLister    corelistersv1.ConfigMapLister
 	SchedulerLister    configlistersv1.SchedulerLister
+	APIServerLister_   configlistersv1.APIServerLister
 	ResourceSync       resourcesynccontroller.ResourceSyncer
 	PreRunCachesSynced []cache.InformerSynced
 }
@@ -21,4 +22,8 @@ func (l Listers) ResourceSyncer() resourcesynccontroller.ResourceSyncer {
 
 func (l Listers) PreRunHasSynced() []cache.InformerSynced {
 	return l.PreRunCachesSynced
+}
+
+func (l Listers) APIServerLister() configlistersv1.APIServerLister {
+	return l.APIServerLister_
 }
