@@ -379,21 +379,21 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		return nil, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
 	}
 
-	cipherSuites, _, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "cipherSuites")
+	cipherSuites, cipherSuitesFound, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "cipherSuites")
 	if err != nil {
 		return nil, false, fmt.Errorf("couldn't get the servingInfo.cipherSuites config from observedConfig: %v", err)
 	}
 
-	minTLSVersion, _, err := unstructured.NestedString(observedConfig, "servingInfo", "minTLSVersion")
+	minTLSVersion, minTLSVersionFound, err := unstructured.NestedString(observedConfig, "servingInfo", "minTLSVersion")
 	if err != nil {
 		return nil, false, fmt.Errorf("couldn't get the servingInfo.minTLSVersion config from observedConfig: %v", err)
 	}
 
-	if len(cipherSuites) > 0 {
+	if cipherSuitesFound && len(cipherSuites) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-cipher-suites=%s", strings.Join(cipherSuites, ",")))
 	}
 
-	if len(minTLSVersion) > 0 {
+	if minTLSVersionFound && len(minTLSVersion) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-min-version=%s", minTLSVersion))
 	}
 
