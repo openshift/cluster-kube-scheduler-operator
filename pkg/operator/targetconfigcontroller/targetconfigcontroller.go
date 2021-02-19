@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
+
 	v1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -24,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -304,7 +307,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 		}
 	}
 
-	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, kubeSchedulerConfiguration, operatorSpec.ObservedConfig.Raw, operatorSpec.UnsupportedConfigOverrides.Raw)
+	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, kubeSchedulerConfiguration)
 	if err != nil {
 		return nil, false, err
 	}
@@ -369,6 +372,29 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	if len(config.Spec.Policy.Name) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
+	}
+
+	var observedConfig map[string]interface{}
+	if err := yaml.Unmarshal(operatorSpec.ObservedConfig.Raw, &observedConfig); err != nil {
+		return nil, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
+	}
+
+	cipherSuites, _, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "cipherSuites")
+	if err != nil {
+		return nil, false, fmt.Errorf("couldn't get the servingInfo.cipherSuites config from observedConfig: %v", err)
+	}
+
+	minTLSVersion, _, err := unstructured.NestedString(observedConfig, "servingInfo", "minTLSVersion")
+	if err != nil {
+		return nil, false, fmt.Errorf("couldn't get the servingInfo.minTLSVersion config from observedConfig: %v", err)
+	}
+
+	if len(cipherSuites) > 0 {
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-cipher-suites=%s", strings.Join(cipherSuites, ",")))
+	}
+
+	if len(minTLSVersion) > 0 {
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-min-version=%s", minTLSVersion))
 	}
 
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))

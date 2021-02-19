@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/configobserver"
+	libgoapiserver "github.com/openshift/library-go/pkg/operator/configobserver/apiserver"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -51,9 +52,10 @@ func NewConfigObserver(
 			operatorClient,
 			eventRecorder,
 			configobservation.Listers{
-				SchedulerLister: configInformer.Config().V1().Schedulers().Lister(),
-				ConfigmapLister: kubeInformersForNamespaces.ConfigMapLister(),
-				ResourceSync:    resourceSyncer,
+				SchedulerLister:  configInformer.Config().V1().Schedulers().Lister(),
+				APIServerLister_: configInformer.Config().V1().APIServers().Lister(),
+				ConfigmapLister:  kubeInformersForNamespaces.ConfigMapLister(),
+				ResourceSync:     resourceSyncer,
 				PreRunCachesSynced: append(configMapPreRunCacheSynced,
 					operatorClient.Informer().HasSynced,
 					configInformer.Config().V1().Schedulers().Informer().HasSynced,
@@ -61,6 +63,7 @@ func NewConfigObserver(
 			},
 			informers,
 			scheduler.ObserveSchedulerConfig,
+			libgoapiserver.ObserveTLSSecurityProfile,
 		),
 	}
 
