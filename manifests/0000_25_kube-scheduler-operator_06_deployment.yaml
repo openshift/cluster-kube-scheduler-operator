@@ -32,6 +32,7 @@ spec:
         resources:
           requests:
             memory: 50Mi
+            cpu: 10m
         volumeMounts:
         - mountPath: /var/run/configmaps/config
           name: config
@@ -49,7 +50,7 @@ spec:
         - name: POD_NAME
           valueFrom:
             fieldRef:
-              fieldPath: metadata.name          
+              fieldPath: metadata.name
         terminationMessagePolicy: FallbackToLogsOnError
       volumes:
       - name: serving-cert
@@ -74,4 +75,3 @@ spec:
         operator: "Exists"
         effect: "NoExecute"
         tolerationSeconds: 120
-  
