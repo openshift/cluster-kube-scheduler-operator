@@ -1,0 +1,145 @@
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: openshift-kube-scheduler
+  namespace: openshift-kube-scheduler
+  creationTimestamp:
+  labels:
+    app: openshift-kube-scheduler
+    revision: REVISION
+    scheduler: 'true'
+  annotations:
+    kubectl.kubernetes.io/default-logs-container: kube-scheduler
+spec:
+  volumes:
+    - name: resource-dir
+      hostPath:
+        path: "/etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION"
+    - name: cert-dir
+      hostPath:
+        path: "/etc/kubernetes/static-pod-resources/kube-scheduler-certs"
+  initContainers:
+    - name: wait-for-host-port
+      image: CaptainAmerica
+      command:
+        - "/usr/bin/timeout"
+        - '30'
+        - "/bin/bash"
+        - "-c"
+      args:
+        - |
+          echo -n "Waiting for port :10259 and :10251 to be released."
+          while [ -n "$(ss -Htan '( sport = 10251 or sport = 10259 )')" ]; do
+            echo -n "."
+            sleep 1
+          done
+      resources:
+        requests:
+          cpu: 15m
+          memory: 50Mi
+      terminationMessagePolicy: FallbackToLogsOnError
+      imagePullPolicy: IfNotPresent
+  containers:
+    - name: kube-scheduler
+      image: CaptainAmerica
+      command:
+        - hyperkube
+        - kube-scheduler
+      args:
+        - "--config=/etc/kubernetes/static-pod-resources/configmaps/config/config.yaml"
+        - "--cert-dir=/var/run/kubernetes"
+        - "--port=0"
+        - "--authentication-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig"
+        - "--authorization-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig"
+        - "--feature-gates=APIPriorityAndFairness=true,DownwardAPIHugePages=true,LegacyNodeRoleBehavior=false,NodeDisruptionExclusion=true,RotateKubeletServerCertificate=true,ServiceNodeExclusion=true,SupportPodPidsLimit=true"
+        - "-v=2"
+        - "--master=https://localhost:1234"
+        - "--unsupported-kube-api-over-localhost=true"
+      ports:
+        - containerPort: 10259
+      resources:
+        requests:
+          cpu: 15m
+          memory: 50Mi
+      volumeMounts:
+        - name: resource-dir
+          mountPath: "/etc/kubernetes/static-pod-resources"
+        - name: cert-dir
+          mountPath: "/etc/kubernetes/static-pod-certs"
+      livenessProbe:
+        httpGet:
+          path: healthz
+          port: 10259
+          scheme: HTTPS
+        initialDelaySeconds: 45
+      readinessProbe:
+        httpGet:
+          path: healthz
+          port: 10259
+          scheme: HTTPS
+        initialDelaySeconds: 45
+      terminationMessagePolicy: FallbackToLogsOnError
+      imagePullPolicy: IfNotPresent
+    - name: kube-scheduler-cert-syncer
+      image: Piper
+      command:
+        - cluster-kube-scheduler-operator
+        - cert-syncer
+      args:
+        - "--kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/kube-scheduler-cert-syncer-kubeconfig/kubeconfig"
+        - "--namespace=$(POD_NAMESPACE)"
+        - "--destination-dir=/etc/kubernetes/static-pod-certs"
+      env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      resources:
+        requests:
+          cpu: 5m
+          memory: 50Mi
+      volumeMounts:
+        - name: resource-dir
+          mountPath: "/etc/kubernetes/static-pod-resources"
+        - name: cert-dir
+          mountPath: "/etc/kubernetes/static-pod-certs"
+      terminationMessagePolicy: FallbackToLogsOnError
+      imagePullPolicy: IfNotPresent
+    - name: kube-scheduler-recovery-controller
+      image: Piper
+      command:
+        - "/bin/bash"
+        - "-euxo"
+        - pipefail
+        - "-c"
+      args:
+        - |
+          timeout 3m /bin/bash -exuo pipefail -c 'while [ -n "$(ss -Htanop \( sport = 11443 \))" ]; do sleep 1; done'
+
+          exec cluster-kube-scheduler-operator cert-recovery-controller --kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/kube-scheduler-cert-syncer-kubeconfig/kubeconfig  --namespace=${POD_NAMESPACE} --listen=0.0.0.0:11443 -v=2
+      env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      resources:
+        requests:
+          cpu: 5m
+          memory: 50Mi
+      volumeMounts:
+        - name: resource-dir
+          mountPath: "/etc/kubernetes/static-pod-resources"
+        - name: cert-dir
+          mountPath: "/etc/kubernetes/static-pod-certs"
+      terminationMessagePolicy: FallbackToLogsOnError
+      imagePullPolicy: IfNotPresent
+  hostNetwork: true
+  tolerations:
+    - operator: Exists
+  priorityClassName: system-node-critical
+status: {}
