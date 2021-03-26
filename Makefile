@@ -38,6 +38,11 @@ e2e: GO_TEST_PACKAGES :=./test/e2e
 e2e: test-unit
 .PHONY: e2e
 
+test-e2e-preferred-host: GO_TEST_PACKAGES :=./test/e2e-preferred-host/...
+test-e2e-preferred-host: GO_TEST_FLAGS += -timeout 1h
+test-e2e-preferred-host: test-unit
+.PHONY: test-e2e-preferred-host
+
 clean:
 	$(RM) ./cluster-kube-scheduler-operator
 .PHONY: clean
