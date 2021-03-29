@@ -86,6 +86,7 @@ spec:
       caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
       serverName: scheduler.openshift-kube-scheduler.svc
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    honorLabels: true
     interval: 30s
     path: /metrics/resources
     port: https
