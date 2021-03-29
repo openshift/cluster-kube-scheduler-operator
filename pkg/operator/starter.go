@@ -121,7 +121,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
 		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
 		WithCerts("kube-scheduler-certs", CertConfigMaps, CertSecrets).
-		WithVersioning(operatorclient.OperatorNamespace, "kube-scheduler", versionRecorder).
+		WithVersioning("kube-scheduler", versionRecorder).
 		ToControllers()
 	if err != nil {
 		return err

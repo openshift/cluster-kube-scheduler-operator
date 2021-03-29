@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	configv1 "github.com/openshift/api/config/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,9 +27,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":         true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
-				"RemoveSelfLink":                 false,
 				"RotateKubeletServerCertificate": true,
-				"SCTPSupport":                    true,
+				"DownwardAPIHugePages":           true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
 			},
@@ -40,9 +41,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":         true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
-				"RemoveSelfLink":                 false,
 				"RotateKubeletServerCertificate": true,
-				"SCTPSupport":                    true,
+				"DownwardAPIHugePages":           true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
 			},
@@ -76,6 +76,10 @@ func TestCheckForFeatureGates(t *testing.T) {
 			featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
 			actualFeatureGates := checkForFeatureGates(featureGateLister)
 			if !reflect.DeepEqual(actualFeatureGates, tc.expectedResult) {
+				expected := sets.StringKeySet(tc.expectedResult)
+				actual := sets.StringKeySet(actualFeatureGates)
+				t.Logf("missing in actual: %v", expected.Difference(actual))
+				t.Logf("missing in expected: %v", actual.Difference(expected))
 				t.Fatalf("Expected %v feature gates to be present but found %v", tc.expectedResult, actualFeatureGates)
 			}
 		})
