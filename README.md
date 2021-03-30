@@ -92,7 +92,7 @@ IMPORTANT: This apprach disables cluster-version-operator completly, whereas pre
 After doing this you can now change the image of the operator to the desired one:
 
 ```
-oc patch pod/kube-scheduler-operator-<rand_digits> -n openshift-kube-scheduler-operator -p '{"spec":{"containers":[{"name":"kube-scheduler-operator","image":"<user>/cluster-kube-scheduler-operator"}]}}'
+oc patch pod/openshift-kube-scheduler-operator-<rand_digits> -n openshift-kube-scheduler-operator -p '{"spec":{"containers":[{"name":"kube-scheduler-operator-container","image":"<user>/cluster-kube-scheduler-operator"}]}}'
 ```
 
 ## Developing and debugging the bootkube bootstrap phase
