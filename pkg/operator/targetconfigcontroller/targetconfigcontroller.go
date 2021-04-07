@@ -2,18 +2,16 @@ package targetconfigcontroller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
-
 	v1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
-	configv1listers "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
@@ -23,6 +21,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,9 +51,9 @@ type TargetConfigController struct {
 	kubeClient            kubernetes.Interface
 	eventRecorder         events.Recorder
 	configMapLister       corev1listers.ConfigMapLister
-	infrastuctureLister   configv1listers.InfrastructureLister
+	infrastuctureLister   configlistersv1.InfrastructureLister
 	featureGateLister     configlistersv1.FeatureGateLister
-	configInformer        configinformers.SharedInformerFactory
+	configSchedulerLister configlistersv1.SchedulerLister
 	cachesSync            []cache.InformerSynced
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -80,7 +79,7 @@ func NewTargetConfigController(
 		infrastuctureLister:   configInformer.Config().V1().Infrastructures().Lister(),
 		operatorClient:        operatorClient,
 		eventRecorder:         eventRecorder,
-		configInformer:        configInformer,
+		configSchedulerLister: configInformer.Config().V1().Schedulers().Lister(),
 
 		featureGateLister: configInformer.Config().V1().FeatureGates().Lister(),
 		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigController"),
@@ -96,7 +95,7 @@ func NewTargetConfigController(
 	c.cachesSync = append(c.cachesSync, configInformer.Config().V1().Infrastructures().Informer().HasSynced)
 
 	configInformer.Config().V1().FeatureGates().Informer().AddEventHandler(c.eventHandler())
-	c.cachesSync = append(c.cachesSync, configInformer.Config().V1().FeatureGates().Informer().HasSynced)
+	c.cachesSync = append(c.cachesSync, configInformer.Config().V1().FeatureGates().Informer().HasSynced, configInformer.Config().V1().Schedulers().Informer().HasSynced)
 	// we react to some config changes
 	kubeInformersForNamespaces.InformersFor(operatorclient.GlobalUserSpecifiedConfigNamespace).Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 
@@ -236,7 +235,7 @@ func (c *TargetConfigController) namespaceEventHandler() cache.ResourceEventHand
 func createTargetConfigController_v311_00_to_latest(c TargetConfigController, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.configMapLister, c.kubeClient.CoreV1(), recorder, operatorSpec, c.configInformer)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.kubeClient.CoreV1(), recorder, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -252,7 +251,7 @@ func createTargetConfigController_v311_00_to_latest(c TargetConfigController, re
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/scheduler-kubeconfig", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configInformer)
+	_, _, err = managePod_v311_00_to_latest(c.ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), recorder, operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -281,12 +280,12 @@ func createTargetConfigController_v311_00_to_latest(c TargetConfigController, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
 
 	var kubeSchedulerConfiguration []byte
 
-	config, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
+	config, err := configSchedulerLister.Get("cluster")
 	if err != nil {
 		return nil, false, err
 	}
@@ -314,7 +313,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(lister corev1listers.ConfigM
 	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configInformer configinformers.SharedInformerFactory) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -365,7 +364,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
 	}
 
-	config, err := configInformer.Config().V1().Schedulers().Lister().Get("cluster")
+	config, err := configSchedulerLister.Get("cluster")
 	if err != nil {
 		return nil, false, err
 	}
@@ -374,9 +373,14 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
 	}
 
+	// there's no need to convert UnsupportedConfigOverrides.Raw from yaml to json as it always comes as json.
+	// passing no data to Unmarshal has unexpected behaviour and could be avoided by examining the length of the input.
+	// see for more details: https://play.golang.org/p/dsWkiPrzZoL
 	var observedConfig map[string]interface{}
-	if err := yaml.Unmarshal(operatorSpec.ObservedConfig.Raw, &observedConfig); err != nil {
-		return nil, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
+	if len(operatorSpec.ObservedConfig.Raw) > 0 {
+		if err := json.Unmarshal(operatorSpec.ObservedConfig.Raw, &observedConfig); err != nil {
+			return nil, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
+		}
 	}
 
 	cipherSuites, cipherSuitesFound, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "cipherSuites")
@@ -397,13 +401,22 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-min-version=%s", minTLSVersion))
 	}
 
+	// for now only unsupported config is supported
+	// it can be easily extended in the future - not that the both configs would have to be merged
+	unsupportedArgs, err := getUnsupportedFlagsFromConfig(operatorSpec.UnsupportedConfigOverrides.Raw)
+	if err != nil {
+		klog.Warningf("failed on getting arguments from UnsupportedConfigOverrides config due to %v", err)
+	} else if len(unsupportedArgs) > 0 {
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, unsupportedArgs...)
+	}
+
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
 	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
 	if changed && len(config.Spec.Policy.Name) > 0 {
-		klog.Warningf("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
+		klog.Warning("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
 	}
 	return appliedConfigMap, changed, err
 }
@@ -527,7 +540,7 @@ func ensureLocalhostRecoverySAToken(ctx context.Context, client corev1client.Cor
 	return err
 }
 
-func manageSchedulerKubeconfig(ctx context.Context, client corev1client.CoreV1Interface, infrastructureLister configv1listers.InfrastructureLister, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
+func manageSchedulerKubeconfig(ctx context.Context, client corev1client.CoreV1Interface, infrastructureLister configlistersv1.InfrastructureLister, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
 	cmString := string(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/kubeconfig-cm.yaml"))
 
 	infrastructure, err := infrastructureLister.Get("cluster")
@@ -547,4 +560,26 @@ func manageSchedulerKubeconfig(ctx context.Context, client corev1client.CoreV1In
 
 	requiredCM := resourceread.ReadConfigMapV1OrDie([]byte(cmString))
 	return resourceapply.ApplyConfigMap(client, recorder, requiredCM)
+}
+
+// getUnsupportedFlagsFromConfig reads and parses flags stored in the "arguments" filed in the unsupported config
+func getUnsupportedFlagsFromConfig(unsupportedConfig []byte) ([]string, error) {
+	if len(unsupportedConfig) == 0 {
+		return nil, nil
+	}
+	type unstructuredSchedulerConfig struct {
+		Arguments map[string]interface{} `json:"arguments"`
+	}
+
+	rawUnsupportedConfig := &unstructuredSchedulerConfig{}
+	if err := json.Unmarshal(unsupportedConfig, &rawUnsupportedConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal the unsupportedConfig: %v", err)
+	}
+
+	shellEscapedArgs, err := v1helpers.FlagsFromUnstructured(rawUnsupportedConfig.Arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return v1helpers.ToFlagSlice(shellEscapedArgs), nil
 }
