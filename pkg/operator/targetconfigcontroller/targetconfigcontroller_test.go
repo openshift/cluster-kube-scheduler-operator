@@ -53,6 +53,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
 				"APIPriorityAndFairness":         true,
+				"CSIDriverAzureDisk":             true,
+				"CSIDriverVSphere":               true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
