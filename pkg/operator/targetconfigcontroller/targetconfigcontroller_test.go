@@ -55,6 +55,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":         true,
 				"CSIDriverAzureDisk":             true,
 				"CSIDriverVSphere":               true,
+				"CSIMigrationAWS":                true,
+				"CSIMigrationOpenStack":          true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
