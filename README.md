@@ -21,11 +21,50 @@ The metrics are collected from following components:
 
 The configuration for the Kubernetes Scheduler is the result of merging:
 
-* a [default config](https://github.com/openshift/cluster-kube-scheduler-operator/blob/master/bindata/v4.1.0/config/defaultconfig-postbootstrap.yaml)
+* a [default config](https://github.com/openshift/cluster-kube-scheduler-operator/blob/master/bindata/v4.1.0/config/defaultconfig.yaml)
 * an observed config (compare observed values above) from the spec `schedulers.config.openshift.io`.
 
 All of these are sparse configurations, i.e. unvalidated json snippets which are merged in order to form a valid configuration at the end.
 
+## Scheduling profiles
+
+The following profiles are currently provided:
+* [`HighNodeUtilization`](#HighNodeUtilization)
+* [`LowNodeUtilization`](#LowNodeUtilization)
+* [`NoScoring`](#NoScoring)
+
+Each of these enables cluster-wide scheduling.
+Configured via [`Scheduler`](https://github.com/openshift/api/blob/master/config/v1/types_scheduling.go#L11) custom resource:
+
+```
+$ oc get scheduler cluster -o yaml
+```
+
+```yaml
+apiVersion: config.openshift.io/v1
+kind: Scheduler
+metadata:
+  name: cluster
+  spec:
+    mastersSchedulable: false
+    policy:
+      name: ""
+    profile: LowNodeUtilization
+  ...
+```
+
+### HighNodeUtilization
+
+This profiles disables `NodeResourcesLeastAllocated` plugin and enables `NodeResourcesMostAllocated` plugin.
+Favoring nodes that have a high allocation of resources.
+
+### LowNodeUtilization
+
+The default list of scheduling profiles as provided by the kube-scheduler.
+
+### NoScoring
+
+This profiles disabled all scoring plugins.
 
 ## Debugging
 
@@ -49,6 +88,7 @@ spec:
   managementState: Managed
   ...
 ```
+
 ```
 $ oc explain kubescheduler
 ```
