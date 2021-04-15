@@ -401,6 +401,7 @@ kind: Namespace
 metadata:
   annotations:
     openshift.io/node-selector: ""
+    workload.openshift.io/allowed: "management"
   name: openshift-kube-scheduler
   labels:
     openshift.io/run-level: "0"
@@ -455,6 +456,7 @@ metadata:
   namespace: openshift-kube-scheduler
   annotations:
     kubectl.kubernetes.io/default-logs-container: kube-scheduler
+    workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
   labels:
     app: openshift-kube-scheduler
     scheduler: "true"
