@@ -456,7 +456,7 @@ metadata:
   namespace: openshift-kube-scheduler
   annotations:
     kubectl.kubernetes.io/default-logs-container: kube-scheduler
-    workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+    target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
   labels:
     app: openshift-kube-scheduler
     scheduler: "true"
