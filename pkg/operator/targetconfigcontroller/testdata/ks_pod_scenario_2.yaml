@@ -11,7 +11,7 @@ metadata:
     scheduler: 'true'
   annotations:
     kubectl.kubernetes.io/default-logs-container: kube-scheduler
-    workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+    target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
 spec:
   volumes:
     - name: resource-dir
