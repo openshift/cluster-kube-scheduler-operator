@@ -34,6 +34,8 @@ $(call build-image,ocp-cluster-kube-scheduler-operator,$(IMAGE_REGISTRY)/ocp/4.2
 # and also hooked into {update,verify}-generated for broader integration.
 $(call add-bindata,v4.1.0,./bindata/v4.1.0/...,bindata,v410_00_assets,pkg/operator/v410_00_assets/bindata.go)
 
+$(call verify-golang-versions,Dockerfile.rhel7)
+
 e2e: GO_TEST_PACKAGES :=./test/e2e
 e2e: test-unit
 .PHONY: e2e
