@@ -19,7 +19,7 @@ spec:
         path: "/etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION"
     - name: cert-dir
       hostPath:
-        path: "/etc/kubernetes/static-pod-resources/kube-scheduler-certs"
+        path: "/etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION/dynamic"
   initContainers:
     - name: wait-for-host-port
       image: CaptainAmerica
