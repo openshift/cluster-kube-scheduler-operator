@@ -182,45 +182,35 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	}
 }
 
-// Added unit test for manageSchedulerKubeconfig
-func defaultKubeconfigConfigMap() *corev1.ConfigMap {
-	defaultKubeconfigCmYaml := []byte(`apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: scheduler-kubeconfig
-  namespace: openshift-kube-scheduler
-data:
-  kubeconfig: |
-    apiVersion: v1
-    clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
-          server: https://127.0.0.1:443
-        name: lb-int
-    contexts:
-      - context:
-          cluster: lb-int
-          user: kube-scheduler
-        name: kube-scheduler
-    current-context: kube-scheduler
-    kind: Config
-    preferences: {}
-    users:
-      - name: kube-scheduler
-        user:
-          client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-          client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
-`)
+var defaultKubeconfigData = `apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
+      server: https://127.0.0.1:443
+    name: lb-int
+contexts:
+  - context:
+      cluster: lb-int
+      user: kube-scheduler
+    name: kube-scheduler
+current-context: kube-scheduler
+kind: Config
+preferences: {}
+users:
+  - name: kube-scheduler
+    user:
+      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
+`
 
-	curCM := &corev1.ConfigMap{}
-	if err := runtime.DecodeInto(codec, defaultKubeconfigCmYaml, curCM); err != nil {
-		return nil
-	}
-
-	return curCM
+var configMapKubeConfigCMDefault = &corev1.ConfigMap{
+	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "scheduler-kubeconfig",
+		Namespace: "openshift-kube-scheduler",
+	},
+	Data: map[string]string{"kubeconfig": defaultKubeconfigData},
 }
-
-var configMapKubeConfigCMDefault = defaultKubeconfigConfigMap()
 
 func TestManageSchedulerKubeconfig(t *testing.T) {
 	tests := []struct {
