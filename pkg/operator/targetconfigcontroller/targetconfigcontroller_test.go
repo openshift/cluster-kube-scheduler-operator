@@ -222,31 +222,31 @@ data:
 
 var configMapKubeConfigCMDefault = defaultKubeconfigConfigMap()
 
-func TestManageSchedulerKubeconfig(t *testing.T){
+func TestManageSchedulerKubeconfig(t *testing.T) {
 	tests := []struct {
-		name                    string
-		inputInfrastructure     *configv1.Infrastructure
-		expectedConfigMap    	*corev1.ConfigMap
-		expectedBool   			bool
-		expectedErr				error
+		name                string
+		inputInfrastructure *configv1.Infrastructure
+		expectedConfigMap   *corev1.ConfigMap
+		expectedBool        bool
+		expectedErr         error
 	}{
 		{
-			name: "default",
+			name:                "default",
 			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: "https://127.0.0.1:443"}},
-			expectedConfigMap: configMapKubeConfigCMDefault,
-			expectedBool: true,
+			expectedConfigMap:   configMapKubeConfigCMDefault,
+			expectedBool:        true,
 		},
 		{
-			name: "missingAPIServerInternalURL",
+			name:                "missingAPIServerInternalURL",
 			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: ""}},
-			expectedConfigMap: nil,
-			expectedBool: false,
+			expectedConfigMap:   nil,
+			expectedBool:        false,
 		},
 		{
-			name: "missingCluster",
+			name:                "missingCluster",
 			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "fakecluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: "https://127.0.0.1:443"}},
-			expectedConfigMap: nil,
-			expectedBool: false,
+			expectedConfigMap:   nil,
+			expectedBool:        false,
 		},
 	}
 
@@ -267,7 +267,6 @@ func TestManageSchedulerKubeconfig(t *testing.T){
 		}
 	}
 }
-
 
 func TestCheckForFeatureGates(t *testing.T) {
 	tests := []struct {
@@ -482,29 +481,29 @@ var unmarshalFakeUnsupportedConfigArgsJson = `
 
 func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	tests := []struct {
-		name                    string
-		inputUnsupportedConfig  []byte
-		expectedResult          []string
+		name                   string
+		inputUnsupportedConfig []byte
+		expectedResult         []string
 	}{
 		{
-			name: "unsupportedFlagsinJson",
+			name:                   "unsupportedFlagsinJson",
 			inputUnsupportedConfig: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
-			expectedResult: []string{"--master=https://localhost:1234", "--unsupported-kube-api-over-localhost=true"},
+			expectedResult:         []string{"--master=https://localhost:1234", "--unsupported-kube-api-over-localhost=true"},
 		},
 		{
-			name: "unsupportedFakeFlagsinJsonwithStringList",
+			name:                   "unsupportedFakeFlagsinJsonwithStringList",
 			inputUnsupportedConfig: []byte(fakeUnsupportedConfigArgsJson),
-			expectedResult: []string{"--fakeKey=value1", "--fakeKey=value2"},
+			expectedResult:         []string{"--fakeKey=value1", "--fakeKey=value2"},
 		},
 		{
-			name: "unmashalUnsupportedFakeFlagsinJson",
+			name:                   "unmashalUnsupportedFakeFlagsinJson",
 			inputUnsupportedConfig: []byte(unmarshalFakeUnsupportedConfigArgsJson),
-			expectedResult: nil,
+			expectedResult:         nil,
 		},
 		{
-			name: "emptyUnsupportedFlags",
+			name:                   "emptyUnsupportedFlags",
 			inputUnsupportedConfig: []byte(``),
-			expectedResult: nil,
+			expectedResult:         nil,
 		},
 	}
 
