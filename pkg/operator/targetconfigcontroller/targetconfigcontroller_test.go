@@ -182,6 +182,82 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	}
 }
 
+var defaultKubeconfigData = `apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
+      server: https://127.0.0.1:443
+    name: lb-int
+contexts:
+  - context:
+      cluster: lb-int
+      user: kube-scheduler
+    name: kube-scheduler
+current-context: kube-scheduler
+kind: Config
+preferences: {}
+users:
+  - name: kube-scheduler
+    user:
+      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
+`
+
+var configMapKubeConfigCMDefault = &corev1.ConfigMap{
+	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "scheduler-kubeconfig",
+		Namespace: "openshift-kube-scheduler",
+	},
+	Data: map[string]string{"kubeconfig": defaultKubeconfigData},
+}
+
+func TestManageSchedulerKubeconfig(t *testing.T) {
+	tests := []struct {
+		name                string
+		inputInfrastructure *configv1.Infrastructure
+		expectedConfigMap   *corev1.ConfigMap
+		expectedBool        bool
+		expectedErr         error
+	}{
+		{
+			name:                "default",
+			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: "https://127.0.0.1:443"}},
+			expectedConfigMap:   configMapKubeConfigCMDefault,
+			expectedBool:        true,
+		},
+		{
+			name:                "missingAPIServerInternalURL",
+			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: ""}},
+			expectedConfigMap:   nil,
+			expectedBool:        false,
+		},
+		{
+			name:                "missingCluster",
+			inputInfrastructure: &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: "fakecluster"}, Status: configv1.InfrastructureStatus{APIServerInternalURL: "https://127.0.0.1:443"}},
+			expectedConfigMap:   nil,
+			expectedBool:        false,
+		},
+	}
+
+	for _, tc := range tests {
+		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+		indexer.Add(tc.inputInfrastructure)
+		infrastructureLister := configlistersv1.NewInfrastructureLister(indexer)
+		eventRecorder := events.NewInMemoryRecorder("")
+		fakeKubeClient := fake.NewSimpleClientset()
+		gotCM, gotBool, _ := manageSchedulerKubeconfig(context.TODO(),
+			fakeKubeClient.CoreV1(), infrastructureLister, eventRecorder)
+
+		if !reflect.DeepEqual(gotCM, tc.expectedConfigMap) {
+			t.Errorf("manageSchedulerKubeconfig() got = %v, want %v", gotCM, tc.expectedConfigMap)
+		}
+		if gotBool != tc.expectedBool {
+			t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() got1 = %v, want %v", gotBool, tc.expectedBool)
+		}
+	}
+}
+
 func TestCheckForFeatureGates(t *testing.T) {
 	tests := []struct {
 		name                    string
@@ -371,6 +447,62 @@ func TestManagePodToLatest(t *testing.T) {
 
 			if !equality.Semantic.DeepEqual(actualSchedulerPod, goldenSchedulerPod) {
 				t.Errorf("created Scheduler Pod is different from the expected one (form a golden file) : %s", diff.ObjectDiff(actualSchedulerPod, goldenSchedulerPod))
+			}
+		})
+	}
+}
+
+// Added unit test for getUnsupportedFlagsFromConfig
+var fakeUnsupportedConfigArgsJson = `
+{
+  "arguments": {
+      "fakeKey": [
+			"value1",
+			"value2"
+	  ]
+  }
+}
+`
+var unmarshalFakeUnsupportedConfigArgsJson = `
+{
+  "arguments": {"fakeKey1", "fakeKey2"}
+}
+`
+
+func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
+	tests := []struct {
+		name                   string
+		inputUnsupportedConfig []byte
+		expectedResult         []string
+	}{
+		{
+			name:                   "unsupportedFlagsinJson",
+			inputUnsupportedConfig: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
+			expectedResult:         []string{"--master=https://localhost:1234", "--unsupported-kube-api-over-localhost=true"},
+		},
+		{
+			name:                   "unsupportedFakeFlagsinJsonwithStringList",
+			inputUnsupportedConfig: []byte(fakeUnsupportedConfigArgsJson),
+			expectedResult:         []string{"--fakeKey=value1", "--fakeKey=value2"},
+		},
+		{
+			name:                   "unmashalUnsupportedFakeFlagsinJson",
+			inputUnsupportedConfig: []byte(unmarshalFakeUnsupportedConfigArgsJson),
+			expectedResult:         nil,
+		},
+		{
+			name:                   "emptyUnsupportedFlags",
+			inputUnsupportedConfig: []byte(``),
+			expectedResult:         nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, _ := getUnsupportedFlagsFromConfig(tc.inputUnsupportedConfig)
+
+			if !reflect.DeepEqual(got, tc.expectedResult) {
+				t.Errorf("getUnsupportedFlagsFromConfig() got = %v, want %v", got, tc.expectedResult)
 			}
 		})
 	}
