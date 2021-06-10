@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 	"github.com/openshift/library-go/pkg/operator/status"
@@ -119,8 +120,8 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		WithEvents(cc.EventRecorder).
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
-		WithResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
-		WithCerts("kube-scheduler-certs", CertConfigMaps, CertSecrets).
+		WithRevisionedResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
+		WithUnrevisionedCerts("kube-scheduler-certs", CertConfigMaps, CertSecrets).
 		WithVersioning("kube-scheduler", versionRecorder).
 		ToControllers()
 	if err != nil {
@@ -191,8 +192,8 @@ var deploymentSecrets = []revision.RevisionResource{
 	{Name: "localhost-recovery-client-token"},
 }
 
-var CertConfigMaps = []revision.RevisionResource{}
+var CertConfigMaps = []installer.UnrevisionedResource{}
 
-var CertSecrets = []revision.RevisionResource{
+var CertSecrets = []installer.UnrevisionedResource{
 	{Name: "kube-scheduler-client-cert-key"},
 }
