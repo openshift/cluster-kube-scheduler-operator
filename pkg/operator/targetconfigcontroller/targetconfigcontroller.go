@@ -105,7 +105,7 @@ func NewTargetConfigController(
 	return c
 }
 
-func (c TargetConfigController) sync() error {
+func (c TargetConfigController) sync(ctx context.Context) error {
 	operatorSpec, _, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func (c TargetConfigController) sync() error {
 		c.eventRecorder.Warningf("ManagementStateUnknown", "Unrecognized operator management state %q", operatorSpec.ManagementState)
 		return nil
 	}
-	requeue, err := createTargetConfigController_v311_00_to_latest(c, c.eventRecorder, operatorSpec)
+	requeue, err := createTargetConfigController_v311_00_to_latest(ctx, c, c.eventRecorder, operatorSpec)
 	if err != nil {
 		return err
 	}
@@ -147,25 +147,33 @@ func (c *TargetConfigController) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
+	// TODO: Fix this by refactoring this controller to factory
+	workerCtx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-stopCh
+		cancel()
+	}()
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.Until(func() {
+		c.runWorker(workerCtx)
+	}, time.Second, stopCh)
 
 	<-stopCh
 }
 
-func (c *TargetConfigController) runWorker() {
-	for c.processNextWorkItem() {
+func (c *TargetConfigController) runWorker(ctx context.Context) {
+	for c.processNextWorkItem(ctx) {
 	}
 }
 
-func (c *TargetConfigController) processNextWorkItem() bool {
+func (c *TargetConfigController) processNextWorkItem(ctx context.Context) bool {
 	dsKey, quit := c.queue.Get()
 	if quit {
 		return false
 	}
 	defer c.queue.Done(dsKey)
 
-	err := c.sync()
+	err := c.sync(ctx)
 	if err == nil {
 		c.queue.Forget(dsKey)
 		return true
@@ -232,14 +240,14 @@ func (c *TargetConfigController) namespaceEventHandler() cache.ResourceEventHand
 
 // createTargetConfigController_v311_00_to_latest takes care of synchronizing (not upgrading) the thing we're managing.
 // most of the time the sync method will be good for a large span of minor versions
-func createTargetConfigController_v311_00_to_latest(c TargetConfigController, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
+func createTargetConfigController_v311_00_to_latest(ctx context.Context, c TargetConfigController, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(c.kubeClient.CoreV1(), recorder, c.configSchedulerLister)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(ctx, c.kubeClient.CoreV1(), recorder, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
-	_, _, err = manageServiceAccountCABundle(c.configMapLister, c.kubeClient.CoreV1(), recorder)
+	_, _, err = manageServiceAccountCABundle(ctx, c.configMapLister, c.kubeClient.CoreV1(), recorder)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/serviceaccount-ca", err))
 	}
@@ -280,7 +288,7 @@ func createTargetConfigController_v311_00_to_latest(c TargetConfigController, re
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
 
 	var kubeSchedulerConfiguration []byte
@@ -310,7 +318,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(client corev1client.ConfigMa
 	if err != nil {
 		return nil, false, err
 	}
-	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
+	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
 func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
@@ -414,7 +422,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
-	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(configMapsGetter, recorder, configMap)
+	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(ctx, configMapsGetter, recorder, configMap)
 	if changed && len(config.Spec.Policy.Name) > 0 {
 		klog.Warning("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
 	}
@@ -475,7 +483,7 @@ func generateFeatureGates(enabledFeatureGates, disabledFeatureGates []string, fe
 	return featureGates
 }
 
-func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
+func manageServiceAccountCABundle(ctx context.Context, lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
 	requiredConfigMap, err := resourcesynccontroller.CombineCABundleConfigMaps(
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "serviceaccount-ca"},
 		lister,
@@ -488,7 +496,7 @@ func manageServiceAccountCABundle(lister corev1listers.ConfigMapLister, client c
 	if err != nil {
 		return nil, false, err
 	}
-	return resourceapply.ApplyConfigMap(client, recorder, requiredConfigMap)
+	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
 func ensureLocalhostRecoverySAToken(ctx context.Context, client corev1client.CoreV1Interface, recorder events.Recorder) error {
@@ -559,7 +567,7 @@ func manageSchedulerKubeconfig(ctx context.Context, client corev1client.CoreV1In
 	}
 
 	requiredCM := resourceread.ReadConfigMapV1OrDie([]byte(cmString))
-	return resourceapply.ApplyConfigMap(client, recorder, requiredCM)
+	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredCM)
 }
 
 // getUnsupportedFlagsFromConfig reads and parses flags stored in the "arguments" filed in the unsupported config

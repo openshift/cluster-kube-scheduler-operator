@@ -167,7 +167,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// need a client for each test
-			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
+			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
