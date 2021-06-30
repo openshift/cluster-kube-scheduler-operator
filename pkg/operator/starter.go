@@ -93,11 +93,9 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	).AddKubeInformers(kubeInformersForNamespaces)
 
 	targetConfigController := targetconfigcontroller.NewTargetConfigController(
-		ctx,
 		os.Getenv("IMAGE"),
 		os.Getenv("OPERATOR_IMAGE"),
 		operatorClient,
-		kubeInformersForNamespaces.InformersFor(operatorclient.TargetNamespace),
 		kubeInformersForNamespaces,
 		configInformers,
 		operatorClient,
@@ -165,7 +163,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go staticPodControllers.Start(ctx)
 	go staticResourceController.Run(ctx, 1)
 	go resourceSyncController.Run(ctx, 1)
-	go targetConfigController.Run(1, ctx.Done())
+	go targetConfigController.Run(ctx, 1)
 	go configObserver.Run(ctx, 1)
 	go clusterOperatorStatus.Run(ctx, 1)
 	go staleConditions.Run(ctx, 1)
