@@ -295,6 +295,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"DownwardAPIHugePages":           true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
+				"CSIMigrationAzureDisk":          true,
+				"CSIMigrationGCE":                true,
 			},
 		},
 		{
