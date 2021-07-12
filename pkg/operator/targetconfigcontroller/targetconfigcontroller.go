@@ -165,7 +165,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 }
 
 func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
-	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/cm.yaml"))
+	configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/cm.yaml"))
 
 	var kubeSchedulerConfiguration []byte
 
@@ -176,15 +176,15 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 	// TOOD(jchaloup): remove the condition once the policy API is removed from the code
 	// Until that, ignore profiles if the policy API is used.
 	if len(config.Spec.Policy.Name) > 0 {
-		kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
+		kubeSchedulerConfiguration = bindata.MustAsset("assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
 	} else {
 		switch config.Spec.Profile {
 		case v1.LowNodeUtilization, "":
-			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
+			kubeSchedulerConfiguration = bindata.MustAsset("assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
 		case v1.HighNodeUtilization:
-			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-highnodeutilization.yaml")
+			kubeSchedulerConfiguration = bindata.MustAsset("assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml")
 		case v1.NoScoring:
-			kubeSchedulerConfiguration = v410_00_assets.MustAsset("v4.1.0/config/defaultconfig-postbootstrap-noscoring.yaml")
+			kubeSchedulerConfiguration = bindata.MustAsset("assets/config/defaultconfig-postbootstrap-noscoring.yaml")
 		default:
 			return nil, false, fmt.Errorf("profile %q not recognized", config.Spec.Profile)
 		}
@@ -198,7 +198,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 }
 
 func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
-	required := resourceread.ReadPodV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod.yaml"))
+	required := resourceread.ReadPodV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
 		"${OPERATOR_IMAGE}": operatorImagePullSpec,
@@ -294,7 +294,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, unsupportedArgs...)
 	}
 
-	configMap := resourceread.ReadConfigMapV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/pod-cm.yaml"))
+	configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod-cm.yaml"))
 	configMap.Data["pod.yaml"] = resourceread.WritePodV1OrDie(required)
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
@@ -376,8 +376,8 @@ func manageServiceAccountCABundle(ctx context.Context, lister corev1listers.Conf
 }
 
 func ensureLocalhostRecoverySAToken(ctx context.Context, client corev1client.CoreV1Interface, recorder events.Recorder) error {
-	requiredSA := resourceread.ReadServiceAccountV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-sa.yaml"))
-	requiredToken := resourceread.ReadSecretV1OrDie(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/localhost-recovery-token.yaml"))
+	requiredSA := resourceread.ReadServiceAccountV1OrDie(bindata.MustAsset("assets/kube-scheduler/localhost-recovery-sa.yaml"))
+	requiredToken := resourceread.ReadSecretV1OrDie(bindata.MustAsset("assets/kube-scheduler/localhost-recovery-token.yaml"))
 
 	saClient := client.ServiceAccounts(operatorclient.TargetNamespace)
 	serviceAccount, err := saClient.Get(ctx, requiredSA.Name, metav1.GetOptions{})
@@ -425,7 +425,7 @@ func ensureLocalhostRecoverySAToken(ctx context.Context, client corev1client.Cor
 }
 
 func manageSchedulerKubeconfig(ctx context.Context, client corev1client.CoreV1Interface, infrastructureLister configlistersv1.InfrastructureLister, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
-	cmString := string(v410_00_assets.MustAsset("v4.1.0/kube-scheduler/kubeconfig-cm.yaml"))
+	cmString := string(bindata.MustAsset("assets/kube-scheduler/kubeconfig-cm.yaml"))
 
 	infrastructure, err := infrastructureLister.Get("cluster")
 	if err != nil {

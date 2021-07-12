@@ -54,12 +54,12 @@ var configUnknown = &configv1.Scheduler{
 	},
 }
 
-var schedConfigLowNodeUtilization string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
-var schedConfigHighNodeUtilization string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
-var schedConfigcNoScoring string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-noscoring.yaml"))
+var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
+var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
+var schedConfigcNoScoring string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
 
 var configMapLowNodeUtilization = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
