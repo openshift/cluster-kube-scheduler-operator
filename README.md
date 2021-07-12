@@ -21,7 +21,7 @@ The metrics are collected from following components:
 
 The configuration for the Kubernetes Scheduler is the result of merging:
 
-* a [default config](https://github.com/openshift/cluster-kube-scheduler-operator/blob/master/bindata/v4.1.0/config/defaultconfig.yaml)
+* a [default config](https://github.com/openshift/cluster-kube-scheduler-operator/blob/master/bindata/assets/config/defaultconfig.yaml)
 * an observed config (compare observed values above) from the spec `schedulers.config.openshift.io`.
 
 All of these are sparse configurations, i.e. unvalidated json snippets which are merged in order to form a valid configuration at the end.

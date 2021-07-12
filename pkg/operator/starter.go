@@ -9,12 +9,12 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
+	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configmetrics"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/configobservercontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/targetconfigcontroller"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -73,19 +73,19 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 
 	staticResourceController := staticresourcecontroller.NewStaticResourceController(
 		"KubeControllerManagerStaticResources",
-		v410_00_assets.Asset,
+		bindata.Asset,
 		[]string{
-			"v4.1.0/kube-scheduler/ns.yaml",
-			"v4.1.0/kube-scheduler/kubeconfig-cert-syncer.yaml",
-			"v4.1.0/kube-scheduler/leader-election-rolebinding.yaml",
-			"v4.1.0/kube-scheduler/scheduler-clusterrolebinding.yaml",
-			"v4.1.0/kube-scheduler/policyconfigmap-role.yaml",
-			"v4.1.0/kube-scheduler/policyconfigmap-rolebinding.yaml",
-			"v4.1.0/kube-scheduler/svc.yaml",
-			"v4.1.0/kube-scheduler/sa.yaml",
-			"v4.1.0/kube-scheduler/localhost-recovery-client-crb.yaml",
-			"v4.1.0/kube-scheduler/localhost-recovery-sa.yaml",
-			"v4.1.0/kube-scheduler/localhost-recovery-token.yaml",
+			"assets/kube-scheduler/ns.yaml",
+			"assets/kube-scheduler/kubeconfig-cert-syncer.yaml",
+			"assets/kube-scheduler/leader-election-rolebinding.yaml",
+			"assets/kube-scheduler/scheduler-clusterrolebinding.yaml",
+			"assets/kube-scheduler/policyconfigmap-role.yaml",
+			"assets/kube-scheduler/policyconfigmap-rolebinding.yaml",
+			"assets/kube-scheduler/svc.yaml",
+			"assets/kube-scheduler/sa.yaml",
+			"assets/kube-scheduler/localhost-recovery-client-crb.yaml",
+			"assets/kube-scheduler/localhost-recovery-sa.yaml",
+			"assets/kube-scheduler/localhost-recovery-token.yaml",
 		},
 		(&resourceapply.ClientHolder{}).WithKubernetes(kubeClient),
 		operatorClient,

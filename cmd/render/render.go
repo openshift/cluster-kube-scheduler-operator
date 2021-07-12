@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
+	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,10 +13,6 @@ import (
 
 	genericrender "github.com/openshift/library-go/pkg/operator/render"
 	genericrenderoptions "github.com/openshift/library-go/pkg/operator/render/options"
-)
-
-const (
-	bootstrapVersion = "v4.1.0"
 )
 
 // renderOpts holds values to drive the render command.
@@ -94,7 +90,7 @@ func (r *renderOpts) Run() error {
 	}
 	if err := r.generic.ApplyTo(
 		&renderConfig.FileConfig,
-		genericrenderoptions.Template{FileName: "defaultconfig.yaml", Content: v410_00_assets.MustAsset(filepath.Join(bootstrapVersion, "config", "defaultconfig.yaml"))},
+		genericrenderoptions.Template{FileName: "defaultconfig.yaml", Content: bindata.MustAsset(filepath.Join("assets", "config", "defaultconfig.yaml"))},
 		mustReadTemplateFile(filepath.Join(r.generic.TemplatesDir, "config", "bootstrap-config-overrides.yaml")),
 		&renderConfig,
 		nil,

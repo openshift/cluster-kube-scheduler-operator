@@ -12,7 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
+	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -54,12 +54,12 @@ var configUnknown = &configv1.Scheduler{
 	},
 }
 
-var schedConfigLowNodeUtilization string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
-var schedConfigHighNodeUtilization string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
-var schedConfigcNoScoring string = string(v410_00_assets.MustAsset(
-	"v4.1.0/config/defaultconfig-postbootstrap-noscoring.yaml"))
+var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
+var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
+var schedConfigcNoScoring string = string(bindata.MustAsset(
+	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
 
 var configMapLowNodeUtilization = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},

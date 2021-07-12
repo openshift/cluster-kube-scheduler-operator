@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/openshift/api v0.0.0-20210629145910-15a1cae1fca8
 	github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
