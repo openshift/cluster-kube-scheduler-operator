@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/v410_00_assets"
+	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime/schema"
