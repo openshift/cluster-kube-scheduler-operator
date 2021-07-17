@@ -50,3 +50,12 @@ spec:
       for: 15m
       labels:
         severity: critical
+  - name: scheduler-legacy-policy-deprecated
+    rules:
+    - alert: SchedulerLegacyPolicySet
+      annotations:
+        message: The scheduler is currently configured to use a legacy scheduler policy API. Use of the policy API is deprecated and removed in 4.10.
+      expr: |
+        cluster_legacy_scheduler_policy > 0
+      labels:
+        severity: warning
