@@ -57,5 +57,6 @@ spec:
         message: The scheduler is currently configured to use a legacy scheduler policy API. Use of the policy API is deprecated and removed in 4.10.
       expr: |
         cluster_legacy_scheduler_policy > 0
+      for: 60m
       labels:
         severity: warning
