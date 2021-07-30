@@ -297,6 +297,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"SupportPodPidsLimit":            true,
 				"CSIMigrationAzureDisk":          true,
 				"CSIMigrationGCE":                true,
+				"ExternalCloudProvider":          true,
 			},
 		},
 		{
