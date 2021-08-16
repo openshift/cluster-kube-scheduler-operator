@@ -190,7 +190,8 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 		}
 	}
 
-	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, kubeSchedulerConfiguration)
+	defaultConfig := bindata.MustAsset("assets/config/defaultconfig.yaml")
+	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, kubeSchedulerConfiguration, defaultConfig)
 	if err != nil {
 		return nil, false, err
 	}
