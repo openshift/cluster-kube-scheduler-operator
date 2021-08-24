@@ -3,6 +3,8 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -53,12 +55,12 @@ var configUnknown = &configv1.Scheduler{
 		Profile: "unknown-config",
 	},
 }
-
+var defaultConfig string = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
 var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
 	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
 var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
 	"assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
-var schedConfigcNoScoring string = string(bindata.MustAsset(
+var schedConfigNoScoring string = string(bindata.MustAsset(
 	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
 
 var configMapLowNodeUtilization = &corev1.ConfigMap{
@@ -85,7 +87,7 @@ var configMapNoScoring = &corev1.ConfigMap{
 		Name:      "config",
 		Namespace: "openshift-kube-scheduler",
 	},
-	Data: map[string]string{"config.yaml": schedConfigcNoScoring},
+	Data: map[string]string{"config.yaml": schedConfigNoScoring},
 }
 
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
@@ -97,11 +99,12 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		configSchedulerLister configlistersv1.SchedulerLister
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *corev1.ConfigMap
-		want1   bool
-		wantErr bool
+		name       string
+		args       args
+		want       *corev1.ConfigMap
+		wantConfig string
+		want1      bool
+		wantErr    bool
 	}{
 		{
 			name: "unknown-cluster",
@@ -135,9 +138,10 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"cluster": configLowNodeUtilization},
 				},
 			},
-			want:    configMapLowNodeUtilization,
-			want1:   true,
-			wantErr: false,
+			want:       configMapLowNodeUtilization,
+			wantConfig: schedConfigLowNodeUtilization,
+			want1:      true,
+			wantErr:    false,
 		},
 		{
 			name: "high-node-utilization",
@@ -147,9 +151,10 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"cluster": configHighNodeUtilization},
 				},
 			},
-			want:    configMapHighNodeUtilization,
-			want1:   true,
-			wantErr: false,
+			want:       configMapHighNodeUtilization,
+			wantConfig: schedConfigHighNodeUtilization,
+			want1:      true,
+			wantErr:    false,
 		},
 		{
 			name: "no-scoring",
@@ -159,9 +164,10 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"cluster": configNoScoring},
 				},
 			},
-			want:    configMapNoScoring,
-			want1:   true,
-			wantErr: false,
+			want:       configMapNoScoring,
+			wantConfig: schedConfigNoScoring,
+			want1:      true,
+			wantErr:    false,
 		},
 	}
 	for _, tt := range tests {
@@ -172,7 +178,10 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/cm.yaml"))
+			requiredConfigMap, _, _ := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, []byte(tt.wantConfig), []byte(defaultConfig))
+
+			if !equality.Semantic.DeepEqual(got, requiredConfigMap) {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
