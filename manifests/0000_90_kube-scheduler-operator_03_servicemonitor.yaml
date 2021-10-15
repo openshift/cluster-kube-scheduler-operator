@@ -46,17 +46,20 @@ spec:
     rules:
     - alert: KubeSchedulerDown
       annotations:
-        message: KubeScheduler has disappeared from Prometheus target discovery.
+        description: KubeScheduler has disappeared from Prometheus target discovery.
+        summary: Target disappeared from Prometheus target discovery.
       expr: |
         absent(up{job="scheduler"} == 1)
       for: 15m
       labels:
+        namespace: openshift-kube-scheduler
         severity: critical
   - name: scheduler-legacy-policy-deprecated
     rules:
     - alert: SchedulerLegacyPolicySet
       annotations:
-        message: The scheduler is currently configured to use a legacy scheduler policy API. Use of the policy API is deprecated and removed in 4.10.
+        description: The scheduler is currently configured to use a legacy scheduler policy API. Use of the policy API is deprecated and removed in 4.10.
+        summary: Legacy scheduler policy API in use by the scheduler.
       expr: |
         cluster_legacy_scheduler_policy > 0
       for: 60m
