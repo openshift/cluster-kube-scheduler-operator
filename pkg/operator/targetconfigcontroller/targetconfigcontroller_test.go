@@ -3,8 +3,6 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -16,6 +14,8 @@ import (
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -286,6 +286,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"DownwardAPIHugePages":           true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
+				"PodSecurity":                    true,
 			},
 		},
 		{
@@ -294,19 +295,26 @@ func TestCheckForFeatureGates(t *testing.T) {
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
 				"APIPriorityAndFairness":         true,
+				"BuildCSIVolumes":                true,
 				"CSIDriverAzureDisk":             true,
+				"CSIDriverAzureFile":             true,
+				"CSIDriverSharedResource":        true,
 				"CSIDriverVSphere":               true,
 				"CSIMigrationAWS":                true,
+				"CSIMigrationAzureDisk":          true,
+				"CSIMigrationAzureFile":          true,
+				"CSIMigrationGCE":                true,
 				"CSIMigrationOpenStack":          true,
+				"CSIMigrationvSphere":            true,
 				"LegacyNodeRoleBehavior":         false,
 				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
 				"DownwardAPIHugePages":           true,
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
-				"CSIMigrationAzureDisk":          true,
-				"CSIMigrationGCE":                true,
 				"ExternalCloudProvider":          true,
+				"PodSecurity":                    true,
+				"InsightsOperatorPullingSCA":     true,
 			},
 		},
 		{
