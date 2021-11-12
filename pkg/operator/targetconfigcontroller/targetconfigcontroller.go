@@ -147,7 +147,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 			Reason:  "SynchronizationError",
 			Message: v1helpers.NewMultiLineAggregate(errors).Error(),
 		}
-		if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
+		if _, _, err := v1helpers.UpdateStaticPodStatus(ctx, c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
 			return true, err
 		}
 		return true, nil
@@ -157,7 +157,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 		Type:   "TargetConfigControllerDegraded",
 		Status: operatorv1.ConditionFalse,
 	}
-	if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
+	if _, _, err := v1helpers.UpdateStaticPodStatus(ctx, c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
 		return true, err
 	}
 
