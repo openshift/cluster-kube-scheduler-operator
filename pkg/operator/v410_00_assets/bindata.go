@@ -86,8 +86,10 @@ profiles:
       score:
         disabled:
         - name: "NodeResourcesLeastAllocated"
+        - name: "NodeResourcesBalancedAllocation"
         enabled:
         - name: "NodeResourcesMostAllocated"
+          weight: 5
 `)
 
 func v410ConfigDefaultconfigPostbootstrapHighnodeutilizationYamlBytes() ([]byte, error) {
