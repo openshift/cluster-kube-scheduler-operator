@@ -99,4 +99,6 @@ spec:
   namespaceSelector:
     matchNames:
     - openshift-kube-scheduler
-  selector: {}
+  selector:
+    matchLabels:
+      prometheus: "kube-scheduler"
