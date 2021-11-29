@@ -49,7 +49,7 @@ func NewSchedulerOperatorCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(operatorcmd.NewOperator())
 	cmd.AddCommand(render.NewRenderCommand())
-	cmd.AddCommand(installerpod.NewInstaller())
+	cmd.AddCommand(installerpod.NewInstaller(ctx))
 	cmd.AddCommand(prune.NewPrune())
 	cmd.AddCommand(certsyncpod.NewCertSyncControllerCommand(operator.CertConfigMaps, operator.CertSecrets))
 	cmd.AddCommand(recoverycontroller.NewCertRecoveryControllerCommand(ctx))
