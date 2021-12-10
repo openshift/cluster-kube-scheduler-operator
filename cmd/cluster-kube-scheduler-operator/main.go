@@ -2,11 +2,7 @@ package main
 
 import (
 	"context"
-	goflag "flag"
-	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/openshift/cluster-kube-scheduler-operator/cmd/render"
 	operatorcmd "github.com/openshift/cluster-kube-scheduler-operator/pkg/cmd/operator"
@@ -16,25 +12,13 @@ import (
 	"github.com/openshift/library-go/pkg/operator/staticpod/installerpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/prune"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
+	"k8s.io/component-base/cli"
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-
-	logs.InitLogs()
-	defer logs.FlushLogs()
-
 	command := NewSchedulerOperatorCommand(context.Background())
-	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
+	code := cli.Run(command)
+	os.Exit(code)
 }
 
 func NewSchedulerOperatorCommand(ctx context.Context) *cobra.Command {
