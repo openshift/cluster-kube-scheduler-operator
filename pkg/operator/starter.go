@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/guard"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
@@ -121,6 +122,16 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		WithRevisionedResources(operatorclient.TargetNamespace, "openshift-kube-scheduler", deploymentConfigMaps, deploymentSecrets).
 		WithUnrevisionedCerts("kube-scheduler-certs", CertConfigMaps, CertSecrets).
 		WithVersioning("kube-scheduler", versionRecorder).
+		WithPodDisruptionBudgetGuard(
+			"openshift-kube-scheduler-operator",
+			"cluster-kube-scheduler-operator",
+			"10259",
+			func() (bool, error) {
+				isSNO, err := guard.IsSNOCheckFnc(configInformers.Config().V1().Infrastructures().Lister())()
+				// create only when not a single node topology
+				return !isSNO, err
+			},
+		).
 		ToControllers()
 	if err != nil {
 		return err
