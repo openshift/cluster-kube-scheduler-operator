@@ -173,10 +173,10 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 	if err != nil {
 		return nil, false, err
 	}
-	// TOOD(jchaloup): remove the condition once the policy API is removed from the code
-	// Until that, ignore profiles if the policy API is used.
+	// Scheduler Policy API has been removed in k8s 1.23
+	// Still keep the CRD field for compatibility, but it does nothing now
 	if len(config.Spec.Policy.Name) > 0 {
-		kubeSchedulerConfiguration = bindata.MustAsset("assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml")
+		return nil, false, fmt.Errorf("scheduler Policy config has been removed upstream, this field remains for CRD compatibility but does nothing now. Please use a Profile instead (defaulting to LowNodeUtilization).")
 	} else {
 		switch config.Spec.Profile {
 		case v1.LowNodeUtilization, "":
@@ -253,10 +253,6 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	if err != nil {
 		return nil, false, err
 	}
-	if len(config.Spec.Policy.Name) > 0 {
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
-		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--policy-configmap-namespace=%s", operatorclient.TargetNamespace))
-	}
 
 	// there's no need to convert UnsupportedConfigOverrides.Raw from yaml to json as it always comes as json.
 	// passing no data to Unmarshal has unexpected behaviour and could be avoided by examining the length of the input.
@@ -301,7 +297,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	configMap.Data["version"] = version.Get().String()
 	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(ctx, configMapsGetter, recorder, configMap)
 	if changed && len(config.Spec.Policy.Name) > 0 {
-		klog.Warning("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
+		klog.Warning("Setting .spec.policy is no longer supported. Please use .spec.profile instead.")
 	}
 	return appliedConfigMap, changed, err
 }
