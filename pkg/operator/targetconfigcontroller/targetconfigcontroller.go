@@ -135,7 +135,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/scheduler-kubeconfig", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configSchedulerLister)
+	_, _, deprecatedPolicy, err := managePod_v311_00_to_latest(ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -153,11 +153,22 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 		return true, nil
 	}
 
-	condition := operatorv1.OperatorCondition{
-		Type:   "TargetConfigControllerDegraded",
-		Status: operatorv1.ConditionFalse,
+	updateStatusFuncs := []v1helpers.UpdateStaticPodStatusFunc{
+		v1helpers.UpdateStaticPodConditionFn(operatorv1.OperatorCondition{
+			Type:   "TargetConfigControllerDegraded",
+			Status: operatorv1.ConditionFalse,
+		}),
 	}
-	if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); err != nil {
+
+	if deprecatedPolicy {
+		updateStatusFuncs = append(updateStatusFuncs, v1helpers.UpdateStaticPodConditionFn(operatorv1.OperatorCondition{
+			Type:    "PolicyUpgradeable",
+			Status:  operatorv1.ConditionFalse,
+			Reason:  "PolicyFieldSpecified",
+			Message: fmt.Sprintf("deprecated scheduler.policy field is set, and it is to be removed in the next release"),
+		}))
+	}
+	if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, updateStatusFuncs...); err != nil {
 		return true, err
 	}
 
@@ -198,7 +209,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, bool, error) {
 	required := resourceread.ReadPodV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -243,7 +254,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	}
 
 	if _, err := secretsGetter.Secrets(required.Namespace).Get(ctx, "serving-cert", metav1.GetOptions{}); err != nil && !apierrors.IsNotFound(err) {
-		return nil, false, err
+		return nil, false, false, err
 	} else if err == nil {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-cert-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.crt")
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--tls-private-key-file=/etc/kubernetes/static-pod-resources/secrets/serving-cert/tls.key")
@@ -251,7 +262,7 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 
 	config, err := configSchedulerLister.Get("cluster")
 	if err != nil {
-		return nil, false, err
+		return nil, false, false, err
 	}
 	if len(config.Spec.Policy.Name) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, "--policy-configmap=policy-configmap")
@@ -264,18 +275,18 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	var observedConfig map[string]interface{}
 	if len(operatorSpec.ObservedConfig.Raw) > 0 {
 		if err := json.Unmarshal(operatorSpec.ObservedConfig.Raw, &observedConfig); err != nil {
-			return nil, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
+			return nil, false, false, fmt.Errorf("failed to unmarshal the observedConfig: %v", err)
 		}
 	}
 
 	cipherSuites, cipherSuitesFound, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "cipherSuites")
 	if err != nil {
-		return nil, false, fmt.Errorf("couldn't get the servingInfo.cipherSuites config from observedConfig: %v", err)
+		return nil, false, false, fmt.Errorf("couldn't get the servingInfo.cipherSuites config from observedConfig: %v", err)
 	}
 
 	minTLSVersion, minTLSVersionFound, err := unstructured.NestedString(observedConfig, "servingInfo", "minTLSVersion")
 	if err != nil {
-		return nil, false, fmt.Errorf("couldn't get the servingInfo.minTLSVersion config from observedConfig: %v", err)
+		return nil, false, false, fmt.Errorf("couldn't get the servingInfo.minTLSVersion config from observedConfig: %v", err)
 	}
 
 	if cipherSuitesFound && len(cipherSuites) > 0 {
@@ -300,10 +311,12 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	configMap.Data["forceRedeploymentReason"] = operatorSpec.ForceRedeploymentReason
 	configMap.Data["version"] = version.Get().String()
 	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(ctx, configMapsGetter, recorder, configMap)
+	deprecatedPolicy := false
 	if changed && len(config.Spec.Policy.Name) > 0 {
+		deprecatedPolicy = true
 		klog.Warning("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
 	}
-	return appliedConfigMap, changed, err
+	return appliedConfigMap, changed, deprecatedPolicy, err
 }
 
 func getSortedFeatureGates(featureGates map[string]bool) []string {
