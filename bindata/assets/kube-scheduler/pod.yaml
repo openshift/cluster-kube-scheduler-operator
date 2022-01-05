@@ -4,7 +4,7 @@ metadata:
   name: openshift-kube-scheduler
   namespace: openshift-kube-scheduler
   annotations:
-    kubectl.kubernetes.io/default-logs-container: kube-scheduler
+    kubectl.kubernetes.io/default-container: kube-scheduler
     target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
   labels:
     app: openshift-kube-scheduler
