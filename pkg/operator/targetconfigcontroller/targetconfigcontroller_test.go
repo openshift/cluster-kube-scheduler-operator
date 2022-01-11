@@ -287,6 +287,12 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"ServiceNodeExclusion":           true,
 				"SupportPodPidsLimit":            true,
 				"PodSecurity":                    true,
+				"CSIMigrationAWS":                false,
+				"CSIMigrationOpenStack":          false,
+				"CSIMigrationGCE":                false,
+				"CSIMigrationAzureDisk":          false,
+				"CSIMigrationAzureFile":          false,
+				"CSIMigrationvSphere":            false,
 			},
 		},
 		{
