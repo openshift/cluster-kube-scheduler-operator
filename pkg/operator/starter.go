@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -132,6 +133,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 				return !isSNO, err
 			},
 		).
+		WithOperandPodLabelSelector(labels.Set{"app": "openshift-kube-scheduler"}.AsSelector()).
 		ToControllers()
 	if err != nil {
 		return err
