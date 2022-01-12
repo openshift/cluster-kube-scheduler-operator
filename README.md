@@ -55,8 +55,11 @@ metadata:
 
 ### HighNodeUtilization
 
-This profiles disables `NodeResourcesLeastAllocated` plugin and enables `NodeResourcesMostAllocated` plugin.
+This profile disables `NodeResourcesBalancedAllocation` and `NodeResourcesFit` plugin with (`LeastAllocated` type)
+and enables `NodeResourcesFit` plugin (with `MostAllocated` type).
 Favoring nodes that have a high allocation of resources.
+In the past the profile corresponded to disabling `NodeResourcesLeastAllocated` and `NodeResourcesBalancedAllocation` plugins
+and enabling `NodeResourcesMostAllocated` plugin.
 
 ### LowNodeUtilization
 
