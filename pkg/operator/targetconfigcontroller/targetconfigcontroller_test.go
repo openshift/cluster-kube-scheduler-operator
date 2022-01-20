@@ -3,19 +3,24 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 	"unsafe"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
+	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 )
 
 var codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
@@ -425,7 +431,7 @@ func TestManagePodToLatest(t *testing.T) {
 			configSchedulerLister := configlistersv1.NewSchedulerLister(configSchedulerIndexer)
 
 			// act
-			actualConfigMap, _, err := managePod_v311_00_to_latest(
+			actualConfigMap, _, _, err := managePod_v311_00_to_latest(
 				context.TODO(),
 				fakeKubeClient.CoreV1(),
 				fakeKubeClient.CoreV1(),
@@ -459,6 +465,173 @@ func TestManagePodToLatest(t *testing.T) {
 
 			if !equality.Semantic.DeepEqual(actualSchedulerPod, goldenSchedulerPod) {
 				t.Errorf("created Scheduler Pod is different from the expected one (form a golden file) : %s", diff.ObjectDiff(actualSchedulerPod, goldenSchedulerPod))
+			}
+		})
+	}
+}
+
+type FakeSyncContext struct {
+	recorder events.Recorder
+}
+
+func (f FakeSyncContext) Queue() workqueue.RateLimitingInterface {
+	return nil
+}
+
+func (f FakeSyncContext) QueueKey() string {
+	return ""
+}
+
+func (f FakeSyncContext) Recorder() events.Recorder {
+	return f.recorder
+}
+
+func TestPolicyUpgradeable(t *testing.T) {
+	tests := []struct {
+		name         string
+		policyCMName string
+		upgradable   bool
+	}{
+		{
+			name:         "PolicyUpgradeable is true",
+			policyCMName: "",
+			upgradable:   true,
+		},
+		{
+			name:         "PolicyUpgradeable is false",
+			policyCMName: "custompolicy",
+			upgradable:   false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			schedulerConfig := &configv1.Scheduler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.SchedulerSpec{Policy: configv1.ConfigMapNameReference{Name: test.policyCMName},
+					Profile: configv1.LowNodeUtilization,
+				},
+			}
+
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "localhost-recovery-client",
+					Namespace: "openshift-kube-scheduler",
+					UID:       "da5deb00-fdcd-412e-b8e9-80ab943772bf",
+				},
+			}
+
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "localhost-recovery-client-token",
+					Namespace: "openshift-kube-scheduler",
+					Annotations: map[string]string{
+						"kubernetes.io/service-account.name": "localhost-recovery-client",
+						corev1.ServiceAccountUIDKey:          "da5deb00-fdcd-412e-b8e9-80ab943772bf",
+					},
+				},
+				Type: corev1.SecretTypeServiceAccountToken,
+				Data: map[string][]byte{
+					"token":  []byte("XXXX"),
+					"ca.crt": []byte("XXXX"),
+				},
+			}
+
+			infra := &configv1.Infrastructure{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Status: configv1.InfrastructureStatus{
+					APIServerInternalURL: "https://127.0.0.1:443"},
+			}
+
+			fg := &configv1.FeatureGate{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Spec: configv1.FeatureGateSpec{
+					FeatureGateSelection: configv1.FeatureGateSelection{
+						FeatureSet: configv1.Default,
+					},
+				},
+			}
+
+			kubeClient := fake.NewSimpleClientset(sa, secret)
+			configClient := fakeconfigv1client.NewSimpleClientset(schedulerConfig, infra, fg)
+			configInformers := configv1informers.NewSharedInformerFactory(configClient, 10*time.Minute)
+			kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient,
+				"",
+				operatorclient.GlobalUserSpecifiedConfigNamespace,
+				operatorclient.GlobalMachineSpecifiedConfigNamespace,
+				operatorclient.OperatorNamespace,
+				operatorclient.TargetNamespace,
+				"kube-system",
+			)
+
+			operatorClient := v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
+				&operatorv1.StaticPodOperatorStatus{},
+				nil,
+				nil,
+			)
+
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
+
+			targetConfigController := NewTargetConfigController(
+				"targetImagePullSpec",
+				"operatorImagePullSpec",
+				operatorClient,
+				kubeInformersForNamespaces,
+				configInformers,
+				operatorClient,
+				kubeClient,
+				eventRecorder,
+			)
+
+			ctx := context.TODO()
+
+			configInformers.Start(ctx.Done())
+			configInformers.WaitForCacheSync(ctx.Done())
+
+			err := targetConfigController.Sync(ctx, FakeSyncContext{recorder: eventRecorder})
+			if err != nil {
+				t.Fatalf("Unexpected error returned by TargetConfigController.Sync: %v", err)
+			}
+			_, status, _, err := operatorClient.GetOperatorState()
+			if err != nil {
+				t.Fatalf("Unexpected error returned operatorClient.GetOperatorState(): %v", err)
+			}
+
+			// TargetConfigControllerDegraded is expected to be always set
+			targetConfigControllerDegradedCondition := operatorv1.OperatorCondition{}
+			var policyUpgradeableCondition *operatorv1.OperatorCondition
+			for _, condition := range status.Conditions {
+				if condition.Type == "TargetConfigControllerDegraded" {
+					targetConfigControllerDegradedCondition = condition
+				} else if condition.Type == "PolicyUpgradeable" {
+					c := condition
+					policyUpgradeableCondition = &c
+				}
+			}
+
+			if targetConfigControllerDegradedCondition.Status != operatorv1.ConditionFalse {
+				t.Errorf("TargetConfigControllerDegraded is expected to be %v, got %v instead", operatorv1.ConditionFalse, targetConfigControllerDegradedCondition.Status)
+			}
+			if test.upgradable {
+				if policyUpgradeableCondition != nil {
+					if policyUpgradeableCondition.Status != operatorv1.ConditionTrue {
+						t.Errorf("PolicyUpgradeable condition expected to be missing or its status set to %v, got %v instead", operatorv1.ConditionTrue, policyUpgradeableCondition.Status)
+					}
+				}
+			} else {
+				if policyUpgradeableCondition == nil || policyUpgradeableCondition.Status != operatorv1.ConditionFalse {
+					t.Errorf("PolicyUpgradeable condition expected to be set and its status set to %v, got %v instead", operatorv1.ConditionFalse, policyUpgradeableCondition.Status)
+				}
 			}
 		})
 	}
