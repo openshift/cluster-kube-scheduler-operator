@@ -167,6 +167,11 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 			Reason:  "PolicyFieldSpecified",
 			Message: fmt.Sprintf("deprecated scheduler.policy field is set, and it is to be removed in the next release"),
 		}))
+	} else {
+		updateStatusFuncs = append(updateStatusFuncs, func(oldStatus *operatorv1.StaticPodOperatorStatus) error {
+			v1helpers.RemoveOperatorCondition(&oldStatus.Conditions, "PolicyUpgradeable")
+			return nil
+		})
 	}
 	if _, _, err := v1helpers.UpdateStaticPodStatus(c.operatorClient, updateStatusFuncs...); err != nil {
 		return true, err

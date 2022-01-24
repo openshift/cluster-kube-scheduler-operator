@@ -491,16 +491,36 @@ func TestPolicyUpgradeable(t *testing.T) {
 		name         string
 		policyCMName string
 		upgradable   bool
+		status       *operatorv1.StaticPodOperatorStatus
 	}{
 		{
 			name:         "PolicyUpgradeable is true",
 			policyCMName: "",
 			upgradable:   true,
+			status:       &operatorv1.StaticPodOperatorStatus{},
 		},
 		{
 			name:         "PolicyUpgradeable is false",
 			policyCMName: "custompolicy",
 			upgradable:   false,
+			status:       &operatorv1.StaticPodOperatorStatus{},
+		},
+		{
+			name:         "PolicyUpgradeable is cleared",
+			policyCMName: "",
+			upgradable:   true,
+			status: &operatorv1.StaticPodOperatorStatus{
+				OperatorStatus: operatorv1.OperatorStatus{
+					Conditions: []operatorv1.OperatorCondition{
+						{
+							Type:    "PolicyUpgradeable",
+							Status:  operatorv1.ConditionFalse,
+							Reason:  "PolicyFieldSpecified",
+							Message: fmt.Sprintf("deprecated scheduler.policy field is set, and it is to be removed in the next release"),
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -575,7 +595,7 @@ func TestPolicyUpgradeable(t *testing.T) {
 						ManagementState: operatorv1.Managed,
 					},
 				},
-				&operatorv1.StaticPodOperatorStatus{},
+				test.status,
 				nil,
 				nil,
 			)
