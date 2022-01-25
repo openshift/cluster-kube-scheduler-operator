@@ -280,12 +280,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 			expectedResult: map[string]bool{
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
 				"APIPriorityAndFairness":         true,
-				"LegacyNodeRoleBehavior":         false,
-				"NodeDisruptionExclusion":        true,
 				"RotateKubeletServerCertificate": true,
 				"DownwardAPIHugePages":           true,
-				"ServiceNodeExclusion":           true,
-				"SupportPodPidsLimit":            true,
 				"PodSecurity":                    true,
 				"CSIMigrationAWS":                false,
 				"CSIMigrationOpenStack":          false,
@@ -312,17 +308,12 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"CSIMigrationGCE":                true,
 				"CSIMigrationOpenStack":          true,
 				"CSIMigrationvSphere":            true,
-				"LegacyNodeRoleBehavior":         false,
 				"MachineAPIProviderOpenStack":    true,
-				"NodeDisruptionExclusion":        true,
 				"NodeSwap":                       true,
 				"RotateKubeletServerCertificate": true,
 				"DownwardAPIHugePages":           true,
-				"ServiceNodeExclusion":           true,
-				"SupportPodPidsLimit":            true,
 				"ExternalCloudProvider":          true,
 				"PodSecurity":                    true,
-				"InsightsOperatorPullingSCA":     true,
 			},
 		},
 		{
@@ -368,11 +359,10 @@ func TestGetSortedFeatureGates(t *testing.T) {
 	featueGates := map[string]bool{
 		"ExperimentalCriticalPodAnnotation": true,
 		"RotateKubeletServerCertificate":    true,
-		"SupportPodPidsLimit":               true,
 		"CSIBlockVolume":                    true,
 		"LocalStorageCapacityIsolation":     false,
 	}
-	expectedFeatureGateString := "CSIBlockVolume=true,ExperimentalCriticalPodAnnotation=true,LocalStorageCapacityIsolation=false,RotateKubeletServerCertificate=true,SupportPodPidsLimit=true"
+	expectedFeatureGateString := "CSIBlockVolume=true,ExperimentalCriticalPodAnnotation=true,LocalStorageCapacityIsolation=false,RotateKubeletServerCertificate=true"
 	sortedFeatureGates := getSortedFeatureGates(featueGates)
 	actualFeatureGateString := getFeatureGateString(sortedFeatureGates, featueGates)
 	if expectedFeatureGateString != actualFeatureGateString {
