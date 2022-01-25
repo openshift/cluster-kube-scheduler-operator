@@ -317,9 +317,9 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	configMap.Data["version"] = version.Get().String()
 	appliedConfigMap, changed, err := resourceapply.ApplyConfigMap(ctx, configMapsGetter, recorder, configMap)
 	deprecatedPolicy := false
-	if changed && len(config.Spec.Policy.Name) > 0 {
+	if len(config.Spec.Policy.Name) > 0 {
 		deprecatedPolicy = true
-		klog.Warning("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
+		klog.V(3).Infof("Setting .spec.policy is deprecated and will be removed eventually. Please use .spec.profile instead.")
 	}
 	return appliedConfigMap, changed, deprecatedPolicy, err
 }
