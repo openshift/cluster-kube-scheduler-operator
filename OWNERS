@@ -1,12 +1,11 @@
 reviewers:
-  - sttts
-  - damemi
-  - soltysh
   - ingvagabund
-approvers:
   - mfojtik
-  - sttts
-  - damemi
+  - ravisantoshgudimetla
   - soltysh
+approvers:
   - ingvagabund
+  - mfojtik
+  - ravisantoshgudimetla
+  - soltysh
 component: "kube-scheduler"
