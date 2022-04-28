@@ -22,10 +22,19 @@ spec:
       labels:
         app: openshift-kube-scheduler-operator
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault    
       automountServiceAccountToken: false
       serviceAccountName: openshift-kube-scheduler-operator
       containers:
       - name: kube-scheduler-operator-container
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         image: docker.io/openshift/origin-cluster-kube-scheduler-operator:v4.0
         imagePullPolicy: IfNotPresent
         command: ["cluster-kube-scheduler-operator", "operator"]
