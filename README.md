@@ -45,11 +45,11 @@ apiVersion: config.openshift.io/v1
 kind: Scheduler
 metadata:
   name: cluster
-  spec:
-    mastersSchedulable: false
-    policy:
-      name: ""
-    profile: LowNodeUtilization
+spec:
+  mastersSchedulable: false
+  policy:
+    name: ""
+  profile: LowNodeUtilization
   ...
 ```
 
