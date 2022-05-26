@@ -296,7 +296,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
 				"APIPriorityAndFairness":         true,
 				"BuildCSIVolumes":                true,
-				"CSIDriverAzureFile":             true,
 				"CSIDriverSharedResource":        true,
 				"CSIMigrationAWS":                true,
 				"CSIMigrationAzureFile":          true,
