@@ -92,10 +92,38 @@ spec:
   ...
 ```
 
+The log level of individual kube-scheduler instances can be increased by setting `.spec.logLevel` field:
+```
+$ oc explain kubescheduler.spec.logLevel
+KIND:     KubeScheduler
+VERSION:  operator.openshift.io/v1
+
+FIELD:    logLevel <string>
+
+DESCRIPTION:
+     logLevel is an intent based logging for an overall component. It does not
+     give fine grained control, but it is a simple way to manage coarse grained
+     logging choices that operators have to interpret for their operands. Valid
+     values are: "Normal", "Debug", "Trace", "TraceAll". Defaults to "Normal".
+```
+
+For example:
+```yaml
+apiVersion: operator.openshift.io/v1
+kind: KubeScheduler
+metadata:
+  name: cluster
+spec:
+  logLevel: Debug
+  ...
+```
+
+More about the individual configuration options can be learnt by invoking `oc explain`:
+
 ```
 $ oc explain kubescheduler
 ```
-to learn more about the resource itself.
+
 
 The current operator status is reported using the `ClusterOperator` resource. To get the current status you can run follow command:
 
