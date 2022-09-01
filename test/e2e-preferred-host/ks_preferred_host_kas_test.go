@@ -85,6 +85,8 @@ func TestKSTalksOverPreferredToKas(t *testing.T) {
 	t.Log("creating a namespace and waiting for a pod to be scheduled")
 	testNs, err := createTestingNS(t, "kso-preferred-host", kubeClient)
 	require.NoError(t, err)
+	runAsNonRoot := true
+	allowPrivilegeEscalation := false
 	_, err = kubeClient.CoreV1().Pods(testNs.Name).Create(
 		context.TODO(),
 		&v1.Pod{
@@ -93,10 +95,24 @@ func TestKSTalksOverPreferredToKas(t *testing.T) {
 				Namespace: testNs.Name,
 			},
 			Spec: v1.PodSpec{
+				SecurityContext: &v1.PodSecurityContext{
+					RunAsNonRoot: &runAsNonRoot,
+					SeccompProfile: &v1.SeccompProfile{
+						Type: v1.SeccompProfileTypeRuntimeDefault,
+					},
+				},
 				Containers: []v1.Container{
 					{
 						Name:  "ks-prefered-host",
 						Image: "openshift/hello-openshift:latest",
+						SecurityContext: &v1.SecurityContext{
+							AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+							Capabilities: &v1.Capabilities{
+								Drop: []v1.Capability{
+									"ALL",
+								},
+							},
+						},
 					},
 				},
 			},
