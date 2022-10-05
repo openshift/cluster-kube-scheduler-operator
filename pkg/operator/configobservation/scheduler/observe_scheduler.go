@@ -13,8 +13,9 @@ import (
 
 // observeSchedulerConfig syncs the scheduler policy-config from the openshift-config namespace to the kube-scheduler, if set
 // TODO(@damemi): This does not currently do much besides sync and delete the policy configmap if necessary,
-//  but when we completely switch over to the ComponentConfig API, we will need to re-introduce logic here which
-//  merges policy config information into the main scheduler config. See: https://github.com/openshift/cluster-kube-scheduler-operator/pull/255
+//
+//	but when we completely switch over to the ComponentConfig API, we will need to re-introduce logic here which
+//	merges policy config information into the main scheduler config. See: https://github.com/openshift/cluster-kube-scheduler-operator/pull/255
 func ObserveSchedulerConfig(genericListers configobserver.Listers, recorder events.Recorder, existingConfig map[string]interface{}) (map[string]interface{}, []error) {
 	listers := genericListers.(configobservation.Listers)
 	errs := []error{}

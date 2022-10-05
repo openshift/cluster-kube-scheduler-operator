@@ -15,8 +15,9 @@ import (
 )
 
 // TODO(@damemi): Update this to test to re-include checks that policy config is properly merged into ComponentConfig
-//  (Once we support ComponentConfig/Plugins and deprecate Policy config)
-//  Re: https://github.com/openshift/cluster-kube-scheduler-operator/pull/255
+//
+//	(Once we support ComponentConfig/Plugins and deprecate Policy config)
+//	Re: https://github.com/openshift/cluster-kube-scheduler-operator/pull/255
 func TestObserveSchedulerConfig(t *testing.T) {
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 
