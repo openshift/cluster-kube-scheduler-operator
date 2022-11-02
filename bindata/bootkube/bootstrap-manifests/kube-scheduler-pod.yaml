@@ -25,12 +25,15 @@ spec:
     - --alsologtostderr
     - --v=2
     - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
+    resources:
+      requests:
+        memory: 50Mi
+        cpu: 15m
     volumeMounts:
     - mountPath: /etc/kubernetes/secrets
       name: secrets
       readOnly: true
     - mountPath: /var/log/bootstrap-control-plane
-
       name: logs
   hostNetwork: true
   volumes:
