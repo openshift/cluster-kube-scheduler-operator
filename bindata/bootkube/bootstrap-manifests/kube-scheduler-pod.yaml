@@ -12,8 +12,8 @@ metadata:
 spec:
   containers:
   - name: kube-scheduler
-    image: {{ .Image }}
-    imagePullPolicy: {{ .ImagePullPolicy }}
+    image: '{{ .Image }}'
+    imagePullPolicy: '{{ .ImagePullPolicy }}'
     command: ["hyperkube", "kube-scheduler"]
     args:
     - --kubeconfig=/etc/kubernetes/secrets/kubeconfig
@@ -38,7 +38,7 @@ spec:
   hostNetwork: true
   volumes:
   - hostPath:
-      path: {{ .SecretsHostPath }}
+      path: '{{ .SecretsHostPath }}'
     name: secrets
   - hostPath:
       path: /var/log/bootstrap-control-plane
