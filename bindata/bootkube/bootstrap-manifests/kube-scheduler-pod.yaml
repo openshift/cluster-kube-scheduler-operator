@@ -21,8 +21,6 @@ spec:
     - --cert-dir=/var/run/kubernetes
     - --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig
     - --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
-    - --logtostderr=false
-    - --alsologtostderr
     - --v=2
     - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
     resources:
