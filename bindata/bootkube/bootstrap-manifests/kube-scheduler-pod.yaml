@@ -14,15 +14,17 @@ spec:
   - name: kube-scheduler
     image: '{{ .Image }}'
     imagePullPolicy: '{{ .ImagePullPolicy }}'
-    command: ["hyperkube", "kube-scheduler"]
+    command: [ "/bin/bash", "-ec" ]
     args:
-    - --kubeconfig=/etc/kubernetes/secrets/kubeconfig
-    - --leader-elect=true
-    - --cert-dir=/var/run/kubernetes
-    - --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig
-    - --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
-    - --v=2
-    - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
+    - >
+      hyperkube kube-scheduler
+      --kubeconfig=/etc/kubernetes/secrets/kubeconfig
+      --leader-elect=true
+      --cert-dir=/var/run/kubernetes
+      --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig
+      --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
+      --v=2
+      &> /var/log/bootstrap-control-plane/kube-scheduler.log
     resources:
       requests:
         memory: 50Mi
