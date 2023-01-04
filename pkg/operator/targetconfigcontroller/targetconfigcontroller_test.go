@@ -282,8 +282,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":         true,
 				"RotateKubeletServerCertificate": true,
 				"DownwardAPIHugePages":           true,
-				"CSIMigrationAzureFile":          false,
-				"CSIMigrationvSphere":            false,
 			},
 		},
 		{
@@ -294,8 +292,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":            true,
 				"BuildCSIVolumes":                   true,
 				"CSIDriverSharedResource":           true,
-				"CSIMigrationAzureFile":             true,
-				"CSIMigrationvSphere":               true,
 				"MachineAPIProviderOpenStack":       true,
 				"NodeSwap":                          true,
 				"RotateKubeletServerCertificate":    true,
@@ -306,6 +302,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"CSIInlineVolumeAdmission":          true,
 				"InsightsConfigAPI":                 true,
 				"MatchLabelKeysInPodTopologySpread": true,
+				"OpenShiftPodSecurityAdmission":     true,
 			},
 		},
 		{

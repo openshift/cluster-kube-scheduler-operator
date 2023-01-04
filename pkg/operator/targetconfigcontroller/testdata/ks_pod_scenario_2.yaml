@@ -52,7 +52,7 @@ spec:
         - "--cert-dir=/var/run/kubernetes"
         - "--authentication-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig"
         - "--authorization-kubeconfig=/etc/kubernetes/static-pod-resources/configmaps/scheduler-kubeconfig/kubeconfig"
-        - "--feature-gates=APIPriorityAndFairness=true,CSIMigrationAzureFile=false,CSIMigrationvSphere=false,DownwardAPIHugePages=true,RotateKubeletServerCertificate=true"
+        - "--feature-gates=APIPriorityAndFairness=true,DownwardAPIHugePages=true,RotateKubeletServerCertificate=true"
         - "-v=2"
         - "--master=https://localhost:1234"
       ports:
