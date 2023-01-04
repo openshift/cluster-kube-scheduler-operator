@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.6
-	github.com/openshift/api v0.0.0-20221011103137-aeb3a767b193
+	github.com/openshift/api v0.0.0-20230103161115-89c69eff5d56
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20220831193253-4950ae70c8ea
 	github.com/openshift/library-go v0.0.0-20221128143913-7daae096c123
