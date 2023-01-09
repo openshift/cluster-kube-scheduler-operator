@@ -22,7 +22,6 @@ spec:
     - --authentication-kubeconfig=/etc/kubernetes/secrets/kubeconfig
     - --authorization-kubeconfig=/etc/kubernetes/secrets/kubeconfig
     - --v=2
-    - --log-file=/var/log/bootstrap-control-plane/kube-scheduler.log
     resources:
       requests:
         memory: 50Mi
