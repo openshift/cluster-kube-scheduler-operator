@@ -282,6 +282,8 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"APIPriorityAndFairness":         true,
 				"RotateKubeletServerCertificate": true,
 				"DownwardAPIHugePages":           true,
+				"OpenShiftPodSecurityAdmission":  true,
+				"RetroactiveDefaultStorageClass": false,
 			},
 		},
 		{
@@ -303,8 +305,10 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"InsightsConfigAPI":                 true,
 				"MatchLabelKeysInPodTopologySpread": true,
 				"OpenShiftPodSecurityAdmission":     true,
+				"RetroactiveDefaultStorageClass":    true,
 			},
 		},
+
 		{
 			name:        "custom",
 			configValue: configv1.CustomNoUpgrade,
