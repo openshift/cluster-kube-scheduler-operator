@@ -9,3 +9,5 @@ leaderElection:
   leaderElect: true
   resourceNamespace: "openshift-kube-scheduler"
   resourceLock: "configmapsleases"
+enableProfiling: false
+enableContentionProfiling: false
