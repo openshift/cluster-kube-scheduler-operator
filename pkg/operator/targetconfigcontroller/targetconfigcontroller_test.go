@@ -299,7 +299,6 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"RotateKubeletServerCertificate":    true,
 				"DownwardAPIHugePages":              true,
 				"ExternalCloudProvider":             true,
-				"CSIInlineVolumeAdmission":          true,
 				"InsightsConfigAPI":                 true,
 				"MatchLabelKeysInPodTopologySpread": true,
 				"OpenShiftPodSecurityAdmission":     true,
