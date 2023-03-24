@@ -11,3 +11,5 @@ leaderElection:
   resourceLock: "configmapsleases"
 enableProfiling: false
 enableContentionProfiling: false
+metricsBindAddress: "127.0.0.1:10251"
+healthzBindAddress: "127.0.0.1:10251"
