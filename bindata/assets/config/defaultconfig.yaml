@@ -8,6 +8,6 @@ leaderElection:
   retryPeriod: "26s"
   leaderElect: true
   resourceNamespace: "openshift-kube-scheduler"
-  resourceLock: "configmapsleases"
+  resourceLock: "leases"
 enableProfiling: false
 enableContentionProfiling: false
