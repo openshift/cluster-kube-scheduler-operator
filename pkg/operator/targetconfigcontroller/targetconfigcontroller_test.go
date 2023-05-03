@@ -3,6 +3,7 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -269,52 +270,40 @@ func TestManageSchedulerKubeconfig(t *testing.T) {
 
 func TestCheckForFeatureGates(t *testing.T) {
 	tests := []struct {
-		name                    string
-		configValue             configv1.FeatureSet
-		inputCustomFeatureGates *configv1.CustomFeatureGates
-		expectedResult          map[string]bool
+		name           string
+		featureGates   featuregates.FeatureGate
+		expectedResult map[string]bool
 	}{
 		{
-			name:        "default",
-			configValue: configv1.Default,
+			name: "default",
+			featureGates: featuregates.NewFeatureGate(
+				[]configv1.FeatureGateName{"APIPriorityAndFairness", "RotateKubeletServerCertificate"},
+				[]configv1.FeatureGateName{"RetroactiveDefaultStorageClass"},
+			),
 			expectedResult: map[string]bool{
-				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
 				"APIPriorityAndFairness":         true,
-				"RotateKubeletServerCertificate": true,
-				"DownwardAPIHugePages":           true,
-				"OpenShiftPodSecurityAdmission":  true,
 				"RetroactiveDefaultStorageClass": false,
+				"RotateKubeletServerCertificate": true,
 			},
 		},
 		{
-			name:        "techpreview",
-			configValue: configv1.TechPreviewNoUpgrade,
+			name: "techpreview",
+			featureGates: featuregates.NewFeatureGate(
+				[]configv1.FeatureGateName{"APIPriorityAndFairness", "BuildCSIVolumes"},
+				[]configv1.FeatureGateName{},
+			),
 			expectedResult: map[string]bool{
-				// as copied from vendor/github.com/openshift/api/config/v1/types_feature.go
-				"APIPriorityAndFairness":            true,
-				"BuildCSIVolumes":                   true,
-				"CSIDriverSharedResource":           true,
-				"MachineAPIProviderOpenStack":       true,
-				"NodeSwap":                          true,
-				"RotateKubeletServerCertificate":    true,
-				"DownwardAPIHugePages":              true,
-				"ExternalCloudProvider":             true,
-				"InsightsConfigAPI":                 true,
-				"MatchLabelKeysInPodTopologySpread": true,
-				"OpenShiftPodSecurityAdmission":     true,
-				"RetroactiveDefaultStorageClass":    true,
-				"PDBUnhealthyPodEvictionPolicy":     true,
-				"DynamicResourceAllocation":         true,
+				"APIPriorityAndFairness": true,
+				"BuildCSIVolumes":        true,
 			},
 		},
 
 		{
-			name:        "custom",
-			configValue: configv1.CustomNoUpgrade,
-			inputCustomFeatureGates: &configv1.CustomFeatureGates{
-				Enabled:  []string{"CSIMigration", "CSIMigrationAWS"},
-				Disabled: []string{"CSIMigrationGCE"},
-			},
+			name: "custom",
+			featureGates: featuregates.NewFeatureGate(
+				[]configv1.FeatureGateName{"CSIMigration", "CSIMigrationAWS"},
+				[]configv1.FeatureGateName{"CSIMigrationGCE"},
+			),
 			expectedResult: map[string]bool{
 				"CSIMigration":    true,
 				"CSIMigrationAWS": true,
@@ -324,18 +313,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-			indexer.Add(&configv1.FeatureGate{
-				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-				Spec: configv1.FeatureGateSpec{
-					FeatureGateSelection: configv1.FeatureGateSelection{
-						FeatureSet:      tc.configValue,
-						CustomNoUpgrade: tc.inputCustomFeatureGates,
-					},
-				},
-			})
-			featureGateLister := configlistersv1.NewFeatureGateLister(indexer)
-			actualFeatureGates := checkForFeatureGates(featureGateLister)
+			actualFeatureGates := checkForFeatureGates(tc.featureGates)
 			if !reflect.DeepEqual(actualFeatureGates, tc.expectedResult) {
 				expected := sets.StringKeySet(tc.expectedResult)
 				actual := sets.StringKeySet(actualFeatureGates)
@@ -417,7 +395,6 @@ func TestManagePodToLatest(t *testing.T) {
 			// test data
 			eventRecorder := events.NewInMemoryRecorder("")
 			fakeKubeClient := fake.NewSimpleClientset()
-			featureGateLister := configlistersv1.NewFeatureGateLister(cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{}))
 			configSchedulerIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 			configSchedulerIndexer.Add(&configv1.Scheduler{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Spec: configv1.SchedulerSpec{}})
 			configSchedulerLister := configlistersv1.NewSchedulerLister(configSchedulerIndexer)
@@ -425,13 +402,22 @@ func TestManagePodToLatest(t *testing.T) {
 			// act
 			actualConfigMap, _, err := managePod_v311_00_to_latest(
 				context.TODO(),
+				featuregates.NewFeatureGate(
+					[]configv1.FeatureGateName{
+						"APIPriorityAndFairness",
+						"DownwardAPIHugePages",
+						"OpenShiftPodSecurityAdmission",
+						"RotateKubeletServerCertificate",
+					},
+					[]configv1.FeatureGateName{
+						"RetroactiveDefaultStorageClass",
+					}),
 				fakeKubeClient.CoreV1(),
 				fakeKubeClient.CoreV1(),
 				eventRecorder,
 				&scenario.operator.Spec.StaticPodOperatorSpec,
 				"CaptainAmerica",
 				"Piper",
-				featureGateLister,
 				configSchedulerLister)
 
 			// validate

@@ -8,20 +8,21 @@ import (
 	"text/template"
 
 	"github.com/ghodss/yaml"
-	"github.com/spf13/pflag"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // GenericOptions contains the generic render command options.
 type GenericOptions struct {
-	DefaultFile                   string
-	BootstrapOverrideFile         string
-	AdditionalConfigOverrideFiles []string
+	DefaultFile                    string
+	BootstrapOverrideFile          string
+	AdditionalConfigOverrideFiles  []string
+	RenderedManifestInputFilenames []string
 
 	ConfigOutputFile string
 
@@ -29,7 +30,8 @@ type GenericOptions struct {
 	AssetInputDir  string
 	AssetOutputDir string
 
-	FeatureSet string
+	FeatureSet     string
+	PayloadVersion string
 }
 
 type Template struct {
@@ -53,6 +55,10 @@ func (o *GenericOptions) AddFlags(fs *pflag.FlagSet, configGVK schema.GroupVersi
 		fmt.Sprintf("Additional sparse %s files for customiziation through the installer, merged into the default config in the given order.", gvkOutput{configGVK}))
 	fs.StringVar(&o.ConfigOutputFile, "config-output-file", o.ConfigOutputFile, fmt.Sprintf("Output path for the %s yaml file.", gvkOutput{configGVK}))
 	fs.StringVar(&o.FeatureSet, "feature-set", o.FeatureSet, "Enables features that are not part of the default feature set.")
+	fs.StringSliceVar(&o.RenderedManifestInputFilenames, "rendered-manifest-files", o.RenderedManifestInputFilenames,
+		"files or directories containing yaml or json manifests that will be created via cluster-bootstrapping.")
+	fs.StringVar(&o.PayloadVersion, "payload-version", o.PayloadVersion, "Version that will eventually be placed into ClusterOperator.status.  This normally comes from the CVO set via env var: OPERATOR_IMAGE_VERSION.")
+
 }
 
 type gvkOutput struct {
@@ -83,12 +89,128 @@ func (o *GenericOptions) Validate() error {
 		return errors.New("missing required flag: --config-output-file")
 	}
 
+	if renderedManifests, err := o.ReadInputManifests(); err != nil {
+		return fmt.Errorf("--rendered-manifest-files, could not be read: %v", err)
+	} else {
+		if err := renderedManifests.ValidateManifestPredictability(); err != nil {
+			return fmt.Errorf("--rendered-manifest-files, are not consistent so results would be unpredictable depending on apply order: %v", err)
+		}
+	}
+
 	switch configv1.FeatureSet(o.FeatureSet) {
 	case configv1.Default, configv1.TechPreviewNoUpgrade, configv1.CustomNoUpgrade, configv1.LatencySensitive:
 	default:
 		return fmt.Errorf("invalid feature-set specified: %q", o.FeatureSet)
 	}
+
 	return nil
+}
+
+func (o *GenericOptions) ReadInputManifests() (RenderedManifests, error) {
+	ret := RenderedManifests{}
+	for _, filename := range o.RenderedManifestInputFilenames {
+		manifestContent, err := assets.LoadFilesRecursively(filename)
+		if err != nil {
+			return nil, fmt.Errorf("failed loading rendered manifest inputs from %q: %w", filename, err)
+		}
+		for manifestFile, content := range manifestContent {
+			ret = append(ret, RenderedManifest{
+				OriginalFilename: manifestFile,
+				Content:          content,
+			})
+		}
+	}
+
+	return ret, nil
+}
+
+func (o *GenericOptions) FeatureGates() (featuregates.FeatureGateAccess, error) {
+	if len(o.PayloadVersion) == 0 {
+		return nil, fmt.Errorf("cannot return FeatureGate without payload version")
+	}
+	if len(o.RenderedManifestInputFilenames) == 0 {
+		return nil, fmt.Errorf("cannot return FeatureGate without rendered manifests")
+	}
+
+	manifests, err := o.FeatureGateManifests()
+	if err != nil {
+		return nil, fmt.Errorf("error reading input manifests: %w", err)
+	}
+	// they're all the same, so just get the first
+	featureGate, err := manifests[0].GetDecodedObj()
+	if err != nil {
+		return nil, fmt.Errorf("error decoding FeatureGates: %w", err)
+	}
+
+	ret, err := featuregates.NewHardcodedFeatureGateAccessFromFeatureGate(featureGate.(*configv1.FeatureGate), o.PayloadVersion)
+	if err != nil {
+		return nil, fmt.Errorf("error creating feature accessor: %w", err)
+	}
+
+	return ret, nil
+}
+
+// FeatureGateManifests is exposed for usage in getting FeatureGateAccess and for convenient by cluster-config-operator
+func (o *GenericOptions) FeatureGateManifests() (RenderedManifests, error) {
+	if len(o.RenderedManifestInputFilenames) == 0 {
+		return nil, nil
+	}
+
+	inputManifest, err := o.ReadInputManifests()
+	if err != nil {
+		return nil, fmt.Errorf("error reading input manifests: %w", err)
+	}
+	featureGates := inputManifest.ListManifestOfType(configv1.GroupVersion.WithKind("FeatureGate"))
+	if len(featureGates) == 0 {
+		return nil, fmt.Errorf("no FeatureGates found in manfest dir: %v", o.RenderedManifestInputFilenames)
+	}
+
+	ret := RenderedManifests{}
+
+	var prev *RenderedManifest
+	var featureGate *configv1.FeatureGate
+	for i := range featureGates {
+		curr := featureGates[i]
+		ret = append(ret, curr)
+
+		decodedObj, err := curr.GetDecodedObj()
+		if err != nil {
+			return nil, fmt.Errorf("decoding failure for %q: %w", curr.OriginalFilename, err)
+		}
+		currFeatureGate, ok := decodedObj.(*configv1.FeatureGate)
+		if !ok {
+			return nil, fmt.Errorf("wrong obj type for %q: %T: %v", curr.OriginalFilename, decodedObj, curr.Content)
+		}
+		if featureGate == nil {
+			prev = &curr
+			featureGate = currFeatureGate
+			continue
+		}
+
+		if !equality.Semantic.DeepEqual(featureGate, currFeatureGate) {
+			return nil, fmt.Errorf("FeatureGate manifests disagree: %q and %q, with \n%v\n%v ", prev.OriginalFilename, curr.OriginalFilename, prev.Content, curr.Content)
+		}
+	}
+
+	return ret, nil
+}
+
+func (o *GenericOptions) FeatureSetName() (configv1.FeatureSet, error) {
+	if len(o.RenderedManifestInputFilenames) == 0 {
+		return configv1.FeatureSet(o.FeatureSet), nil
+	}
+
+	manifests, err := o.FeatureGateManifests()
+	if err != nil {
+		return "MISSING", fmt.Errorf("error reading input manifests: %w", err)
+	}
+	// they're all the same, so just get the first
+	featureGate, err := manifests[0].GetDecodedObj()
+	if err != nil {
+		return "MISSING", fmt.Errorf("error decoding FeatureGates: %w", err)
+	}
+
+	return featureGate.(*configv1.FeatureGate).Spec.FeatureSet, nil
 }
 
 // ApplyTo applies the options to the given config struct using the provided text/template data.
