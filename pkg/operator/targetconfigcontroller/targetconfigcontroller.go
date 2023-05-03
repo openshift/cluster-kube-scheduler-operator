@@ -8,10 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/management"
-
-	"github.com/openshift/library-go/pkg/controller/factory"
-
 	v1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -19,13 +15,15 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
+	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,16 +37,17 @@ import (
 type TargetConfigController struct {
 	targetImagePullSpec   string
 	operatorImagePullSpec string
+	featureGates          featuregates.FeatureGate
 	operatorClient        v1helpers.StaticPodOperatorClient
 	kubeClient            kubernetes.Interface
 	configMapLister       corev1listers.ConfigMapLister
 	infrastuctureLister   configlistersv1.InfrastructureLister
-	featureGateLister     configlistersv1.FeatureGateLister
 	configSchedulerLister configlistersv1.SchedulerLister
 }
 
 func NewTargetConfigController(
 	targetImagePullSpec, operatorImagePullSpec string,
+	featureGates featuregates.FeatureGate,
 	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	configInformer configinformers.SharedInformerFactory,
@@ -59,12 +58,12 @@ func NewTargetConfigController(
 	c := &TargetConfigController{
 		targetImagePullSpec:   targetImagePullSpec,
 		operatorImagePullSpec: operatorImagePullSpec,
+		featureGates:          featureGates,
 		kubeClient:            kubeClient,
 		configMapLister:       kubeInformersForNamespaces.ConfigMapLister(),
 		infrastuctureLister:   configInformer.Config().V1().Infrastructures().Lister(),
 		operatorClient:        operatorClient,
 		configSchedulerLister: configInformer.Config().V1().Schedulers().Lister(),
-		featureGateLister:     configInformer.Config().V1().FeatureGates().Lister(),
 	}
 
 	return factory.New().WithInformers(
@@ -135,7 +134,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/scheduler-kubeconfig", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(ctx, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.featureGateLister, c.configSchedulerLister)
+	_, _, err = managePod_v311_00_to_latest(ctx, c.featureGates, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -198,7 +197,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, featureGateLister configlistersv1.FeatureGateLister, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.FeatureGate, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -222,9 +221,9 @@ func managePod_v311_00_to_latest(ctx context.Context, configMapsGetter corev1cli
 	}
 
 	// check for feature gates from feature lister.
-	featureGates := checkForFeatureGates(featureGateLister)
-	sortedFeatureGates := getSortedFeatureGates(featureGates)
-	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGates)
+	featureGateMap := checkForFeatureGates(featureGates)
+	sortedFeatureGates := getSortedFeatureGates(featureGateMap)
+	allFeatureGates := getFeatureGateString(sortedFeatureGates, featureGateMap)
 	required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--feature-gates=%v", allFeatureGates))
 
 	switch operatorSpec.LogLevel {
@@ -318,42 +317,18 @@ func getFeatureGateString(sortedFeatureGates []string, featureGates map[string]b
 	}
 	return strings.TrimPrefix(allFeatureGates, ",")
 }
-func checkForFeatureGates(featureGateLister configlistersv1.FeatureGateLister) map[string]bool {
-	featureGateListConfig, err := featureGateLister.Get("cluster")
-	var enabledFeatureSets, disabledFeatureSets []string
-	var featureGates = make(map[string]bool)
-	if err != nil {
-		klog.Infof("Error while listing features.config.openshift.io/cluster with %v: so return default feature gates", err.Error())
-		if featureSet, ok := v1.FeatureSets[v1.Default]; ok {
-			enabledFeatureSets = featureSet.Enabled
-			disabledFeatureSets = featureSet.Disabled
+func checkForFeatureGates(featureGates featuregates.FeatureGate) map[string]bool {
+	var featureGateMap = make(map[string]bool)
+
+	for _, featureGate := range featureGates.KnownFeatures() {
+		if featureGates.Enabled(featureGate) {
+			featureGateMap[string(featureGate)] = true
+		} else {
+			featureGateMap[string(featureGate)] = false
 		}
-		return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
 	}
 
-	if featureGateListConfig.Spec.FeatureSet == v1.CustomNoUpgrade {
-		if featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade != nil {
-			enabledFeatureSets = featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade.Enabled
-			disabledFeatureSets = featureGateListConfig.Spec.FeatureGateSelection.CustomNoUpgrade.Disabled
-		}
-	} else if featureSet, ok := v1.FeatureSets[featureGateListConfig.Spec.FeatureSet]; ok {
-		enabledFeatureSets = featureSet.Enabled
-		disabledFeatureSets = featureSet.Disabled
-	} else {
-		klog.Infof("Invalid feature set config found in features.config.openshift.io/cluster %v. Please look at allowed features", featureGateListConfig.Spec.FeatureSet)
-	}
-
-	return generateFeatureGates(enabledFeatureSets, disabledFeatureSets, featureGates)
-}
-
-func generateFeatureGates(enabledFeatureGates, disabledFeatureGates []string, featureGates map[string]bool) map[string]bool {
-	for _, enabledFeatureGate := range enabledFeatureGates {
-		featureGates[enabledFeatureGate] = true
-	}
-	for _, disabledFeatureGate := range disabledFeatureGates {
-		featureGates[disabledFeatureGate] = false
-	}
-	return featureGates
+	return featureGateMap
 }
 
 func manageServiceAccountCABundle(ctx context.Context, lister corev1listers.ConfigMapLister, client corev1client.ConfigMapsGetter, recorder events.Recorder) (*corev1.ConfigMap, bool, error) {
