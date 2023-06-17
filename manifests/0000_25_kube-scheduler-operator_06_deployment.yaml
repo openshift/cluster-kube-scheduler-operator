@@ -40,7 +40,6 @@ spec:
         command: ["cluster-kube-scheduler-operator", "operator"]
         args:
         - "--config=/var/run/configmaps/config/config.yaml"
-        - "-v=2"
         resources:
           requests:
             memory: 50Mi
