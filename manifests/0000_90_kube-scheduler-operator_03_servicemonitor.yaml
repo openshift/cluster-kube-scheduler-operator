@@ -48,6 +48,7 @@ spec:
       annotations:
         description: KubeScheduler has disappeared from Prometheus target discovery.
         summary: Target disappeared from Prometheus target discovery.
+        runbook_url: https://github.com/openshift/runbooks/blob/master/alerts/cluster-kube-scheduler-operator/KubeSchedulerDown.md
       expr: |
         absent(up{job="scheduler"} == 1)
       for: 15m
