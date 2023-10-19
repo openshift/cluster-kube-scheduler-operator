@@ -6,20 +6,20 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
-	github.com/openshift/api v0.0.0-20230915112357-693d4b64813c
-	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
-	github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
-	github.com/openshift/library-go v0.0.0-20230927113136-405c34317fa4
+	github.com/openshift/api v0.0.0-20231019105552-3a98ec045aeb
+	github.com/openshift/build-machinery-go v0.0.0-20230816154005-5a38e1bfd880
+	github.com/openshift/client-go v0.0.0-20231018150822-6e226e2825a6
+	github.com/openshift/library-go v0.0.0-20231017173800-126f85ed0cc7
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
-	k8s.io/api v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/apiserver v0.28.2
-	k8s.io/client-go v0.28.2
-	k8s.io/component-base v0.28.2
+	k8s.io/api v0.28.3
+	k8s.io/apimachinery v0.28.3
+	k8s.io/apiserver v0.28.3
+	k8s.io/client-go v0.28.3
+	k8s.io/component-base v0.28.3
 	k8s.io/klog/v2 v2.100.1
 )
 
@@ -104,9 +104,9 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.28.2 // indirect
-	k8s.io/kms v0.28.2 // indirect
-	k8s.io/kube-aggregator v0.28.2 // indirect
+	k8s.io/apiextensions-apiserver v0.28.3 // indirect
+	k8s.io/kms v0.28.3 // indirect
+	k8s.io/kube-aggregator v0.28.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
@@ -114,16 +114,4 @@ require (
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
-)
-
-replace (
-	// To address CVE-2023-44487 until k8s 1.28.3 release is out
-	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/cli-runtime => k8s.io/kubernetes/staging/src/k8s.io/cli-runtime v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/client-go => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20231014014128-db4ac26123a3
-	k8s.io/kms => k8s.io/kubernetes/staging/src/k8s.io/kms v0.0.0-20231014014128-db4ac26123a3
 )
