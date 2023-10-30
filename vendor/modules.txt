@@ -157,7 +157,7 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/openshift/api v0.0.0-20230330150608-05635858d40f
+# github.com/openshift/api v0.0.0-20230803134339-2d9b46419536
 ## explicit; go 1.19
 github.com/openshift/api
 github.com/openshift/api/apiserver
@@ -227,7 +227,7 @@ github.com/openshift/api/template
 github.com/openshift/api/template/v1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
+# github.com/openshift/build-machinery-go v0.0.0-20230301101616-cc7b88a966e2
 ## explicit; go 1.13
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
@@ -265,7 +265,7 @@ github.com/openshift/client-go/route/applyconfigurations/route/v1
 github.com/openshift/client-go/route/clientset/versioned
 github.com/openshift/client-go/route/clientset/versioned/scheme
 github.com/openshift/client-go/route/clientset/versioned/typed/route/v1
-# github.com/openshift/library-go v0.0.0-20230927123252-95078056bf87
+# github.com/openshift/library-go v0.0.0-20231020125026-aa39c7c45714
 ## explicit; go 1.19
 github.com/openshift/library-go/pkg/assets
 github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer
@@ -637,7 +637,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/api v0.26.10
 ## explicit; go 1.19
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -693,7 +693,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.26.1
+# k8s.io/apiextensions-apiserver v0.26.10
 ## explicit; go 1.19
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
@@ -702,7 +702,7 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
-# k8s.io/apimachinery v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/apimachinery v0.26.10
 ## explicit; go 1.19
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -756,7 +756,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/apiserver v0.26.10
 ## explicit; go 1.19
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/cel
@@ -895,7 +895,7 @@ k8s.io/apiserver/plugin/pkg/audit/truncate
 k8s.io/apiserver/plugin/pkg/audit/webhook
 k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
-# k8s.io/client-go v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/client-go v0.26.10
 ## explicit; go 1.19
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
@@ -1198,7 +1198,7 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/component-base v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/component-base v0.26.10
 ## explicit; go 1.19
 k8s.io/component-base/cli
 k8s.io/component-base/cli/flag
@@ -1228,11 +1228,11 @@ k8s.io/klog/v2/internal/clock
 k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
-# k8s.io/kms v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/kms v0.0.0-20231016135919-b7dce62deaba
+# k8s.io/kms v0.26.10
 ## explicit; go 1.19
 k8s.io/kms/apis/v1beta1
 k8s.io/kms/apis/v2alpha1
-# k8s.io/kube-aggregator v0.26.1
+# k8s.io/kube-aggregator v0.26.10
 ## explicit; go 1.19
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
@@ -1298,9 +1298,3 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20231016135919-b7dce62deaba
-# k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20231016135919-b7dce62deaba
-# k8s.io/apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20231016135919-b7dce62deaba
-# k8s.io/client-go => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20231016135919-b7dce62deaba
-# k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20231016135919-b7dce62deaba
-# k8s.io/kms => k8s.io/kubernetes/staging/src/k8s.io/kms v0.0.0-20231016135919-b7dce62deaba
