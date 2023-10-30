@@ -6,20 +6,20 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
-	github.com/openshift/api v0.0.0-20230330150608-05635858d40f
-	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
+	github.com/openshift/api v0.0.0-20230803134339-2d9b46419536
+	github.com/openshift/build-machinery-go v0.0.0-20230301101616-cc7b88a966e2
 	github.com/openshift/client-go v0.0.0-20230120202327-72f107311084
-	github.com/openshift/library-go v0.0.0-20230927123252-95078056bf87
+	github.com/openshift/library-go v0.0.0-20231020125026-aa39c7c45714
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
-	k8s.io/api v0.26.1
-	k8s.io/apimachinery v0.26.1
-	k8s.io/apiserver v0.26.1
-	k8s.io/client-go v0.26.1
-	k8s.io/component-base v0.26.1
+	k8s.io/api v0.26.10
+	k8s.io/apimachinery v0.26.10
+	k8s.io/apiserver v0.26.10
+	k8s.io/client-go v0.26.10
+	k8s.io/component-base v0.26.10
 	k8s.io/klog/v2 v2.80.1
 )
 
@@ -100,9 +100,9 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.26.1 // indirect
-	k8s.io/kms v0.26.1 // indirect
-	k8s.io/kube-aggregator v0.26.1 // indirect
+	k8s.io/apiextensions-apiserver v0.26.10 // indirect
+	k8s.io/kms v0.26.10 // indirect
+	k8s.io/kube-aggregator v0.26.10 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.37 // indirect
@@ -110,14 +110,4 @@ require (
 	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
-)
-
-replace (
-	// To address CVE-2023-44487 until k8s 1.26.9 release is out
-	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20231016135919-b7dce62deaba
-	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20231016135919-b7dce62deaba
-	k8s.io/apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20231016135919-b7dce62deaba
-	k8s.io/client-go => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20231016135919-b7dce62deaba
-	k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20231016135919-b7dce62deaba
-	k8s.io/kms => k8s.io/kubernetes/staging/src/k8s.io/kms v0.0.0-20231016135919-b7dce62deaba
 )
