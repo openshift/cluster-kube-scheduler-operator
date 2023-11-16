@@ -306,6 +306,7 @@ func TestCheckForFeatureGates(t *testing.T) {
 				"CSIInlineVolumeAdmission":          true,
 				"InsightsConfigAPI":                 true,
 				"MatchLabelKeysInPodTopologySpread": true,
+				"OpenShiftPodSecurityAdmission":     true,
 			},
 		},
 		{
