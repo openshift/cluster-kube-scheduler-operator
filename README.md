@@ -181,3 +181,62 @@ $ docker push <user>/origin-release:latest
 $ cd ../installer
 $ OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE=docker.io/<user>/origin-release:latest bin/openshift-install cluster ...
 ```
+
+## Profiling with pprof
+
+### Enable profiling
+
+By default the kube-scheduler profiling is disabled. The profiling can be enabled manually by editing `config.yaml` files under each master node.
+
+Warning: the configuration gets undone after the new revision gets performed and the steps need to be repeated.
+
+**Steps**:
+
+1. access every master node (e.g. `ssh` or with `oc debug`)
+   1. edit `/etc/kubernetes/static-pod-resources/kube-scheduler-pod-$REV/configmaps/config/config.yaml` (where `$REV` corresponds to the latest revision) and set `enableProfiling` field to `True`.
+   1. make a benign change to `/etc/kubernetes/manifests/kube-scheduler-pod.yaml`, e.g. updating "Waiting for port" to "Waiting for port" (adding one blank space to the string). Wait for the updated pod manifest to be picked up and a new kube-scheduler instance running and ready.
+1. `oc port-forward pod/$KUBE_SCHEDULER_POD_NAME 10259:10259` in a separate terminal/window (where `$KUBE_SCHEDULER_POD_NAME` corresponds to a running kube-scheduler pod instance)
+1. apply the following manifests to allow anonymous access:
+
+   ```
+   ---
+   apiVersion: rbac.authorization.k8s.io/v1
+   kind: ClusterRole
+   metadata:
+    name: kubescheduler-anonymous-access
+   rules:
+   - nonResourceURLs: ["/debug", "/debug/*"]
+     verbs:
+     - get
+     - list
+   ---
+   apiVersion: rbac.authorization.k8s.io/v1
+   kind: ClusterRoleBinding
+   metadata:
+    name: kubescheduler-anonymous-access
+   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: kubescheduler-anonymous-access
+   subjects:
+   - apiGroup: rbac.authorization.k8s.io
+     kind: User
+     name: system:anonymous
+   ```
+1. access https://localhost:10259/debug/pprof/
+
+### heap profiling
+
+The tool requires to pull the heap file and the kube-scheduler binary.
+
+**Steps**:
+
+1. Pull the heap data by accessing https://localhost:10259/debug/pprof/heap
+1. Extract the kube-scheduler binary from the corresponding image (by checking the kube-scheduler pod manifest):
+   ```sh
+   $ podman pull --authfile $AUTHFILE $KUBE_SCHEDULER_IMAGE
+   $ podman cp $(podman create --name kube-scheduler $KUBE_SCHEDULER_IMAGE):/usr/bin/kube-scheduler ./kube-scheduler
+   ```
+   - `$AUTHFILE` corresponds to your authentication file if not already located in the known paths
+   - `$KUBE_SCHEDULER_IMAGE` corresponds to the kube-scheduler image found in a kube-scheduler pod manifest
+1. Run `go tool pprof kube-scheduler heap`
