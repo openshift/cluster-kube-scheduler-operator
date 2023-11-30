@@ -335,6 +335,8 @@ func manageServiceAccountCABundle(ctx context.Context, lister corev1listers.Conf
 	requiredConfigMap, err := resourcesynccontroller.CombineCABundleConfigMaps(
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "serviceaccount-ca"},
 		lister,
+		"kube-scheduler",
+		"",
 		// include the ca bundle needed to recognize the server
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.GlobalMachineSpecifiedConfigNamespace, Name: "kube-apiserver-server-ca"},
 		// include the ca bundle needed to recognize default
