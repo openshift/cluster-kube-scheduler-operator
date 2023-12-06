@@ -89,10 +89,12 @@ func (c RevisionController) createRevisionIfNeeded(ctx context.Context, recorder
 
 	// check to make sure that the latestRevision has the exact content we expect.  No mutation here, so we start creating the next Revision only when it is required
 	if isLatestRevisionCurrent {
+		recorder.Eventf("LatestRevision", "returning early %d triggered by %q", isLatestRevisionCurrent, reason)
 		return false, nil
 	}
 
 	nextRevision := latestAvailableRevision + 1
+	recorder.Eventf("StartingNewRevision", "new revision %d triggered by %q", nextRevision, reason)
 	createdNewRevision, err := c.createNewRevision(ctx, recorder, nextRevision, reason)
 	if  err != nil {
 		cond := operatorv1.OperatorCondition{
