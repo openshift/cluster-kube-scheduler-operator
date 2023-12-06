@@ -93,8 +93,8 @@ func (c RevisionController) createRevisionIfNeeded(ctx context.Context, recorder
 	}
 
 	nextRevision := latestAvailableRevision + 1
-	recorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
-	if err := c.createNewRevision(ctx, recorder, nextRevision, reason); err != nil {
+	createdNewRevision, err := c.createNewRevision(ctx, recorder, nextRevision, reason)
+	if  err != nil {
 		cond := operatorv1.OperatorCondition{
 			Type:    "RevisionControllerDegraded",
 			Status:  operatorv1.ConditionTrue,
@@ -107,6 +107,10 @@ func (c RevisionController) createRevisionIfNeeded(ctx context.Context, recorder
 		}
 		return true, nil
 	}
+	if !createdNewRevision{
+		return false, nil
+	}
+	recorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
 
 	cond := operatorv1.OperatorCondition{
 		Type:   "RevisionControllerDegraded",
@@ -208,21 +212,34 @@ func (c RevisionController) isLatestRevisionCurrent(ctx context.Context, revisio
 	return true, ""
 }
 
-func (c RevisionController) createNewRevision(ctx context.Context, recorder events.Recorder, revision int32, reason string) error {
+// returns true if we created a revision
+func (c RevisionController) createNewRevision(ctx context.Context, recorder events.Recorder, revision int32, reason string) (bool, error) {
 	// Create a new InProgress status configmap
 	statusConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.targetNamespace,
 			Name:      nameFor("revision-status", revision),
+			Annotations: map[string]string{
+				"operator.openshift.io/revision-ready": "false",
+			},
 		},
 		Data: map[string]string{
 			"revision": fmt.Sprintf("%d", revision),
 			"reason":   reason,
 		},
 	}
-	statusConfigMap, _, err := resourceapply.ApplyConfigMap(ctx, c.configMapGetter, recorder, statusConfigMap)
-	if err != nil {
-		return err
+	actualStatus, err :=c.configMapGetter.ConfigMaps(statusConfigMap.Namespace).Create(ctx, statusConfigMap, metav1.CreateOptions{})
+	switch  {
+	case apierrors.IsAlreadyExists(err):
+		// may have to a live GET here ot get current status to check the annotation
+		if actualStatus.Annotations["operator.openshift.io/revision-ready"] == "true"{
+			// no work to do because our cache is out of date and when we're updated, we will be able to see the result
+			klog.Infof("down the branch indicating that our cache was out of date and we're trying to recreate a revision.")
+			return false, nil
+		}
+		// update the sync and continue
+	case err != nil:
+		return false, err
 	}
 
 	ownerRefs := []metav1.OwnerReference{{
@@ -235,23 +252,28 @@ func (c RevisionController) createNewRevision(ctx context.Context, recorder even
 	for _, cm := range c.configMaps {
 		obj, _, err := resourceapply.SyncConfigMap(ctx, c.configMapGetter, recorder, c.targetNamespace, cm.Name, c.targetNamespace, nameFor(cm.Name, revision), ownerRefs)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if obj == nil && !cm.Optional {
-			return apierrors.NewNotFound(corev1.Resource("configmaps"), cm.Name)
+			return false, apierrors.NewNotFound(corev1.Resource("configmaps"), cm.Name)
 		}
 	}
 	for _, s := range c.secrets {
 		obj, _, err := resourceapply.SyncSecret(ctx, c.secretGetter, recorder, c.targetNamespace, s.Name, c.targetNamespace, nameFor(s.Name, revision), ownerRefs)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if obj == nil && !s.Optional {
-			return apierrors.NewNotFound(corev1.Resource("secrets"), s.Name)
+			return false, apierrors.NewNotFound(corev1.Resource("secrets"), s.Name)
 		}
 	}
 
-	return nil
+	actualStatus.Annotations["operator.openshift.io/revision-ready"] = "true"
+	if _, err :=c.configMapGetter.ConfigMaps(statusConfigMap.Namespace).Update(ctx, actualStatus, metav1.UpdateOptions{});err != nil{
+		return false, err
+	}
+
+	return true, nil
 }
 
 // getLatestAvailableRevision returns the latest known revision to the operator
