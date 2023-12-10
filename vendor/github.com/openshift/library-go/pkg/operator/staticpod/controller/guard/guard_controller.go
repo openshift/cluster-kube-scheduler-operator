@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/policy/v1"
@@ -52,6 +53,9 @@ type GuardController struct {
 	// installerPodImageFn returns the image name for the installer pod
 	installerPodImageFn   func() string
 	createConditionalFunc func() (bool, bool, error)
+
+	delayTimeout  time.Duration
+	delayNextSync bool
 }
 
 func NewGuardController(
@@ -100,6 +104,7 @@ func NewGuardController(
 		pdbLister:                     kubeInformersForTargetNamespace.Policy().V1().PodDisruptionBudgets().Lister(),
 		installerPodImageFn:           getInstallerPodImageFromEnv,
 		createConditionalFunc:         createConditionalFunc,
+		delayTimeout:                  30 * time.Second,
 	}
 
 	return factory.New().WithInformers(
@@ -164,6 +169,14 @@ var podTemplate []byte
 func (c *GuardController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	klog.V(5).Info("Syncing guards")
 
+	if c.delayNextSync {
+		c.delayNextSync = false
+		klog.V(5).Info("Delaying sync for %v to avoid quick reconciliation ", c.delayTimeout)
+		// Delay from the previous iteration so the controller can update the operator status in case of errors.
+		// Delaying at the end of the iteration will delay the operator status update.
+		time.Sleep(c.delayTimeout)
+	}
+
 	if c.createConditionalFunc == nil {
 		return fmt.Errorf("createConditionalFunc not set")
 	}
@@ -179,6 +192,7 @@ func (c *GuardController) sync(ctx context.Context, syncCtx factory.SyncContext)
 	}
 
 	errs := []error{}
+	var errWithDelay bool
 	if !shouldCreate {
 		pdb := resourceread.ReadPodDisruptionBudgetV1OrDie(pdbTemplate)
 		pdb.ObjectMeta.Name = getGuardPDBName(c.podResourcePrefix)
@@ -285,12 +299,14 @@ func (c *GuardController) sync(ctx context.Context, syncCtx factory.SyncContext)
 
 				klog.Errorf("Missing operand on node %v", node.Name)
 				errs = append(errs, fmt.Errorf("Missing operand on node %v", node.Name))
+				errWithDelay = true
 				continue
 			}
 
 			if operands[node.Name].Status.PodIP == "" {
 				klog.Errorf("Missing PodIP in operand %v on node %v", operands[node.Name].Name, node.Name)
 				errs = append(errs, fmt.Errorf("Missing PodIP in operand %v on node %v", operands[node.Name].Name, node.Name))
+				errWithDelay = true
 				continue
 			}
 
@@ -339,6 +355,9 @@ func (c *GuardController) sync(ctx context.Context, syncCtx factory.SyncContext)
 				if actual.Status.Phase != "" && actual.Status.Phase != corev1.PodPending && actual.Status.Phase != corev1.PodRunning {
 					klog.V(5).Infof("Pod phase is neither pending nor running, deleting %v so the guard can be re-created", pod.Name)
 					delete = true
+					if actual.Status.Phase == corev1.PodFailed {
+						errWithDelay = true
+					}
 				}
 				if delete {
 					_, _, err = resourceapply.DeletePod(ctx, c.podGetter, syncCtx.Recorder(), pod)
@@ -359,6 +378,12 @@ func (c *GuardController) sync(ctx context.Context, syncCtx factory.SyncContext)
 				errs = append(errs, fmt.Errorf("Unable to apply pod %v changes: %v", pod.Name, err))
 			}
 		}
+	}
+
+	// For cases which take longer or never to reconcile wait for some time
+	// to avoid quick reconciliation
+	if errWithDelay {
+		c.delayNextSync = true
 	}
 
 	return utilerrors.NewAggregate(errs)

@@ -6,10 +6,10 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
-	github.com/openshift/api v0.0.0-20231019105552-3a98ec045aeb
+	github.com/openshift/api v0.0.0-20231129134630-a782d1c1541c
 	github.com/openshift/build-machinery-go v0.0.0-20230816154005-5a38e1bfd880
 	github.com/openshift/client-go v0.0.0-20231018150822-6e226e2825a6
-	github.com/openshift/library-go v0.0.0-20231129101644-c7f15dcc10f5
+	github.com/openshift/library-go v0.0.0-20231130204458-653f82d961a1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
 	github.com/spf13/cobra v1.7.0
@@ -23,6 +23,8 @@ require (
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 )
+
+replace github.com/openshift/library-go => github.com/ingvagabund/library-go v0.0.0-20231210130057-ce272adccfe1
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
