@@ -192,26 +192,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	}
 }
 
-var defaultKubeconfigData = `apiVersion: v1
-clusters:
-  - cluster:
-      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
-      server: https://127.0.0.1:443
-    name: lb-int
-contexts:
-  - context:
-      cluster: lb-int
-      user: kube-scheduler
-    name: kube-scheduler
-current-context: kube-scheduler
-kind: Config
-preferences: {}
-users:
-  - name: kube-scheduler
-    user:
-      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
-`
+var defaultKubeconfigData = `{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority":"/etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt","server":"https://127.0.0.1:443"},"name":"lb-int"}],"contexts":[{"context":{"cluster":"lb-int","user":"kube-scheduler"},"name":"kube-scheduler"}],"current-context":"kube-scheduler","kind":"Config","preferences":{},"users":[{"name":"kube-scheduler","user":{"client-certificate":"/etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt","client-key":"/etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key"}}]}`
 
 var configMapKubeConfigCMDefault = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
