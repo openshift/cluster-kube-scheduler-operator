@@ -240,3 +240,33 @@ The tool requires to pull the heap file and the kube-scheduler binary.
    - `$AUTHFILE` corresponds to your authentication file if not already located in the known paths
    - `$KUBE_SCHEDULER_IMAGE` corresponds to the kube-scheduler image found in a kube-scheduler pod manifest
 1. Run `go tool pprof kube-scheduler heap`
+
+## Dumping kube-scheduler's node cache
+
+From https://github.com/kubernetes/kubernetes/blob/be77b0b82b01a3fc810118f095594ec8bdd3c3aa/pkg/scheduler/internal/cache/debugger/debugger.go#L58:
+```
+// CacheDebugger provides ways to check and write cache information for debugging.
+// ListenForSignal starts a goroutine that will trigger the CacheDebugger's
+// behavior when the process receives SIGINT (Windows) or SIGUSER2 (non-Windows).
+```
+
+When a kube-scheduler process receives `SIGUSER2` the node cache gets dumped into the logs. E.g.:
+```
+I0105 03:32:31.936642       1 dumper.go:52] "Dump of cached NodeInfo" nodes=<
+    Node name: NODENAME1
+    Deleted: false
+    Requested Resources: ...
+    Scheduled Pods(number: 41):
+    name: POD_NAME, namespace: POD_NAMESPACE, uid: 23c63c58-cc36-48be-97d9-f4f6088a709d, phase: Running, nominated node:
+    name: POD_NAME, namespace: POD_NAMESPACE, uid: 04b3b3b4-52a3-46d0-b7ff-aa748eecd404, phase: Running, nominated node:
+    ...
+
+
+    Node name: NODENAME2
+    Deleted: false
+    Requested Resources: ...
+    Scheduled Pods(number: 53):
+    name: POD_NAME, namespace: POD_NAMESPACE, uid: 7cbce63f-3fb9-404a-a69b-6728592e6b2, phase: Running, nominated node:
+    name: POD_NAME, namespace: POD_NAMESPACE, uid: 50bc7d7e-bd30-4c47-82ce-a9d3eb737434, phase: Running, nominated node:
+    ...
+```
