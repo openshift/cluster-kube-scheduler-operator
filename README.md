@@ -118,6 +118,15 @@ spec:
   ...
 ```
 
+Currently the log levels correspond to:
+
+| logLevel | log level |
+| -------- | --------- |
+| Normal   | 2         |
+| Debug    | 4         |
+| Trace    | 6         |
+| TraceAll | 10        |
+
 More about the individual configuration options can be learnt by invoking `oc explain`:
 
 ```
