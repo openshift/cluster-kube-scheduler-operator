@@ -69,6 +69,32 @@ The default list of scheduling profiles as provided by the kube-scheduler.
 
 This profiles disabled all scoring plugins.
 
+## Profile Customizations (TechnicalPreview)
+
+Customizations of existing profiles are available under the `.spec.profileCustomizations` field:
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| `experimentalDynamicResourceAllocation` | `string` | Experimental: Enable Dynamic Resource Allocation functionality |
+
+E.g.
+
+```yaml
+apiVersion: config.openshift.io/v1
+kind: Scheduler
+metadata:
+  name: cluster
+spec:
+  mastersSchedulable: false
+  policy:
+    name: ""
+  profile: HighNodeUtilization
+  profileCustomizations:
+    experimentalDynamicResourceAllocation: Enabled
+  ...
+```
+
+
 ## Debugging
 
 Operator also expose events that can help debugging issues. To get operator events, run following command:

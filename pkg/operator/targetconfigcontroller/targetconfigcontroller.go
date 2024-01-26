@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
+
 	v1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -16,6 +18,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
 	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/operator/certrotation"
 	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -24,6 +27,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +36,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
+	schedulerconfigv1 "k8s.io/kube-scheduler/config/v1"
 )
 
 type TargetConfigController struct {
@@ -189,8 +194,33 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 		}
 	}
 
+	schedulerConfiguration := &schedulerconfigv1.KubeSchedulerConfiguration{}
+	if err := yaml.Unmarshal(kubeSchedulerConfiguration, schedulerConfiguration); err != nil {
+		return nil, false, err
+	}
+
+	switch config.Spec.ProfileCustomizations.DynamicResourceAllocation {
+	case v1.DRAEnablementEnabled:
+		if len(schedulerConfiguration.Profiles) == 0 {
+			schedulerConfiguration.Profiles = []schedulerconfigv1.KubeSchedulerProfile{{}}
+		}
+		if schedulerConfiguration.Profiles[0].Plugins == nil {
+			schedulerConfiguration.Profiles[0].Plugins = &schedulerconfigv1.Plugins{}
+		}
+		schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled = append(schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled, schedulerconfigv1.Plugin{Name: "DynamicResources"})
+	case "", v1.DRAEnablementDisabled:
+		// no-op
+	default:
+		return nil, false, fmt.Errorf("dynamicResourceAllocation customization %q not recognized", config.Spec.ProfileCustomizations.DynamicResourceAllocation)
+	}
+
+	schedulerConfigurationBytes, err := yaml.Marshal(schedulerConfiguration)
+	if err != nil {
+		return nil, false, err
+	}
+
 	defaultConfig := bindata.MustAsset("assets/config/defaultconfig.yaml")
-	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, kubeSchedulerConfiguration, defaultConfig)
+	requiredConfigMap, _, err := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, schedulerConfigurationBytes, defaultConfig)
 	if err != nil {
 		return nil, false, err
 	}
@@ -335,8 +365,9 @@ func manageServiceAccountCABundle(ctx context.Context, lister corev1listers.Conf
 	requiredConfigMap, err := resourcesynccontroller.CombineCABundleConfigMaps(
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.TargetNamespace, Name: "serviceaccount-ca"},
 		lister,
-		"kube-scheduler",
-		"",
+		certrotation.AdditionalAnnotations{
+			JiraComponent: "kube-scheduler",
+		},
 		// include the ca bundle needed to recognize the server
 		resourcesynccontroller.ResourceLocation{Namespace: operatorclient.GlobalMachineSpecifiedConfigNamespace, Name: "kube-apiserver-server-ca"},
 		// include the ca bundle needed to recognize default
