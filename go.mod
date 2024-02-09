@@ -6,10 +6,10 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.6.0
-	github.com/openshift/api v0.0.0-20231218131639-7a5aa77cc72d
-	github.com/openshift/build-machinery-go v0.0.0-20230816154005-5a38e1bfd880
-	github.com/openshift/client-go v0.0.0-20231218140158-47f6d749b9d9
-	github.com/openshift/library-go v0.0.0-20240108202620-5674ec6ced1c
+	github.com/openshift/api v0.0.0-20240208235108-f8cee3e214ac
+	github.com/openshift/build-machinery-go v0.0.0-20231128094528-1e9b1b0595c8
+	github.com/openshift/client-go v0.0.0-20240125160436-aa5df63097c4
+	github.com/openshift/library-go v0.0.0-20240207105404-126b47137408
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
 	github.com/spf13/cobra v1.7.0
