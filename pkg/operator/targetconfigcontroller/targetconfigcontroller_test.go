@@ -3,20 +3,22 @@ package targetconfigcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 	"unsafe"
 
+	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
+
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,30 +31,22 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	schedulerconfigv1 "k8s.io/kube-scheduler/config/v1"
+	"k8s.io/utils/ptr"
 )
 
 var codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 var configLowNodeUtilization = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{Policy: configv1.ConfigMapNameReference{Name: ""},
+	Spec: configv1.SchedulerSpec{
+		Policy:  configv1.ConfigMapNameReference{Name: ""},
 		Profile: configv1.LowNodeUtilization,
 	},
 }
 
-var configHighNodeUtilization = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{Policy: configv1.ConfigMapNameReference{Name: ""},
-		Profile: configv1.HighNodeUtilization,
-	},
-}
-
-var configNoScoring = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{Policy: configv1.ConfigMapNameReference{Name: ""},
-		Profile: configv1.NoScoring,
-	},
-}
-
 var configUnknown = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{Policy: configv1.ConfigMapNameReference{Name: ""},
+	Spec: configv1.SchedulerSpec{
+		Policy:  configv1.ConfigMapNameReference{Name: ""},
 		Profile: "unknown-config",
 	},
 }
@@ -91,6 +85,15 @@ var configMapNoScoring = &corev1.ConfigMap{
 	Data: map[string]string{"config.yaml": schedConfigNoScoring},
 }
 
+var wantCM = &corev1.ConfigMap{
+	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "config",
+		Namespace: "openshift-kube-scheduler",
+	},
+	Data: map[string]string{"config.yaml": ""}, // data are checked separately
+}
+
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
 	fakeRecorder := NewFakeRecorder(1024)
@@ -100,12 +103,13 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		configSchedulerLister configlistersv1.SchedulerLister
 	}
 	tests := []struct {
-		name       string
-		args       args
-		want       *corev1.ConfigMap
-		wantConfig string
-		want1      bool
-		wantErr    bool
+		name              string
+		args              args
+		want              *corev1.ConfigMap
+		wantConfig        string
+		wantSchedProfiles []schedulerconfigv1.KubeSchedulerProfile
+		want1             bool
+		wantErr           bool
 	}{
 		{
 			name: "unknown-cluster",
@@ -115,9 +119,9 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"unknown": configLowNodeUtilization},
 				},
 			},
-			want:    nil,
-			want1:   false,
-			wantErr: true,
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			want1:             false,
+			wantErr:           true,
 		},
 		{
 			name: "unknown-profile",
@@ -127,9 +131,9 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"cluster": configUnknown},
 				},
 			},
-			want:    nil,
-			want1:   false,
-			wantErr: true,
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			want1:             false,
+			wantErr:           true,
 		},
 		{
 			name: "low-node-utilization",
@@ -139,36 +143,196 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 					Items: map[string]*configv1.Scheduler{"cluster": configLowNodeUtilization},
 				},
 			},
-			want:       configMapLowNodeUtilization,
-			wantConfig: schedConfigLowNodeUtilization,
-			want1:      true,
-			wantErr:    false,
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			want1:             true,
+			wantErr:           false,
 		},
 		{
 			name: "high-node-utilization",
 			args: args{
 				recorder: fakeRecorder,
 				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configHighNodeUtilization},
+					Items: map[string]*configv1.Scheduler{"cluster": {
+						Spec: configv1.SchedulerSpec{
+							Profile: configv1.HighNodeUtilization,
+						},
+					},
+					},
 				},
 			},
-			want:       configMapHighNodeUtilization,
-			wantConfig: schedConfigHighNodeUtilization,
-			want1:      true,
-			wantErr:    false,
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					SchedulerName: ptr.To[string]("default-scheduler"),
+					PluginConfig: []schedulerconfigv1.PluginConfig{
+						{
+							Name: "NodeResourcesFit",
+							Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+						},
+					},
+					Plugins: &schedulerconfigv1.Plugins{
+						Score: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+							},
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesBalancedAllocation"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
 		},
 		{
 			name: "no-scoring",
 			args: args{
 				recorder: fakeRecorder,
 				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configNoScoring},
+					Items: map[string]*configv1.Scheduler{"cluster": {
+						Spec: configv1.SchedulerSpec{
+							Profile: configv1.NoScoring,
+						},
+					},
+					},
 				},
 			},
-			want:       configMapNoScoring,
-			wantConfig: schedConfigNoScoring,
-			want1:      true,
-			wantErr:    false,
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					SchedulerName: ptr.To[string]("default-scheduler"),
+					Plugins: &schedulerconfigv1.Plugins{
+						PreScore: schedulerconfigv1.PluginSet{
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "*"},
+							},
+						},
+						Score: schedulerconfigv1.PluginSet{
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "*"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
+		},
+		{
+			name: "low-node-utilization-dra-enabled",
+			args: args{
+				recorder: fakeRecorder,
+				configSchedulerLister: &fakeSchedConfigLister{
+					Items: map[string]*configv1.Scheduler{
+						"cluster": {
+							Spec: configv1.SchedulerSpec{
+								Profile: configv1.LowNodeUtilization,
+								ProfileCustomizations: configv1.ProfileCustomizations{
+									DynamicResourceAllocation: configv1.DRAEnablementEnabled,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					Plugins: &schedulerconfigv1.Plugins{
+						MultiPoint: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "DynamicResources"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
+		},
+		{
+			name: "high-node-utilization-dra-enabled",
+			args: args{
+				recorder: fakeRecorder,
+				configSchedulerLister: &fakeSchedConfigLister{
+					Items: map[string]*configv1.Scheduler{"cluster": {
+						Spec: configv1.SchedulerSpec{
+							Profile: configv1.HighNodeUtilization,
+							ProfileCustomizations: configv1.ProfileCustomizations{
+								DynamicResourceAllocation: configv1.DRAEnablementEnabled,
+							},
+						},
+					},
+					},
+				},
+			},
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					SchedulerName: ptr.To[string]("default-scheduler"),
+					PluginConfig: []schedulerconfigv1.PluginConfig{
+						{
+							Name: "NodeResourcesFit",
+							Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+						},
+					},
+					Plugins: &schedulerconfigv1.Plugins{
+						Score: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+							},
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesBalancedAllocation"},
+							},
+						},
+						MultiPoint: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "DynamicResources"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
+		},
+		{
+			name: "no-scoring-dra-enabled",
+			args: args{
+				recorder: fakeRecorder,
+				configSchedulerLister: &fakeSchedConfigLister{
+					Items: map[string]*configv1.Scheduler{"cluster": {
+						Spec: configv1.SchedulerSpec{
+							Profile: configv1.NoScoring,
+							ProfileCustomizations: configv1.ProfileCustomizations{
+								DynamicResourceAllocation: configv1.DRAEnablementEnabled,
+							},
+						},
+					},
+					},
+				},
+			},
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					SchedulerName: ptr.To[string]("default-scheduler"),
+					Plugins: &schedulerconfigv1.Plugins{
+						PreScore: schedulerconfigv1.PluginSet{
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "*"},
+							},
+						},
+						Score: schedulerconfigv1.PluginSet{
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "*"},
+							},
+						},
+						MultiPoint: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "DynamicResources"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -179,11 +343,42 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/cm.yaml"))
-			requiredConfigMap, _, _ := resourcemerge.MergeConfigMap(configMap, "config.yaml", nil, []byte(tt.wantConfig), []byte(defaultConfig))
+			if tt.wantErr {
+				return
+			}
+			if got == nil {
+				t.Errorf("expected non-nil CM, got nil")
+				return
+			}
+			// check the CM (without data) is properly generated
+			if _, exists := got.Data["config.yaml"]; !exists {
+				t.Errorf("generated CM is missing 'config.yaml' data")
+				return
+			}
+			gotData := got.Data["config.yaml"]
+			got.Data["config.yaml"] = ""
+			if !equality.Semantic.DeepEqual(got, wantCM) {
+				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() diff: %v", cmp.Diff(got, wantCM))
+			}
 
-			if !equality.Semantic.DeepEqual(got, requiredConfigMap) {
-				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() got = %v, want %v", got, tt.want)
+			// check the scheduler configuration/CM data
+			gotConfig := &schedulerconfigv1.KubeSchedulerConfiguration{}
+			if err := yaml.Unmarshal([]byte(gotData), gotConfig); err != nil {
+				t.Errorf("unable to Unmarshal configuration: %v", err)
+				return
+			}
+
+			if !equality.Semantic.DeepEqual(gotConfig.Profiles, tt.wantSchedProfiles) {
+				if len(gotConfig.Profiles) != len(tt.wantSchedProfiles) {
+					t.Errorf("the expected number of profiles (%v) is different from the retrieved one (%v)", len(tt.wantSchedProfiles), len(gotConfig.Profiles))
+					return
+				}
+				if len(gotConfig.Profiles) > 0 {
+					if diff := cmp.Diff(tt.wantSchedProfiles[0], gotConfig.Profiles[0]); diff != "" {
+						t.Errorf("%v", diff)
+					}
+					return
+				}
 			}
 			if got1 != tt.want1 {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() got1 = %v, want %v", got1, tt.want1)
