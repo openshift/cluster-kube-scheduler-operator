@@ -75,7 +75,7 @@ Customizations of existing profiles are available under the `.spec.profileCustom
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| `experimentalDynamicResourceAllocation` | `string` | Experimental: Enable Dynamic Resource Allocation functionality |
+| `dynamicResourceAllocation` | `string` | Enable Dynamic Resource Allocation functionality |
 
 E.g.
 
@@ -90,7 +90,7 @@ spec:
     name: ""
   profile: HighNodeUtilization
   profileCustomizations:
-    experimentalDynamicResourceAllocation: Enabled
+    dynamicResourceAllocation: Enabled
   ...
 ```
 
