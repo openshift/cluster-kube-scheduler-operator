@@ -1,8 +1,6 @@
 module github.com/openshift/cluster-kube-scheduler-operator
 
-go 1.22.0
-
-toolchain go1.22.1
+go 1.22.1
 
 require (
 	github.com/blang/semver/v4 v4.0.0
