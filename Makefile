@@ -20,9 +20,9 @@ IMAGE_REGISTRY :=registry.svc.ci.openshift.org
 # $2 - image ref
 # $3 - Dockerfile path
 # $4 - context directory for image build
-$(call build-image,ocp-cluster-kube-scheduler-operator,$(IMAGE_REGISTRY)/ocp/4.2:cluster-kube-scheduler-operator, ./Dockerfile.rhel7,.)
+$(call build-image,ocp-cluster-kube-scheduler-operator,$(IMAGE_REGISTRY)/ocp/4.2:cluster-kube-scheduler-operator, ./Dockerfile.ocp,.)
 
-$(call verify-golang-versions,Dockerfile.rhel7)
+$(call verify-golang-versions,Dockerfile.ocp)
 
 e2e: GO_TEST_PACKAGES :=./test/e2e
 e2e: test-unit
