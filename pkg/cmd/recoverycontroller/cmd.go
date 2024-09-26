@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	operatorresourcesynccontroller "github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -77,7 +78,13 @@ func (o *Options) Run(ctx context.Context) error {
 		operatorclient.TargetNamespace,
 	)
 
-	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(o.controllerContext.KubeConfig, operatorv1.GroupVersion.WithResource("kubeschedulers"))
+	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(
+		o.controllerContext.KubeConfig,
+		operatorv1.GroupVersion.WithResource("kubeschedulers"),
+		operatorv1.GroupVersion.WithKind("KubeScheduler"),
+		operator.ExtractStaticPodOperatorSpec,
+		operator.ExtractStaticPodOperatorStatus,
+	)
 	if err != nil {
 		return err
 	}
