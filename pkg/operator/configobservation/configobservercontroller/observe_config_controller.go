@@ -49,6 +49,7 @@ func NewConfigObserver(
 
 	c := &ConfigObserver{
 		Controller: configobserver.NewConfigObserver(
+			"kube-scheduler",
 			operatorClient,
 			eventRecorder,
 			configobservation.Listers{

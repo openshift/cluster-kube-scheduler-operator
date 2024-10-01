@@ -90,6 +90,7 @@ func (o *Options) Run(ctx context.Context) error {
 	}
 
 	resourceSyncController := resourcesynccontroller.NewResourceSyncController(
+		"kube-scheduler",
 		operatorClient,
 		kubeInformersForNamespaces,
 		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
