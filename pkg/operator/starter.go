@@ -61,6 +61,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		"kube-system",
 	)
 	operatorClient, dynamicInformers, err := genericoperatorclient.NewStaticPodOperatorClient(
+		cc.Clock,
 		cc.KubeConfig,
 		operatorv1.GroupVersion.WithResource("kubeschedulers"),
 		operatorv1.GroupVersion.WithKind("KubeScheduler"),
@@ -158,7 +159,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 	versionRecorder.SetVersion("raw-internal", status.VersionForOperatorFromEnv())
 
-	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces, configInformers).
+	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces, configInformers, cc.Clock).
 		WithEvents(cc.EventRecorder).
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
@@ -202,6 +203,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	)
 
 	staleConditions := staleconditions.NewRemoveStaleConditionsController(
+		"kube-controller-manager",
 		[]string{
 			// the static pod operator used to directly set these. this removes those conditions since the static pod operator was updated.
 			// these can be removed in 4.5
