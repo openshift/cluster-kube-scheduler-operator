@@ -11,6 +11,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
+	"k8s.io/utils/clock"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -449,7 +450,7 @@ func TestManageSchedulerKubeconfig(t *testing.T) {
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 		indexer.Add(tc.inputInfrastructure)
 		infrastructureLister := configlistersv1.NewInfrastructureLister(indexer)
-		eventRecorder := events.NewInMemoryRecorder("")
+		eventRecorder := events.NewInMemoryRecorder("", clock.RealClock{})
 		fakeKubeClient := fake.NewSimpleClientset()
 		gotCM, gotBool, _ := manageSchedulerKubeconfig(context.TODO(),
 			fakeKubeClient.CoreV1(), infrastructureLister, eventRecorder)
@@ -588,7 +589,7 @@ func TestManagePodToLatest(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			// test data
-			eventRecorder := events.NewInMemoryRecorder("")
+			eventRecorder := events.NewInMemoryRecorder("", clock.RealClock{})
 			fakeKubeClient := fake.NewSimpleClientset()
 			configSchedulerIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 			configSchedulerIndexer.Add(&configv1.Scheduler{ObjectMeta: metav1.ObjectMeta{Name: "cluster"}, Spec: configv1.SchedulerSpec{}})

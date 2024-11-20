@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
@@ -57,7 +58,7 @@ func TestObserveSchedulerConfig(t *testing.T) {
 				SchedulerLister: configlistersv1.NewSchedulerLister(indexer),
 				ResourceSync:    &mockResourceSyncer{t: t, synced: synced},
 			}
-			_, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
+			_, errors := ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler", clock.RealClock{}), map[string]interface{}{})
 			if len(errors) > 0 {
 				t.Fatalf("expected len(errors) == 0")
 			}
@@ -71,7 +72,7 @@ func TestObserveSchedulerConfig(t *testing.T) {
 				}); err != nil {
 					t.Fatal(err.Error())
 				}
-				_, errors = ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler"), map[string]interface{}{})
+				_, errors = ObserveSchedulerConfig(listers, events.NewInMemoryRecorder("scheduler", clock.RealClock{}), map[string]interface{}{})
 				if len(errors) > 0 {
 					t.Fatalf("expected len(errors) == 0")
 				}
