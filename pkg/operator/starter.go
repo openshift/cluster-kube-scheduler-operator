@@ -200,6 +200,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		operatorClient,
 		versionRecorder,
 		cc.EventRecorder,
+		cc.Clock,
 	)
 
 	staleConditions := staleconditions.NewRemoveStaleConditionsController(
