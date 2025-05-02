@@ -123,7 +123,7 @@ func (c TargetConfigController) sync(ctx context.Context, syncCtx factory.SyncCo
 func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx factory.SyncContext, c TargetConfigController, operatorSpec *operatorv1.StaticPodOperatorSpec) (bool, error) {
 	errors := []error{}
 
-	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(ctx, c.kubeClient.CoreV1(), syncCtx.Recorder(), c.configSchedulerLister)
+	_, _, err := manageKubeSchedulerConfigMap_v311_00_to_latest(ctx, c.featureGates, c.kubeClient.CoreV1(), syncCtx.Recorder(), c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap", err))
 	}
@@ -168,7 +168,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 	return false, nil
 }
 
-func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, featureGates featuregates.FeatureGate, client corev1client.ConfigMapsGetter, recorder events.Recorder, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/cm.yaml"))
 
 	var kubeSchedulerConfiguration []byte
@@ -199,8 +199,22 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 		return nil, false, err
 	}
 
+	var enableDRAPlugin bool
 	switch config.Spec.ProfileCustomizations.DynamicResourceAllocation {
 	case v1.DRAEnablementEnabled:
+		enableDRAPlugin = true
+	case "", v1.DRAEnablementDisabled:
+		// no-op
+	default:
+		return nil, false, fmt.Errorf("dynamicResourceAllocation customization %q not recognized", config.Spec.ProfileCustomizations.DynamicResourceAllocation)
+	}
+	// if the feature gate DynamicResourceAllocation is enabled, we will enable the plugin
+	if !enableDRAPlugin {
+		if featureGates.Enabled("DynamicResourceAllocation") {
+			enableDRAPlugin = true
+		}
+	}
+	if enableDRAPlugin {
 		if len(schedulerConfiguration.Profiles) == 0 {
 			schedulerConfiguration.Profiles = []schedulerconfigv1.KubeSchedulerProfile{{}}
 		}
@@ -208,10 +222,6 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, client 
 			schedulerConfiguration.Profiles[0].Plugins = &schedulerconfigv1.Plugins{}
 		}
 		schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled = append(schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled, schedulerconfigv1.Plugin{Name: "DynamicResources"})
-	case "", v1.DRAEnablementDisabled:
-		// no-op
-	default:
-		return nil, false, fmt.Errorf("dynamicResourceAllocation customization %q not recognized", config.Spec.ProfileCustomizations.DynamicResourceAllocation)
 	}
 
 	schedulerConfigurationBytes, err := yaml.Marshal(schedulerConfiguration)
