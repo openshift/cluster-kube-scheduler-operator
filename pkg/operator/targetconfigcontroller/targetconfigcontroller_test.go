@@ -106,6 +106,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	tests := []struct {
 		name              string
 		args              args
+		featureGates      featuregates.FeatureGate
 		want              *corev1.ConfigMap
 		wantConfig        string
 		wantSchedProfiles []schedulerconfigv1.KubeSchedulerProfile
@@ -335,11 +336,59 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 			want1:   true,
 			wantErr: false,
 		},
+		{
+			name: "high-node-utilization-dra-feature-gate-enabled",
+			args: args{
+				recorder: fakeRecorder,
+				configSchedulerLister: &fakeSchedConfigLister{
+					Items: map[string]*configv1.Scheduler{"cluster": {
+						Spec: configv1.SchedulerSpec{
+							Profile: configv1.HighNodeUtilization,
+						},
+					},
+					},
+				},
+			},
+			featureGates: featuregates.NewFeatureGate([]configv1.FeatureGateName{"DynamicResourceAllocation"}, nil),
+			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
+				{
+					SchedulerName: ptr.To[string]("default-scheduler"),
+					PluginConfig: []schedulerconfigv1.PluginConfig{
+						{
+							Name: "NodeResourcesFit",
+							Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+						},
+					},
+					Plugins: &schedulerconfigv1.Plugins{
+						Score: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+							},
+							Disabled: []schedulerconfigv1.Plugin{
+								{Name: "NodeResourcesBalancedAllocation"},
+							},
+						},
+						MultiPoint: schedulerconfigv1.PluginSet{
+							Enabled: []schedulerconfigv1.Plugin{
+								{Name: "DynamicResources"},
+							},
+						},
+					},
+				},
+			},
+			want1:   true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			featureGates := tt.featureGates
+			if featureGates == nil {
+				// use a default feature gate where DynamicResourceAllocation is disabled
+				featureGates = featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"DynamicResourceAllocation"})
+			}
 			// need a client for each test
-			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
+			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), featureGates, fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
