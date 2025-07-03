@@ -15,7 +15,7 @@ metadata:
 spec:
   volumes:
     - emptyDir: {}
-        name: tmp
+      name: tmp
     - name: resource-dir
       hostPath:
         path: "/etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION"
