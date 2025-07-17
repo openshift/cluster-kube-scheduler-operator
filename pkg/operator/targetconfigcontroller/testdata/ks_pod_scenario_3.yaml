@@ -65,6 +65,8 @@ spec:
           cpu: 15m
           memory: 50Mi
       volumeMounts:
+        - mountPath: /tmp
+          name: tmp
         - name: resource-dir
           mountPath: "/etc/kubernetes/static-pod-resources"
         - name: cert-dir
@@ -108,8 +110,6 @@ spec:
           cpu: 5m
           memory: 50Mi
       volumeMounts:
-        - mountPath: /tmp
-          name: tmp
         - name: resource-dir
           mountPath: "/etc/kubernetes/static-pod-resources"
         - name: cert-dir
