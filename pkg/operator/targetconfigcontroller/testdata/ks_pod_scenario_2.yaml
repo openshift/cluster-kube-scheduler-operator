@@ -14,6 +14,8 @@ metadata:
     target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
 spec:
   volumes:
+    - emptyDir: {}
+      name: tmp
     - name: resource-dir
       hostPath:
         path: "/etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION"
@@ -62,6 +64,8 @@ spec:
           cpu: 15m
           memory: 50Mi
       volumeMounts:
+        - mountPath: /tmp
+          name: tmp
         - name: resource-dir
           mountPath: "/etc/kubernetes/static-pod-resources"
         - name: cert-dir
@@ -78,6 +82,8 @@ spec:
           port: 10259
           scheme: HTTPS
         initialDelaySeconds: 45
+      securityContext:
+        readOnlyRootFilesystem: true
       terminationMessagePolicy: FallbackToLogsOnError
       imagePullPolicy: IfNotPresent
     - name: kube-scheduler-cert-syncer
