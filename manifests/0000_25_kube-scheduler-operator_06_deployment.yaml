@@ -35,6 +35,7 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
+          readOnlyRootFilesystem: true
         image: docker.io/openshift/origin-cluster-kube-scheduler-operator:v4.0
         imagePullPolicy: IfNotPresent
         command: ["cluster-kube-scheduler-operator", "operator"]
@@ -45,6 +46,8 @@ spec:
             memory: 50Mi
             cpu: 10m
         volumeMounts:
+        - mountPath: /tmp
+          name: tmp
         - mountPath: /var/run/configmaps/config
           name: config
         - mountPath: /var/run/secrets/serving-cert
@@ -67,6 +70,8 @@ spec:
               fieldPath: metadata.name
         terminationMessagePolicy: FallbackToLogsOnError
       volumes:
+      - name: tmp
+        emptyDir: {}
       - name: serving-cert
         secret:
           secretName: kube-scheduler-operator-serving-cert
