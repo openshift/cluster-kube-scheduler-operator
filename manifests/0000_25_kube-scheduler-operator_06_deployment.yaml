@@ -27,7 +27,6 @@ spec:
         runAsUser: 65534
         seccompProfile:
           type: RuntimeDefault    
-      automountServiceAccountToken: false
       serviceAccountName: openshift-kube-scheduler-operator
       containers:
       - name: kube-scheduler-operator-container
@@ -52,9 +51,6 @@ spec:
           name: config
         - mountPath: /var/run/secrets/serving-cert
           name: serving-cert
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          name: kube-api-access
-          readOnly: true
         env:
         - name: IMAGE
           value: quay.io/openshift/origin-hyperkube:v4.0
@@ -79,24 +75,6 @@ spec:
       - name: config
         configMap:
           name: openshift-kube-scheduler-operator-config
-      - name: kube-api-access
-        projected:
-          defaultMode: 420
-          sources:
-          - serviceAccountToken:
-              expirationSeconds: 3600
-              path: token
-          - configMap:
-              items:
-              - key: ca.crt
-                path: ca.crt
-              name: kube-root-ca.crt
-          - downwardAPI:
-              items:
-              - fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-                path: namespace
       nodeSelector:
         node-role.kubernetes.io/master: ""
       priorityClassName: system-cluster-critical
