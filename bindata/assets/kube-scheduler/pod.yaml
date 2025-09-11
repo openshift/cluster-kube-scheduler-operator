@@ -33,6 +33,8 @@ spec:
   - name: kube-scheduler
     image: ${IMAGE}
     imagePullPolicy: IfNotPresent
+    securityContext:
+      readOnlyRootFilesystem: true
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["hyperkube", "kube-scheduler"]
     args:
@@ -47,6 +49,8 @@ spec:
     ports:
     - containerPort: 10259
     volumeMounts:
+    - mountPath: /tmp
+      name: tmp
     - mountPath: /etc/kubernetes/static-pod-resources
       name: resource-dir
     - mountPath: /etc/kubernetes/static-pod-certs
@@ -77,6 +81,8 @@ spec:
           fieldPath: metadata.namespace
     image: ${OPERATOR_IMAGE}
     imagePullPolicy: IfNotPresent
+    securityContext:
+      readOnlyRootFilesystem: true
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["cluster-kube-scheduler-operator", "cert-syncer"]
     args:
@@ -88,6 +94,8 @@ spec:
         memory: 50Mi
         cpu: 5m
     volumeMounts:
+      - mountPath: /tmp
+        name: tmp
       - mountPath: /etc/kubernetes/static-pod-resources
         name: resource-dir
       - mountPath: /etc/kubernetes/static-pod-certs
@@ -100,6 +108,8 @@ spec:
           fieldPath: metadata.namespace
     image: ${OPERATOR_IMAGE}
     imagePullPolicy: IfNotPresent
+    securityContext:
+      readOnlyRootFilesystem: true
     terminationMessagePolicy: FallbackToLogsOnError
     command: ["/bin/bash", "-euxo", "pipefail", "-c"]
     args:
@@ -112,6 +122,8 @@ spec:
         memory: 50Mi
         cpu: 5m
     volumeMounts:
+      - mountPath: /tmp
+        name: tmp
       - mountPath: /etc/kubernetes/static-pod-resources
         name: resource-dir
       - mountPath: /etc/kubernetes/static-pod-certs
@@ -121,6 +133,8 @@ spec:
   tolerations:
   - operator: "Exists"
   volumes:
+  - emptyDir: {}
+    name: tmp
   - hostPath:
       path: /etc/kubernetes/static-pod-resources/kube-scheduler-pod-REVISION
     name: resource-dir
