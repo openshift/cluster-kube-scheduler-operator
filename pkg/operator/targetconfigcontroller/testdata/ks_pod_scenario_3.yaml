@@ -148,7 +148,7 @@ spec:
           mountPath: "/etc/kubernetes/static-pod-resources"
         - name: cert-dir
           mountPath: "/etc/kubernetes/static-pod-certs"
-      ecurityContext:
+      securityContext:
         readOnlyRootFilesystem: true
       terminationMessagePolicy: FallbackToLogsOnError
       imagePullPolicy: IfNotPresent
