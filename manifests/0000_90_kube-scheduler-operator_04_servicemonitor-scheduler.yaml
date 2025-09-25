@@ -77,30 +77,20 @@ metadata:
     include.release.openshift.io/single-node-developer: "true"
 spec:
   endpoints:
-  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-    interval: 30s
+  - interval: 30s
     path: /metrics
     port: https
     scheme: https
     tlsConfig:
-      caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
       serverName: scheduler.openshift-kube-scheduler.svc
-      certFile: /etc/prometheus/secrets/metrics-client-certs/tls.crt
-      keyFile: /etc/prometheus/secrets/metrics-client-certs/tls.key
-  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-    honorLabels: true
+  - honorLabels: true
     interval: 30s
     path: /metrics/resources
     port: https
     scheme: https
     tlsConfig:
-      caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
       serverName: scheduler.openshift-kube-scheduler.svc
-      certFile: /etc/prometheus/secrets/metrics-client-certs/tls.crt
-      keyFile: /etc/prometheus/secrets/metrics-client-certs/tls.key
-  namespaceSelector:
-    matchNames:
-    - openshift-kube-scheduler
+  scrapeClass: tls-client-certificate-auth
   selector:
     matchLabels:
       prometheus: "kube-scheduler"
