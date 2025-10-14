@@ -148,4 +148,5 @@ spec:
   tolerations:
     - operator: Exists
   priorityClassName: system-node-critical
+  priority: 2000001000
 status: {}
