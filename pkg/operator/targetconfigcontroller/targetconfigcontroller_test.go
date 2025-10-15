@@ -687,7 +687,7 @@ func TestManagePodToLatest(t *testing.T) {
 			}
 
 			if !equality.Semantic.DeepEqual(actualSchedulerPod, goldenSchedulerPod) {
-				t.Errorf("created Scheduler Pod is different from the expected one (form a golden file) : %s", diff.ObjectDiff(actualSchedulerPod, goldenSchedulerPod))
+				t.Errorf("created Scheduler Pod is different from the expected one (form a golden file) : %s", diff.Diff(actualSchedulerPod, goldenSchedulerPod))
 			}
 		})
 	}
