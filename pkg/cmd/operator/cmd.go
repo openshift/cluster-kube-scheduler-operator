@@ -16,6 +16,5 @@ func NewOperator() *cobra.Command {
 		NewCommand()
 	cmd.Use = "operator"
 	cmd.Short = "Start the Cluster kube-scheduler Operator"
-
 	return cmd
 }
