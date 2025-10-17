@@ -159,7 +159,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	}
 	versionRecorder.SetVersion("raw-internal", status.VersionForOperatorFromEnv())
 
-	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces, configInformers, cc.Clock).
+	staticPodControllers, err := staticpod.NewBuilder(operatorClient, kubeClient, kubeInformersForNamespaces, kubeInformersForNamespaces.InformersFor(""), configInformers, cc.Clock).
 		WithEvents(cc.EventRecorder).
 		WithInstaller([]string{"cluster-kube-scheduler-operator", "installer"}).
 		WithPruning([]string{"cluster-kube-scheduler-operator", "prune"}, "kube-scheduler-pod").
