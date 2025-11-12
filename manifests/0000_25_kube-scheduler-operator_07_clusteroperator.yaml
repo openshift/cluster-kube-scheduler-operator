@@ -36,3 +36,6 @@ status:
     - group: controlplane.operator.openshift.io
       resource: podnetworkconnectivitychecks
       namespace: openshift-kube-scheduler
+    - group: "rbac.authorization.k8s.io"
+      name: "system:openshift:operator:cluster-kube-scheduler-operator"
+      resource: "clusterrolebindings"
