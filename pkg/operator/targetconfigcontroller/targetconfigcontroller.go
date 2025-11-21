@@ -199,31 +199,6 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, feature
 		return nil, false, err
 	}
 
-	var enableDRAPlugin bool
-	switch config.Spec.ProfileCustomizations.DynamicResourceAllocation {
-	case v1.DRAEnablementEnabled:
-		enableDRAPlugin = true
-	case "", v1.DRAEnablementDisabled:
-		// no-op
-	default:
-		return nil, false, fmt.Errorf("dynamicResourceAllocation customization %q not recognized", config.Spec.ProfileCustomizations.DynamicResourceAllocation)
-	}
-	// if the feature gate DynamicResourceAllocation is enabled, we will enable the plugin
-	if !enableDRAPlugin {
-		if featureGates.Enabled("DynamicResourceAllocation") {
-			enableDRAPlugin = true
-		}
-	}
-	if enableDRAPlugin {
-		if len(schedulerConfiguration.Profiles) == 0 {
-			schedulerConfiguration.Profiles = []schedulerconfigv1.KubeSchedulerProfile{{}}
-		}
-		if schedulerConfiguration.Profiles[0].Plugins == nil {
-			schedulerConfiguration.Profiles[0].Plugins = &schedulerconfigv1.Plugins{}
-		}
-		schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled = append(schedulerConfiguration.Profiles[0].Plugins.MultiPoint.Enabled, schedulerconfigv1.Plugin{Name: "DynamicResources"})
-	}
-
 	schedulerConfigurationBytes, err := yaml.Marshal(schedulerConfiguration)
 	if err != nil {
 		return nil, false, err
