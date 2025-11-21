@@ -305,3 +305,36 @@ I0105 03:32:31.936642       1 dumper.go:52] "Dump of cached NodeInfo" nodes=<
     name: POD_NAME, namespace: POD_NAMESPACE, uid: 50bc7d7e-bd30-4c47-82ce-a9d3eb737434, phase: Running, nominated node:
     ...
 ```
+
+## Tests
+
+This repository is compatible with the [OpenShift Tests Extension (OTE)](https://github.com/openshift-eng/openshift-tests-extension) framework.
+
+### Building the test binary
+
+```bash
+make build
+```
+
+### Running test suites and tests
+
+```bash
+# Run a specific test suite or test
+./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/all
+./cluster-kube-scheduler-operator-tests-ext run-test "test-name"
+
+# Run with JUnit output
+./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/all --junit-path /tmp/junit.xml
+```
+
+### Listing available tests and suites
+
+```bash
+# List all test suites
+./cluster-kube-scheduler-operator-tests-ext list suites
+
+# List tests in a suite
+./cluster-kube-scheduler-operator-tests-ext list tests --suite=openshift/cluster-kube-scheduler-operator/all
+```
+
+For more information about the OTE framework, see the [openshift-tests-extension documentation](https://github.com/openshift-eng/openshift-tests-extension).

@@ -6,10 +6,11 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.7.0
-	github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7
+	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
+	github.com/openshift/api v0.0.0-20251111013132-5c461e21bdb7
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
-	github.com/openshift/library-go v0.0.0-20251015151611-6fc7a74b67c5
+	github.com/openshift/library-go v0.0.0-20251112091634-ab97ebb73f0f
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.62.0
 	github.com/spf13/cobra v1.9.1
@@ -24,12 +25,6 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-scheduler v0.34.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-)
-
-require (
-	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.1
-	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
 )
 
 require (
@@ -52,7 +47,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
@@ -106,7 +100,6 @@ require (
 	golang.org/x/term v0.35.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.72.1 // indirect
@@ -126,5 +119,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12
