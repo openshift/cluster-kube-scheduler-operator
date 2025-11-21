@@ -26,6 +26,8 @@ require (
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
 
+require github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
+
 require (
 	cel.dev/expr v0.24.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
@@ -118,3 +120,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12
