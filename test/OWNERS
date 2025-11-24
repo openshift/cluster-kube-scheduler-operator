@@ -1,0 +1,9 @@
+reviewers:
+  - ingvagabund
+  - xingxingxia
+  - zhouying7780 
+approvers:
+  - ingvagabund
+  - xingxingxia
+  - zhouying7780 
+component: "kube-scheduler"
