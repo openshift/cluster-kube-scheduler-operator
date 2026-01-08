@@ -433,6 +433,21 @@ var unsupportedConfigOverridesMultipleSchedulerArgsJSON = `
 }
 `
 
+// newKubeSchedulerOperator creates a KubeScheduler operator with optional unsupported config overrides
+func newKubeSchedulerOperator(unsupportedConfigOverrides []byte) *operatorv1.KubeScheduler {
+	operatorSpec := operatorv1.OperatorSpec{}
+	if unsupportedConfigOverrides != nil {
+		operatorSpec.UnsupportedConfigOverrides = runtime.RawExtension{Raw: unsupportedConfigOverrides}
+	}
+	return &operatorv1.KubeScheduler{
+		Spec: operatorv1.KubeSchedulerSpec{
+			StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{
+				OperatorSpec: operatorSpec,
+			},
+		},
+	}
+}
+
 func TestManagePodToLatest(t *testing.T) {
 	scenarios := []struct {
 		name       string
@@ -444,25 +459,21 @@ func TestManagePodToLatest(t *testing.T) {
 		{
 			name:       "happy path: a pod with default values is created",
 			goldenFile: "./testdata/ks_pod_scenario_1.yaml",
-			operator:   &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{}}}},
+			operator:   newKubeSchedulerOperator(nil),
 		},
 
 		// scenario 2
 		{
 			name:       "an unsupported flag is passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_2.yaml",
-			operator: &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{
-				UnsupportedConfigOverrides: runtime.RawExtension{Raw: []byte(unsupportedConfigOverridesSchedulerArgJSON)},
-			}}}},
+			operator:   newKubeSchedulerOperator([]byte(unsupportedConfigOverridesSchedulerArgJSON)),
 		},
 
 		// scenario 3
 		{
 			name:       "unsupported flags are passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_3.yaml",
-			operator: &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{
-				UnsupportedConfigOverrides: runtime.RawExtension{Raw: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON)},
-			}}}},
+			operator:   newKubeSchedulerOperator([]byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON)),
 		},
 	}
 
