@@ -51,6 +51,10 @@ func newSchedulerConfig(profile configv1.SchedulerProfile) *configv1.Scheduler {
 
 var configLowNodeUtilization = newSchedulerConfig(configv1.LowNodeUtilization)
 
+var configHighNodeUtilization = newSchedulerConfig(configv1.HighNodeUtilization)
+
+var configNoScoring = newSchedulerConfig(configv1.NoScoring)
+
 var configUnknown = newSchedulerConfig("unknown-config")
 
 var defaultConfig string = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
@@ -94,6 +98,13 @@ var configMapNoScoring = newSchedulerConfigConfigMap(schedConfigNoScoring)
 // data are checked separately
 var wantCM = newSchedulerConfigConfigMap("")
 
+// newFakeSchedConfigLister creates a fakeSchedConfigLister with a single scheduler config
+func newFakeSchedConfigLister(name string, config *configv1.Scheduler) *fakeSchedConfigLister {
+	return &fakeSchedConfigLister{
+		Items: map[string]*configv1.Scheduler{name: config},
+	}
+}
+
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
 	fakeRecorder := NewFakeRecorder(1024)
@@ -115,10 +126,8 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		{
 			name: "unknown-cluster",
 			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"unknown": configLowNodeUtilization},
-				},
+				recorder:              fakeRecorder,
+				configSchedulerLister: newFakeSchedConfigLister("unknown", configLowNodeUtilization),
 			},
 			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
 			want1:             false,
@@ -127,10 +136,8 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		{
 			name: "unknown-profile",
 			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configUnknown},
-				},
+				recorder:              fakeRecorder,
+				configSchedulerLister: newFakeSchedConfigLister("cluster", configUnknown),
 			},
 			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
 			want1:             false,
@@ -139,10 +146,8 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		{
 			name: "low-node-utilization",
 			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configLowNodeUtilization},
-				},
+				recorder:              fakeRecorder,
+				configSchedulerLister: newFakeSchedConfigLister("cluster", configLowNodeUtilization),
 			},
 			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
 			want1:             true,
@@ -151,15 +156,8 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		{
 			name: "high-node-utilization",
 			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": {
-						Spec: configv1.SchedulerSpec{
-							Profile: configv1.HighNodeUtilization,
-						},
-					},
-					},
-				},
+				recorder:              fakeRecorder,
+				configSchedulerLister: newFakeSchedConfigLister("cluster", configHighNodeUtilization),
 			},
 			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
 				{
@@ -188,15 +186,8 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 		{
 			name: "no-scoring",
 			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": {
-						Spec: configv1.SchedulerSpec{
-							Profile: configv1.NoScoring,
-						},
-					},
-					},
-				},
+				recorder:              fakeRecorder,
+				configSchedulerLister: newFakeSchedConfigLister("cluster", configNoScoring),
 			},
 			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
 				{
