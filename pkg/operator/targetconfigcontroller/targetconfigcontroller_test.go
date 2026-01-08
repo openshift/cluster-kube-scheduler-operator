@@ -17,6 +17,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
 
@@ -59,41 +60,38 @@ var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
 var schedConfigNoScoring string = string(bindata.MustAsset(
 	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
 
-var configMapLowNodeUtilization = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigLowNodeUtilization},
+// newSchedulerConfigConfigMap creates a ConfigMap for the scheduler configuration
+func newSchedulerConfigConfigMap(configData string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: operatorclient.TargetNamespace,
+		},
+		Data: map[string]string{"config.yaml": configData},
+	}
 }
 
-var configMapHighNodeUtilization = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigHighNodeUtilization},
+// newSchedulerKubeconfigConfigMap creates a ConfigMap for the scheduler kubeconfig
+func newSchedulerKubeconfigConfigMap(kubeconfigData string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "scheduler-kubeconfig",
+			Namespace: operatorclient.TargetNamespace,
+		},
+		Data: map[string]string{"kubeconfig": kubeconfigData},
+	}
 }
 
-var configMapNoScoring = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigNoScoring},
-}
+var configMapLowNodeUtilization = newSchedulerConfigConfigMap(schedConfigLowNodeUtilization)
 
-var wantCM = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": ""}, // data are checked separately
-}
+var configMapHighNodeUtilization = newSchedulerConfigConfigMap(schedConfigHighNodeUtilization)
+
+var configMapNoScoring = newSchedulerConfigConfigMap(schedConfigNoScoring)
+
+// data are checked separately
+var wantCM = newSchedulerConfigConfigMap("")
 
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
@@ -298,14 +296,7 @@ users:
       client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
 `
 
-var configMapKubeConfigCMDefault = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "scheduler-kubeconfig",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"kubeconfig": defaultKubeconfigData},
-}
+var configMapKubeConfigCMDefault = newSchedulerKubeconfigConfigMap(defaultKubeconfigData)
 
 func TestManageSchedulerKubeconfig(t *testing.T) {
 	tests := []struct {
