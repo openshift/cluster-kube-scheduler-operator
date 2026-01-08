@@ -172,71 +172,50 @@ func newFakeSchedConfigLister(name string, config *configv1.Scheduler) *fakeSche
 
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
-	fakeRecorder := NewFakeRecorder(1024)
-
-	type args struct {
-		recorder              events.Recorder
-		configSchedulerLister configlistersv1.SchedulerLister
-	}
 	tests := []struct {
-		name              string
-		args              args
-		featureGates      featuregates.FeatureGate
-		want              *corev1.ConfigMap
-		wantConfig        string
-		wantSchedProfiles []schedulerconfigv1.KubeSchedulerProfile
-		want1             bool
-		wantErr           bool
+		name                  string
+		configSchedulerLister configlistersv1.SchedulerLister
+		featureGates          featuregates.FeatureGate
+		want                  *corev1.ConfigMap
+		wantConfig            string
+		wantSchedProfiles     []schedulerconfigv1.KubeSchedulerProfile
+		want1                 bool
+		wantErr               bool
 	}{
 		{
-			name: "unknown-cluster",
-			args: args{
-				recorder:              fakeRecorder,
-				configSchedulerLister: newFakeSchedConfigLister("unknown", configLowNodeUtilization),
-			},
-			wantSchedProfiles: emptySchedProfiles,
-			want1:             false,
-			wantErr:           true,
+			name:                  "unknown-cluster",
+			configSchedulerLister: newFakeSchedConfigLister("unknown", configLowNodeUtilization),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 false,
+			wantErr:               true,
 		},
 		{
-			name: "unknown-profile",
-			args: args{
-				recorder:              fakeRecorder,
-				configSchedulerLister: newFakeSchedConfigLister("cluster", configUnknown),
-			},
-			wantSchedProfiles: emptySchedProfiles,
-			want1:             false,
-			wantErr:           true,
+			name:                  "unknown-profile",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configUnknown),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 false,
+			wantErr:               true,
 		},
 		{
-			name: "low-node-utilization",
-			args: args{
-				recorder:              fakeRecorder,
-				configSchedulerLister: newFakeSchedConfigLister("cluster", configLowNodeUtilization),
-			},
-			wantSchedProfiles: emptySchedProfiles,
-			want1:             true,
-			wantErr:           false,
+			name:                  "low-node-utilization",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configLowNodeUtilization),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 		{
-			name: "high-node-utilization",
-			args: args{
-				recorder:              fakeRecorder,
-				configSchedulerLister: newFakeSchedConfigLister("cluster", configHighNodeUtilization),
-			},
-			wantSchedProfiles: highNodeUtilizationSchedProfiles,
-			want1:             true,
-			wantErr:           false,
+			name:                  "high-node-utilization",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configHighNodeUtilization),
+			wantSchedProfiles:     highNodeUtilizationSchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 		{
-			name: "no-scoring",
-			args: args{
-				recorder:              fakeRecorder,
-				configSchedulerLister: newFakeSchedConfigLister("cluster", configNoScoring),
-			},
-			wantSchedProfiles: noScoringSchedProfiles,
-			want1:             true,
-			wantErr:           false,
+			name:                  "no-scoring",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configNoScoring),
+			wantSchedProfiles:     noScoringSchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 	}
 	for _, tt := range tests {
@@ -247,7 +226,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				featureGates = featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"DynamicResourceAllocation"})
 			}
 			// need a client for each test
-			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), featureGates, fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
+			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), featureGates, fake.NewSimpleClientset().CoreV1(), NewFakeRecorder(1024), tt.configSchedulerLister)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
