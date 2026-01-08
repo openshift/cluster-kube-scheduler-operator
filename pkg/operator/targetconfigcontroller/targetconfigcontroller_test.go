@@ -37,7 +37,123 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+var (
+	codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+
+	configLowNodeUtilization  = newSchedulerConfig(configv1.LowNodeUtilization)
+	configHighNodeUtilization = newSchedulerConfig(configv1.HighNodeUtilization)
+	configNoScoring           = newSchedulerConfig(configv1.NoScoring)
+	configUnknown             = newSchedulerConfig("unknown-config")
+
+	defaultConfig                  = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
+	schedConfigLowNodeUtilization  = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
+	schedConfigHighNodeUtilization = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
+	schedConfigNoScoring           = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
+
+	configMapLowNodeUtilization  = newSchedulerConfigConfigMap(schedConfigLowNodeUtilization)
+	configMapHighNodeUtilization = newSchedulerConfigConfigMap(schedConfigHighNodeUtilization)
+	configMapNoScoring           = newSchedulerConfigConfigMap(schedConfigNoScoring)
+	wantCM                       = newSchedulerConfigConfigMap("") // data are checked separately
+
+	emptySchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{}
+
+	highNodeUtilizationSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+		{
+			SchedulerName: ptr.To[string]("default-scheduler"),
+			PluginConfig: []schedulerconfigv1.PluginConfig{
+				{
+					Name: "NodeResourcesFit",
+					Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+				},
+			},
+			Plugins: &schedulerconfigv1.Plugins{
+				Score: schedulerconfigv1.PluginSet{
+					Enabled: []schedulerconfigv1.Plugin{
+						{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+					},
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "NodeResourcesBalancedAllocation"},
+					},
+				},
+			},
+		},
+	}
+
+	noScoringSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+		{
+			SchedulerName: ptr.To[string]("default-scheduler"),
+			Plugins: &schedulerconfigv1.Plugins{
+				PreScore: schedulerconfigv1.PluginSet{
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "*"},
+					},
+				},
+				Score: schedulerconfigv1.PluginSet{
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "*"},
+					},
+				},
+			},
+		},
+	}
+
+	defaultKubeconfigData = `apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
+      server: https://127.0.0.1:443
+    name: lb-int
+contexts:
+  - context:
+      cluster: lb-int
+      user: kube-scheduler
+    name: kube-scheduler
+current-context: kube-scheduler
+kind: Config
+preferences: {}
+users:
+  - name: kube-scheduler
+    user:
+      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
+`
+
+	configMapKubeConfigCMDefault = newSchedulerKubeconfigConfigMap(defaultKubeconfigData)
+
+	unsupportedConfigOverridesSchedulerArgJSON = []byte(`
+{
+  "arguments": {
+      "master": "https://localhost:1234"
+  }
+}
+`)
+
+	unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`
+{
+  "arguments": {
+      "master": "https://localhost:1234",
+      "unsupported-kube-api-over-localhost": "true"
+  }
+}
+`)
+
+	fakeUnsupportedConfigArgsJson = []byte(`
+{
+  "arguments": {
+      "fakeKey": [
+			"value1",
+			"value2"
+	  ]
+  }
+}
+`)
+
+	unmarshalFakeUnsupportedConfigArgsJson = []byte(`
+{
+  "arguments": {"fakeKey1", "fakeKey2"}
+}
+`)
+)
 
 // newSchedulerConfig creates a Scheduler configuration with the specified profile
 func newSchedulerConfig(profile configv1.SchedulerProfile) *configv1.Scheduler {
@@ -48,22 +164,6 @@ func newSchedulerConfig(profile configv1.SchedulerProfile) *configv1.Scheduler {
 		},
 	}
 }
-
-var configLowNodeUtilization = newSchedulerConfig(configv1.LowNodeUtilization)
-
-var configHighNodeUtilization = newSchedulerConfig(configv1.HighNodeUtilization)
-
-var configNoScoring = newSchedulerConfig(configv1.NoScoring)
-
-var configUnknown = newSchedulerConfig("unknown-config")
-
-var defaultConfig string = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
-var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
-var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
-var schedConfigNoScoring string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
 
 // newSchedulerConfigConfigMap creates a ConfigMap for the scheduler configuration
 func newSchedulerConfigConfigMap(configData string) *corev1.ConfigMap {
@@ -87,57 +187,6 @@ func newSchedulerKubeconfigConfigMap(kubeconfigData string) *corev1.ConfigMap {
 		},
 		Data: map[string]string{"kubeconfig": kubeconfigData},
 	}
-}
-
-var configMapLowNodeUtilization = newSchedulerConfigConfigMap(schedConfigLowNodeUtilization)
-
-var configMapHighNodeUtilization = newSchedulerConfigConfigMap(schedConfigHighNodeUtilization)
-
-var configMapNoScoring = newSchedulerConfigConfigMap(schedConfigNoScoring)
-
-// data are checked separately
-var wantCM = newSchedulerConfigConfigMap("")
-
-var emptySchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{}
-
-var highNodeUtilizationSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
-	{
-		SchedulerName: ptr.To[string]("default-scheduler"),
-		PluginConfig: []schedulerconfigv1.PluginConfig{
-			{
-				Name: "NodeResourcesFit",
-				Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
-			},
-		},
-		Plugins: &schedulerconfigv1.Plugins{
-			Score: schedulerconfigv1.PluginSet{
-				Enabled: []schedulerconfigv1.Plugin{
-					{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
-				},
-				Disabled: []schedulerconfigv1.Plugin{
-					{Name: "NodeResourcesBalancedAllocation"},
-				},
-			},
-		},
-	},
-}
-
-var noScoringSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
-	{
-		SchedulerName: ptr.To[string]("default-scheduler"),
-		Plugins: &schedulerconfigv1.Plugins{
-			PreScore: schedulerconfigv1.PluginSet{
-				Disabled: []schedulerconfigv1.Plugin{
-					{Name: "*"},
-				},
-			},
-			Score: schedulerconfigv1.PluginSet{
-				Disabled: []schedulerconfigv1.Plugin{
-					{Name: "*"},
-				},
-			},
-		},
-	},
 }
 
 // newFakeSchedConfigLister creates a fakeSchedConfigLister with a single scheduler config
@@ -273,29 +322,6 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 	}
 }
 
-var defaultKubeconfigData = `apiVersion: v1
-clusters:
-  - cluster:
-      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
-      server: https://127.0.0.1:443
-    name: lb-int
-contexts:
-  - context:
-      cluster: lb-int
-      user: kube-scheduler
-    name: kube-scheduler
-current-context: kube-scheduler
-kind: Config
-preferences: {}
-users:
-  - name: kube-scheduler
-    user:
-      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
-`
-
-var configMapKubeConfigCMDefault = newSchedulerKubeconfigConfigMap(defaultKubeconfigData)
-
 func TestManageSchedulerKubeconfig(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -414,23 +440,6 @@ func TestGetSortedFeatureGates(t *testing.T) {
 	}
 }
 
-var unsupportedConfigOverridesSchedulerArgJSON = []byte(`
-{
-  "arguments": {
-      "master": "https://localhost:1234"
-  }
-}
-`)
-
-var unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`
-{
-  "arguments": {
-      "master": "https://localhost:1234",
-      "unsupported-kube-api-over-localhost": "true"
-  }
-}
-`)
-
 // newKubeSchedulerOperator creates a KubeScheduler operator with optional unsupported config overrides
 func newKubeSchedulerOperator(unsupportedConfigOverrides []byte) *operatorv1.KubeScheduler {
 	operatorSpec := operatorv1.OperatorSpec{}
@@ -532,23 +541,6 @@ func TestManagePodToLatest(t *testing.T) {
 		})
 	}
 }
-
-// Added unit test for getUnsupportedFlagsFromConfig
-var fakeUnsupportedConfigArgsJson = []byte(`
-{
-  "arguments": {
-      "fakeKey": [
-			"value1",
-			"value2"
-	  ]
-  }
-}
-`)
-var unmarshalFakeUnsupportedConfigArgsJson = []byte(`
-{
-  "arguments": {"fakeKey1", "fakeKey2"}
-}
-`)
 
 func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	tests := []struct {
