@@ -39,19 +39,20 @@ import (
 
 var codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
-var configLowNodeUtilization = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{
-		Policy:  configv1.ConfigMapNameReference{Name: ""},
-		Profile: configv1.LowNodeUtilization,
-	},
+// newSchedulerConfig creates a Scheduler configuration with the specified profile
+func newSchedulerConfig(profile configv1.SchedulerProfile) *configv1.Scheduler {
+	return &configv1.Scheduler{
+		Spec: configv1.SchedulerSpec{
+			Policy:  configv1.ConfigMapNameReference{Name: ""},
+			Profile: profile,
+		},
+	}
 }
 
-var configUnknown = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{
-		Policy:  configv1.ConfigMapNameReference{Name: ""},
-		Profile: "unknown-config",
-	},
-}
+var configLowNodeUtilization = newSchedulerConfig(configv1.LowNodeUtilization)
+
+var configUnknown = newSchedulerConfig("unknown-config")
+
 var defaultConfig string = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
 var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
 	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
