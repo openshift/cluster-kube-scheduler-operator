@@ -120,39 +120,13 @@ users:
 
 	configMapKubeConfigCMDefault = newSchedulerKubeconfigConfigMap(defaultKubeconfigData)
 
-	unsupportedConfigOverridesSchedulerArgJSON = []byte(`
-{
-  "arguments": {
-      "master": "https://localhost:1234"
-  }
-}
-`)
+	unsupportedConfigOverridesSchedulerArgJSON = []byte(`{"arguments":{"master":"https://localhost:1234"}}`)
 
-	unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`
-{
-  "arguments": {
-      "master": "https://localhost:1234",
-      "unsupported-kube-api-over-localhost": "true"
-  }
-}
-`)
+	unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`{"arguments":{"master":"https://localhost:1234","unsupported-kube-api-over-localhost":"true"}}`)
 
-	fakeUnsupportedConfigArgsJson = []byte(`
-{
-  "arguments": {
-      "fakeKey": [
-			"value1",
-			"value2"
-	  ]
-  }
-}
-`)
+	fakeUnsupportedConfigArgsJson = []byte(`{"arguments":{"fakeKey":["value1","value2"]}}`)
 
-	unmarshalFakeUnsupportedConfigArgsJson = []byte(`
-{
-  "arguments": {"fakeKey1", "fakeKey2"}
-}
-`)
+	unmarshalFakeUnsupportedConfigArgsJson = []byte(`{"arguments":{"fakeKey1","fakeKey2"}}`)
 )
 
 // newSchedulerConfig creates a Scheduler configuration with the specified profile
