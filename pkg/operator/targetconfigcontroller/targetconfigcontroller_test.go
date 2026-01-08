@@ -17,6 +17,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/cluster-kube-scheduler-operator/bindata"
+	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
 
@@ -36,188 +37,185 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+var (
+	codec = scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
-var configLowNodeUtilization = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{
-		Policy:  configv1.ConfigMapNameReference{Name: ""},
-		Profile: configv1.LowNodeUtilization,
-	},
+	configLowNodeUtilization  = newSchedulerConfig(configv1.LowNodeUtilization)
+	configHighNodeUtilization = newSchedulerConfig(configv1.HighNodeUtilization)
+	configNoScoring           = newSchedulerConfig(configv1.NoScoring)
+	configUnknown             = newSchedulerConfig("unknown-config")
+
+	defaultConfig                  = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
+	schedConfigLowNodeUtilization  = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
+	schedConfigHighNodeUtilization = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
+	schedConfigNoScoring           = string(bindata.MustAsset("assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
+
+	configMapLowNodeUtilization  = newSchedulerConfigConfigMap(schedConfigLowNodeUtilization)
+	configMapHighNodeUtilization = newSchedulerConfigConfigMap(schedConfigHighNodeUtilization)
+	configMapNoScoring           = newSchedulerConfigConfigMap(schedConfigNoScoring)
+	wantCM                       = newSchedulerConfigConfigMap("") // data are checked separately
+
+	emptySchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{}
+
+	highNodeUtilizationSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+		{
+			SchedulerName: ptr.To[string]("default-scheduler"),
+			PluginConfig: []schedulerconfigv1.PluginConfig{
+				{
+					Name: "NodeResourcesFit",
+					Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+				},
+			},
+			Plugins: &schedulerconfigv1.Plugins{
+				Score: schedulerconfigv1.PluginSet{
+					Enabled: []schedulerconfigv1.Plugin{
+						{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+					},
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "NodeResourcesBalancedAllocation"},
+					},
+				},
+			},
+		},
+	}
+
+	noScoringSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+		{
+			SchedulerName: ptr.To[string]("default-scheduler"),
+			Plugins: &schedulerconfigv1.Plugins{
+				PreScore: schedulerconfigv1.PluginSet{
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "*"},
+					},
+				},
+				Score: schedulerconfigv1.PluginSet{
+					Disabled: []schedulerconfigv1.Plugin{
+						{Name: "*"},
+					},
+				},
+			},
+		},
+	}
+
+	defaultKubeconfigData = `apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
+      server: https://127.0.0.1:443
+    name: lb-int
+contexts:
+  - context:
+      cluster: lb-int
+      user: kube-scheduler
+    name: kube-scheduler
+current-context: kube-scheduler
+kind: Config
+preferences: {}
+users:
+  - name: kube-scheduler
+    user:
+      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
+`
+
+	configMapKubeConfigCMDefault = newSchedulerKubeconfigConfigMap(defaultKubeconfigData)
+
+	unsupportedConfigOverridesSchedulerArgJSON = []byte(`{"arguments":{"master":"https://localhost:1234"}}`)
+
+	unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`{"arguments":{"master":"https://localhost:1234","unsupported-kube-api-over-localhost":"true"}}`)
+
+	fakeUnsupportedConfigArgsJson = []byte(`{"arguments":{"fakeKey":["value1","value2"]}}`)
+
+	unmarshalFakeUnsupportedConfigArgsJson = []byte(`{"arguments":{"fakeKey1","fakeKey2"}}`)
+)
+
+// newSchedulerConfig creates a Scheduler configuration with the specified profile
+func newSchedulerConfig(profile configv1.SchedulerProfile) *configv1.Scheduler {
+	return &configv1.Scheduler{
+		Spec: configv1.SchedulerSpec{
+			Policy:  configv1.ConfigMapNameReference{Name: ""},
+			Profile: profile,
+		},
+	}
 }
 
-var configUnknown = &configv1.Scheduler{
-	Spec: configv1.SchedulerSpec{
-		Policy:  configv1.ConfigMapNameReference{Name: ""},
-		Profile: "unknown-config",
-	},
-}
-var defaultConfig string = string(bindata.MustAsset("assets/config/defaultconfig.yaml"))
-var schedConfigLowNodeUtilization string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-lownodeutilization.yaml"))
-var schedConfigHighNodeUtilization string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-highnodeutilization.yaml"))
-var schedConfigNoScoring string = string(bindata.MustAsset(
-	"assets/config/defaultconfig-postbootstrap-noscoring.yaml"))
-
-var configMapLowNodeUtilization = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigLowNodeUtilization},
+// newSchedulerConfigConfigMap creates a ConfigMap for the scheduler configuration
+func newSchedulerConfigConfigMap(configData string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: operatorclient.TargetNamespace,
+		},
+		Data: map[string]string{"config.yaml": configData},
+	}
 }
 
-var configMapHighNodeUtilization = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigHighNodeUtilization},
+// newSchedulerKubeconfigConfigMap creates a ConfigMap for the scheduler kubeconfig
+func newSchedulerKubeconfigConfigMap(kubeconfigData string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "scheduler-kubeconfig",
+			Namespace: operatorclient.TargetNamespace,
+		},
+		Data: map[string]string{"kubeconfig": kubeconfigData},
+	}
 }
 
-var configMapNoScoring = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": schedConfigNoScoring},
-}
-
-var wantCM = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"config.yaml": ""}, // data are checked separately
+// newFakeSchedConfigLister creates a fakeSchedConfigLister with a single scheduler config
+func newFakeSchedConfigLister(name string, config *configv1.Scheduler) *fakeSchedConfigLister {
+	return &fakeSchedConfigLister{
+		Items: map[string]*configv1.Scheduler{name: config},
+	}
 }
 
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
-	fakeRecorder := NewFakeRecorder(1024)
-
-	type args struct {
-		recorder              events.Recorder
-		configSchedulerLister configlistersv1.SchedulerLister
-	}
 	tests := []struct {
-		name              string
-		args              args
-		featureGates      featuregates.FeatureGate
-		want              *corev1.ConfigMap
-		wantConfig        string
-		wantSchedProfiles []schedulerconfigv1.KubeSchedulerProfile
-		want1             bool
-		wantErr           bool
+		name                  string
+		configSchedulerLister configlistersv1.SchedulerLister
+		featureGates          featuregates.FeatureGate
+		want                  *corev1.ConfigMap
+		wantConfig            string
+		wantSchedProfiles     []schedulerconfigv1.KubeSchedulerProfile
+		want1                 bool
+		wantErr               bool
 	}{
 		{
-			name: "unknown-cluster",
-			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"unknown": configLowNodeUtilization},
-				},
-			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
-			want1:             false,
-			wantErr:           true,
+			name:                  "unknown-cluster",
+			configSchedulerLister: newFakeSchedConfigLister("unknown", configLowNodeUtilization),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 false,
+			wantErr:               true,
 		},
 		{
-			name: "unknown-profile",
-			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configUnknown},
-				},
-			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
-			want1:             false,
-			wantErr:           true,
+			name:                  "unknown-profile",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configUnknown),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 false,
+			wantErr:               true,
 		},
 		{
-			name: "low-node-utilization",
-			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": configLowNodeUtilization},
-				},
-			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
-			want1:             true,
-			wantErr:           false,
+			name:                  "low-node-utilization",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configLowNodeUtilization),
+			wantSchedProfiles:     emptySchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 		{
-			name: "high-node-utilization",
-			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": {
-						Spec: configv1.SchedulerSpec{
-							Profile: configv1.HighNodeUtilization,
-						},
-					},
-					},
-				},
-			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
-				{
-					SchedulerName: ptr.To[string]("default-scheduler"),
-					PluginConfig: []schedulerconfigv1.PluginConfig{
-						{
-							Name: "NodeResourcesFit",
-							Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
-						},
-					},
-					Plugins: &schedulerconfigv1.Plugins{
-						Score: schedulerconfigv1.PluginSet{
-							Enabled: []schedulerconfigv1.Plugin{
-								{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
-							},
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "NodeResourcesBalancedAllocation"},
-							},
-						},
-					},
-				},
-			},
-			want1:   true,
-			wantErr: false,
+			name:                  "high-node-utilization",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configHighNodeUtilization),
+			wantSchedProfiles:     highNodeUtilizationSchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 		{
-			name: "no-scoring",
-			args: args{
-				recorder: fakeRecorder,
-				configSchedulerLister: &fakeSchedConfigLister{
-					Items: map[string]*configv1.Scheduler{"cluster": {
-						Spec: configv1.SchedulerSpec{
-							Profile: configv1.NoScoring,
-						},
-					},
-					},
-				},
-			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
-				{
-					SchedulerName: ptr.To[string]("default-scheduler"),
-					Plugins: &schedulerconfigv1.Plugins{
-						PreScore: schedulerconfigv1.PluginSet{
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "*"},
-							},
-						},
-						Score: schedulerconfigv1.PluginSet{
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "*"},
-							},
-						},
-					},
-				},
-			},
-			want1:   true,
-			wantErr: false,
+			name:                  "no-scoring",
+			configSchedulerLister: newFakeSchedConfigLister("cluster", configNoScoring),
+			wantSchedProfiles:     noScoringSchedProfiles,
+			want1:                 true,
+			wantErr:               false,
 		},
 	}
 	for _, tt := range tests {
@@ -228,7 +226,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				featureGates = featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"DynamicResourceAllocation"})
 			}
 			// need a client for each test
-			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), featureGates, fake.NewSimpleClientset().CoreV1(), tt.args.recorder, tt.args.configSchedulerLister)
+			got, got1, err := manageKubeSchedulerConfigMap_v311_00_to_latest(context.TODO(), featureGates, fake.NewSimpleClientset().CoreV1(), NewFakeRecorder(1024), tt.configSchedulerLister)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("manageKubeSchedulerConfigMap_v311_00_to_latest() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -275,36 +273,6 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 			}
 		})
 	}
-}
-
-var defaultKubeconfigData = `apiVersion: v1
-clusters:
-  - cluster:
-      certificate-authority: /etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt
-      server: https://127.0.0.1:443
-    name: lb-int
-contexts:
-  - context:
-      cluster: lb-int
-      user: kube-scheduler
-    name: kube-scheduler
-current-context: kube-scheduler
-kind: Config
-preferences: {}
-users:
-  - name: kube-scheduler
-    user:
-      client-certificate: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      client-key: /etc/kubernetes/static-pod-certs/secrets/kube-scheduler-client-cert-key/tls.key
-`
-
-var configMapKubeConfigCMDefault = &corev1.ConfigMap{
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "scheduler-kubeconfig",
-		Namespace: "openshift-kube-scheduler",
-	},
-	Data: map[string]string{"kubeconfig": defaultKubeconfigData},
 }
 
 func TestManageSchedulerKubeconfig(t *testing.T) {
@@ -425,22 +393,20 @@ func TestGetSortedFeatureGates(t *testing.T) {
 	}
 }
 
-var unsupportedConfigOverridesSchedulerArgJSON = `
-{
-  "arguments": {
-      "master": "https://localhost:1234"
-  }
+// newKubeSchedulerOperator creates a KubeScheduler operator with optional unsupported config overrides
+func newKubeSchedulerOperator(unsupportedConfigOverrides []byte) *operatorv1.KubeScheduler {
+	operatorSpec := operatorv1.OperatorSpec{}
+	if unsupportedConfigOverrides != nil {
+		operatorSpec.UnsupportedConfigOverrides = runtime.RawExtension{Raw: unsupportedConfigOverrides}
+	}
+	return &operatorv1.KubeScheduler{
+		Spec: operatorv1.KubeSchedulerSpec{
+			StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{
+				OperatorSpec: operatorSpec,
+			},
+		},
+	}
 }
-`
-
-var unsupportedConfigOverridesMultipleSchedulerArgsJSON = `
-{
-  "arguments": {
-      "master": "https://localhost:1234",
-      "unsupported-kube-api-over-localhost": "true"
-  }
-}
-`
 
 func TestManagePodToLatest(t *testing.T) {
 	scenarios := []struct {
@@ -453,25 +419,21 @@ func TestManagePodToLatest(t *testing.T) {
 		{
 			name:       "happy path: a pod with default values is created",
 			goldenFile: "./testdata/ks_pod_scenario_1.yaml",
-			operator:   &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{}}}},
+			operator:   newKubeSchedulerOperator(nil),
 		},
 
 		// scenario 2
 		{
 			name:       "an unsupported flag is passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_2.yaml",
-			operator: &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{
-				UnsupportedConfigOverrides: runtime.RawExtension{Raw: []byte(unsupportedConfigOverridesSchedulerArgJSON)},
-			}}}},
+			operator:   newKubeSchedulerOperator(unsupportedConfigOverridesSchedulerArgJSON),
 		},
 
 		// scenario 3
 		{
 			name:       "unsupported flags are passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_3.yaml",
-			operator: &operatorv1.KubeScheduler{Spec: operatorv1.KubeSchedulerSpec{StaticPodOperatorSpec: operatorv1.StaticPodOperatorSpec{OperatorSpec: operatorv1.OperatorSpec{
-				UnsupportedConfigOverrides: runtime.RawExtension{Raw: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON)},
-			}}}},
+			operator:   newKubeSchedulerOperator(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
 		},
 	}
 
@@ -533,23 +495,6 @@ func TestManagePodToLatest(t *testing.T) {
 	}
 }
 
-// Added unit test for getUnsupportedFlagsFromConfig
-var fakeUnsupportedConfigArgsJson = `
-{
-  "arguments": {
-      "fakeKey": [
-			"value1",
-			"value2"
-	  ]
-  }
-}
-`
-var unmarshalFakeUnsupportedConfigArgsJson = `
-{
-  "arguments": {"fakeKey1", "fakeKey2"}
-}
-`
-
 func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	tests := []struct {
 		name                   string
@@ -558,17 +503,17 @@ func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	}{
 		{
 			name:                   "unsupportedFlagsinJson",
-			inputUnsupportedConfig: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
+			inputUnsupportedConfig: unsupportedConfigOverridesMultipleSchedulerArgsJSON,
 			expectedResult:         []string{"--master=https://localhost:1234", "--unsupported-kube-api-over-localhost=true"},
 		},
 		{
 			name:                   "unsupportedFakeFlagsinJsonwithStringList",
-			inputUnsupportedConfig: []byte(fakeUnsupportedConfigArgsJson),
+			inputUnsupportedConfig: fakeUnsupportedConfigArgsJson,
 			expectedResult:         []string{"--fakeKey=value1", "--fakeKey=value2"},
 		},
 		{
 			name:                   "unmashalUnsupportedFakeFlagsinJson",
-			inputUnsupportedConfig: []byte(unmarshalFakeUnsupportedConfigArgsJson),
+			inputUnsupportedConfig: unmarshalFakeUnsupportedConfigArgsJson,
 			expectedResult:         nil,
 		},
 		{
