@@ -416,22 +416,22 @@ func TestGetSortedFeatureGates(t *testing.T) {
 	}
 }
 
-var unsupportedConfigOverridesSchedulerArgJSON = `
+var unsupportedConfigOverridesSchedulerArgJSON = []byte(`
 {
   "arguments": {
       "master": "https://localhost:1234"
   }
 }
-`
+`)
 
-var unsupportedConfigOverridesMultipleSchedulerArgsJSON = `
+var unsupportedConfigOverridesMultipleSchedulerArgsJSON = []byte(`
 {
   "arguments": {
       "master": "https://localhost:1234",
       "unsupported-kube-api-over-localhost": "true"
   }
 }
-`
+`)
 
 // newKubeSchedulerOperator creates a KubeScheduler operator with optional unsupported config overrides
 func newKubeSchedulerOperator(unsupportedConfigOverrides []byte) *operatorv1.KubeScheduler {
@@ -466,14 +466,14 @@ func TestManagePodToLatest(t *testing.T) {
 		{
 			name:       "an unsupported flag is passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_2.yaml",
-			operator:   newKubeSchedulerOperator([]byte(unsupportedConfigOverridesSchedulerArgJSON)),
+			operator:   newKubeSchedulerOperator(unsupportedConfigOverridesSchedulerArgJSON),
 		},
 
 		// scenario 3
 		{
 			name:       "unsupported flags are passed directly to the kube scheduler",
 			goldenFile: "./testdata/ks_pod_scenario_3.yaml",
-			operator:   newKubeSchedulerOperator([]byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON)),
+			operator:   newKubeSchedulerOperator(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
 		},
 	}
 
@@ -536,7 +536,7 @@ func TestManagePodToLatest(t *testing.T) {
 }
 
 // Added unit test for getUnsupportedFlagsFromConfig
-var fakeUnsupportedConfigArgsJson = `
+var fakeUnsupportedConfigArgsJson = []byte(`
 {
   "arguments": {
       "fakeKey": [
@@ -545,12 +545,12 @@ var fakeUnsupportedConfigArgsJson = `
 	  ]
   }
 }
-`
-var unmarshalFakeUnsupportedConfigArgsJson = `
+`)
+var unmarshalFakeUnsupportedConfigArgsJson = []byte(`
 {
   "arguments": {"fakeKey1", "fakeKey2"}
 }
-`
+`)
 
 func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	tests := []struct {
@@ -560,17 +560,17 @@ func TestGetUnsupportedFlagsFromConfig(t *testing.T) {
 	}{
 		{
 			name:                   "unsupportedFlagsinJson",
-			inputUnsupportedConfig: []byte(unsupportedConfigOverridesMultipleSchedulerArgsJSON),
+			inputUnsupportedConfig: unsupportedConfigOverridesMultipleSchedulerArgsJSON,
 			expectedResult:         []string{"--master=https://localhost:1234", "--unsupported-kube-api-over-localhost=true"},
 		},
 		{
 			name:                   "unsupportedFakeFlagsinJsonwithStringList",
-			inputUnsupportedConfig: []byte(fakeUnsupportedConfigArgsJson),
+			inputUnsupportedConfig: fakeUnsupportedConfigArgsJson,
 			expectedResult:         []string{"--fakeKey=value1", "--fakeKey=value2"},
 		},
 		{
 			name:                   "unmashalUnsupportedFakeFlagsinJson",
-			inputUnsupportedConfig: []byte(unmarshalFakeUnsupportedConfigArgsJson),
+			inputUnsupportedConfig: unmarshalFakeUnsupportedConfigArgsJson,
 			expectedResult:         nil,
 		},
 		{
