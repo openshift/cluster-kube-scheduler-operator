@@ -98,6 +98,48 @@ var configMapNoScoring = newSchedulerConfigConfigMap(schedConfigNoScoring)
 // data are checked separately
 var wantCM = newSchedulerConfigConfigMap("")
 
+var emptySchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{}
+
+var highNodeUtilizationSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+	{
+		SchedulerName: ptr.To[string]("default-scheduler"),
+		PluginConfig: []schedulerconfigv1.PluginConfig{
+			{
+				Name: "NodeResourcesFit",
+				Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
+			},
+		},
+		Plugins: &schedulerconfigv1.Plugins{
+			Score: schedulerconfigv1.PluginSet{
+				Enabled: []schedulerconfigv1.Plugin{
+					{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
+				},
+				Disabled: []schedulerconfigv1.Plugin{
+					{Name: "NodeResourcesBalancedAllocation"},
+				},
+			},
+		},
+	},
+}
+
+var noScoringSchedProfiles = []schedulerconfigv1.KubeSchedulerProfile{
+	{
+		SchedulerName: ptr.To[string]("default-scheduler"),
+		Plugins: &schedulerconfigv1.Plugins{
+			PreScore: schedulerconfigv1.PluginSet{
+				Disabled: []schedulerconfigv1.Plugin{
+					{Name: "*"},
+				},
+			},
+			Score: schedulerconfigv1.PluginSet{
+				Disabled: []schedulerconfigv1.Plugin{
+					{Name: "*"},
+				},
+			},
+		},
+	},
+}
+
 // newFakeSchedConfigLister creates a fakeSchedConfigLister with a single scheduler config
 func newFakeSchedConfigLister(name string, config *configv1.Scheduler) *fakeSchedConfigLister {
 	return &fakeSchedConfigLister{
@@ -129,7 +171,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				recorder:              fakeRecorder,
 				configSchedulerLister: newFakeSchedConfigLister("unknown", configLowNodeUtilization),
 			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			wantSchedProfiles: emptySchedProfiles,
 			want1:             false,
 			wantErr:           true,
 		},
@@ -139,7 +181,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				recorder:              fakeRecorder,
 				configSchedulerLister: newFakeSchedConfigLister("cluster", configUnknown),
 			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			wantSchedProfiles: emptySchedProfiles,
 			want1:             false,
 			wantErr:           true,
 		},
@@ -149,7 +191,7 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				recorder:              fakeRecorder,
 				configSchedulerLister: newFakeSchedConfigLister("cluster", configLowNodeUtilization),
 			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{},
+			wantSchedProfiles: emptySchedProfiles,
 			want1:             true,
 			wantErr:           false,
 		},
@@ -159,29 +201,9 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				recorder:              fakeRecorder,
 				configSchedulerLister: newFakeSchedConfigLister("cluster", configHighNodeUtilization),
 			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
-				{
-					SchedulerName: ptr.To[string]("default-scheduler"),
-					PluginConfig: []schedulerconfigv1.PluginConfig{
-						{
-							Name: "NodeResourcesFit",
-							Args: runtime.RawExtension{Raw: []uint8(`{"scoringStrategy":{"type":"MostAllocated"}}`)},
-						},
-					},
-					Plugins: &schedulerconfigv1.Plugins{
-						Score: schedulerconfigv1.PluginSet{
-							Enabled: []schedulerconfigv1.Plugin{
-								{Name: "NodeResourcesFit", Weight: ptr.To[int32](5)},
-							},
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "NodeResourcesBalancedAllocation"},
-							},
-						},
-					},
-				},
-			},
-			want1:   true,
-			wantErr: false,
+			wantSchedProfiles: highNodeUtilizationSchedProfiles,
+			want1:             true,
+			wantErr:           false,
 		},
 		{
 			name: "no-scoring",
@@ -189,25 +211,9 @@ func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 				recorder:              fakeRecorder,
 				configSchedulerLister: newFakeSchedConfigLister("cluster", configNoScoring),
 			},
-			wantSchedProfiles: []schedulerconfigv1.KubeSchedulerProfile{
-				{
-					SchedulerName: ptr.To[string]("default-scheduler"),
-					Plugins: &schedulerconfigv1.Plugins{
-						PreScore: schedulerconfigv1.PluginSet{
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "*"},
-							},
-						},
-						Score: schedulerconfigv1.PluginSet{
-							Disabled: []schedulerconfigv1.Plugin{
-								{Name: "*"},
-							},
-						},
-					},
-				},
-			},
-			want1:   true,
-			wantErr: false,
+			wantSchedProfiles: noScoringSchedProfiles,
+			want1:             true,
+			wantErr:           false,
 		},
 	}
 	for _, tt := range tests {
