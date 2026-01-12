@@ -150,7 +150,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 
 	// don't change any versions until we sync
 	versionRecorder := status.NewVersionGetter()
-	clusterOperator, err := configClient.ConfigV1().ClusterOperators().Get(ctx, "kube-scheduler-operator", metav1.GetOptions{})
+	clusterOperator, err := configClient.ConfigV1().ClusterOperators().Get(ctx, "kube-scheduler", metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
