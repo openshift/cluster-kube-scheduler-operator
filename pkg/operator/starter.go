@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/staleconditions"
 	"github.com/openshift/library-go/pkg/operator/staticpod"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer"
@@ -204,17 +203,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.Clock,
 	)
 
-	staleConditions := staleconditions.NewRemoveStaleConditionsController(
-		"kube-controller-manager",
-		[]string{
-			// the static pod operator used to directly set these. this removes those conditions since the static pod operator was updated.
-			// these can be removed in 4.5
-			"Available", "Progressing",
-		},
-		operatorClient,
-		cc.EventRecorder,
-	)
-
 	configmetrics.Register(configInformers)
 
 	kubeInformersForNamespaces.Start(ctx.Done())
@@ -227,7 +215,6 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go targetConfigController.Run(ctx, 1)
 	go configObserver.Run(ctx, 1)
 	go clusterOperatorStatus.Run(ctx, 1)
-	go staleConditions.Run(ctx, 1)
 
 	<-ctx.Done()
 	return nil
