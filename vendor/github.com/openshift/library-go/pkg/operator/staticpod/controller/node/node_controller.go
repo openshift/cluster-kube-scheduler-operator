@@ -86,7 +86,7 @@ func (c *NodeController) sync(ctx context.Context, syncCtx factory.SyncContext) 
 
 	jsonPatch := jsonpatch.New()
 	var removedNodeStatusesCounter int
-	newTargetNodeStates := []*applyoperatorv1.NodeStatusApplyConfiguration{}
+	var newTargetNodeStates []*applyoperatorv1.NodeStatusApplyConfiguration
 	// remove entries for missing nodes
 	for i, nodeState := range originalOperatorStatus.NodeStatuses {
 		found := false
@@ -96,8 +96,7 @@ func (c *NodeController) sync(ctx context.Context, syncCtx factory.SyncContext) 
 			}
 		}
 		if found {
-			newTargetNodeState := applyoperatorv1.NodeStatus().WithNodeName(originalOperatorStatus.NodeStatuses[i].NodeName)
-			newTargetNodeStates = append(newTargetNodeStates, newTargetNodeState)
+			newTargetNodeStates = append(newTargetNodeStates, nodeStatusApplyConfiguration(&nodeState))
 		} else {
 			syncCtx.Recorder().Warningf("MasterNodeRemoved", "Observed removal of master node %s", nodeState.NodeName)
 			// each delete operation is applied to the object,
@@ -195,4 +194,22 @@ func nodeConditionFinder(status *coreapiv1.NodeStatus, condType coreapiv1.NodeCo
 	}
 
 	return nil
+}
+
+func nodeStatusApplyConfiguration(nodeStatus *operatorv1.NodeStatus) *applyoperatorv1.NodeStatusApplyConfiguration {
+	patch := applyoperatorv1.NodeStatus().
+		WithNodeName(nodeStatus.NodeName).
+		WithCurrentRevision(nodeStatus.CurrentRevision).
+		WithTargetRevision(nodeStatus.TargetRevision).
+		WithLastFailedRevision(nodeStatus.LastFailedRevision).
+		WithLastFailedRevisionErrors(nodeStatus.LastFailedRevisionErrors...).
+		WithLastFailedCount(nodeStatus.LastFailedCount).
+		WithLastFailedReason(nodeStatus.LastFailedReason).
+		WithLastFallbackCount(nodeStatus.LastFallbackCount)
+
+	if nodeStatus.LastFailedTime != nil {
+		patch = patch.WithLastFailedTime(*nodeStatus.LastFailedTime)
+	}
+
+	return patch
 }
