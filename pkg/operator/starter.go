@@ -138,6 +138,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	targetConfigController := targetconfigcontroller.NewTargetConfigController(
 		os.Getenv("IMAGE"),
 		os.Getenv("OPERATOR_IMAGE"),
+		os.Getenv("OPERATOR_IMAGE_VERSION"),
 		featureGates,
 		operatorClient,
 		kubeInformersForNamespaces,
