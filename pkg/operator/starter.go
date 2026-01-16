@@ -115,7 +115,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	)
 
 	staticResourceController := staticresourcecontroller.NewStaticResourceController(
-		"KubeControllerManagerStaticResources",
+		"KubeSchedulerStaticResources",
 		bindata.Asset,
 		[]string{
 			"assets/kube-scheduler/ns.yaml",
