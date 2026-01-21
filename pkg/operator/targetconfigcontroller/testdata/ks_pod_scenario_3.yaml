@@ -137,6 +137,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: OPERATOR_IMAGE_VERSION
+          value: "0.0.1-snaphot"
       resources:
         requests:
           cpu: 5m

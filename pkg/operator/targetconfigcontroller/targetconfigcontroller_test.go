@@ -485,6 +485,7 @@ func TestManagePodToLatest(t *testing.T) {
 				&scenario.operator.Spec.StaticPodOperatorSpec,
 				"CaptainAmerica",
 				"Piper",
+				"0.0.1-snaphot",
 				configSchedulerLister)
 
 			// validate
@@ -761,6 +762,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 			targetConfigController := NewTargetConfigController(
 				"test-image",
 				"test-operator-image",
+				"0.0.1-snaphot",
 				featuregates.NewFeatureGate(nil, nil),
 				fakeOperatorClient,
 				kubeInformersForNamespaces,
