@@ -42,6 +42,7 @@ import (
 type TargetConfigController struct {
 	targetImagePullSpec   string
 	operatorImagePullSpec string
+	operatorImageVersion  string
 	featureGates          featuregates.FeatureGate
 	operatorClient        v1helpers.StaticPodOperatorClient
 	kubeClient            kubernetes.Interface
@@ -51,7 +52,7 @@ type TargetConfigController struct {
 }
 
 func NewTargetConfigController(
-	targetImagePullSpec, operatorImagePullSpec string,
+	targetImagePullSpec, operatorImagePullSpec, operatorImageVersion string,
 	featureGates featuregates.FeatureGate,
 	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
@@ -63,6 +64,7 @@ func NewTargetConfigController(
 	c := &TargetConfigController{
 		targetImagePullSpec:   targetImagePullSpec,
 		operatorImagePullSpec: operatorImagePullSpec,
+		operatorImageVersion:  operatorImageVersion,
 		featureGates:          featureGates,
 		kubeClient:            kubeClient,
 		configMapLister:       kubeInformersForNamespaces.ConfigMapLister(),
@@ -139,7 +141,7 @@ func createTargetConfigController_v311_00_to_latest(ctx context.Context, syncCtx
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/scheduler-kubeconfig", err))
 	}
-	_, _, err = managePod_v311_00_to_latest(ctx, c.featureGates, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.configSchedulerLister)
+	_, _, err = managePod_v311_00_to_latest(ctx, c.featureGates, c.kubeClient.CoreV1(), c.kubeClient.CoreV1(), syncCtx.Recorder(), operatorSpec, c.targetImagePullSpec, c.operatorImagePullSpec, c.operatorImageVersion, c.configSchedulerLister)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q: %v", "configmap/kube-scheduler-pod", err))
 	}
@@ -237,7 +239,7 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, feature
 	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
-func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.FeatureGate, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec string, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
+func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.FeatureGate, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec, operatorImageVersion string, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod.yaml"))
 	images := map[string]string{
 		"${IMAGE}":          imagePullSpec,
@@ -328,6 +330,18 @@ func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.
 		klog.Warningf("failed on getting arguments from UnsupportedConfigOverrides config due to %v", err)
 	} else if len(unsupportedArgs) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, unsupportedArgs...)
+	}
+
+	// Set operator image version. This is currently only used to always deploy the pod during upgrade,
+	// causing Progressing=True to be shown as expected.
+	for i, container := range required.Spec.Containers {
+		if container.Name != "kube-scheduler-recovery-controller" {
+			continue
+		}
+		required.Spec.Containers[i].Env = append(container.Env, corev1.EnvVar{
+			Name:  "OPERATOR_IMAGE_VERSION",
+			Value: operatorImageVersion,
+		})
 	}
 
 	configMap := resourceread.ReadConfigMapV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod-cm.yaml"))
