@@ -119,3 +119,6 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+// resourcesync-apply-conflic
+replace github.com/openshift/library-go => github.com/tchap/library-go v0.0.0-20260127131140-790884a3bba2
