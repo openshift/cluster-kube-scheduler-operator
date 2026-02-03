@@ -21,3 +21,7 @@ tags
 telepresence.log
 
 cluster-kube-scheduler-operator
+
+# Test binaries
+cluster-kube-scheduler-operator-tests-ext
+e2e.test

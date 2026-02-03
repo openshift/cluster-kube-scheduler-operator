@@ -81,6 +81,16 @@ func prepareOperatorTestsRegistry() (*oteextension.Registry, error) {
 		},
 	})
 
+	// Register parallel operator tests using Ginkgo framework
+	// These tests are tagged with [Parallel] and [Operator] labels
+	extension.AddSuite(oteextension.Suite{
+		Name:        "openshift/cluster-kube-scheduler-operator/operator/parallel",
+		Parallelism: 10,
+		Qualifiers: []string{
+			`name.contains("[Parallel]") && name.contains("[Operator]")`,
+		},
+	})
+
 	specs, err := oteginkgo.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
 	if err != nil {
 		return nil, fmt.Errorf("couldn't build extension test specs from ginkgo: %w", err)
