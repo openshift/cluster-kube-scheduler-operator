@@ -24,6 +24,7 @@ spec:
   selector:
     matchLabels:
       app: openshift-kube-scheduler-operator
+  serviceDiscoveryRole: EndpointSlice
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
