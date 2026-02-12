@@ -318,10 +318,11 @@ make build
 
 ### Available Test Suites
 
-The e2e tests are organized into two suites based on their execution requirements:
+The e2e tests are organized into multiple suites based on their execution requirements:
 
 - **`openshift/cluster-kube-scheduler-operator/operator/serial`** - Tests that modify cluster-scoped resources (Scheduler CR) and must run sequentially (Parallelism: 1)
 - **`openshift/cluster-kube-scheduler-operator/operator/parallel`** - Tests that are isolated and can run concurrently (Parallelism: 10)
+- **`openshift/cluster-kube-scheduler-operator/preferred-host/serial`** - Tests that verify KubeScheduler communication with kube-apiserver over preferred host (Parallelism: 1)
 
 ### Running test suites and tests
 
@@ -331,6 +332,9 @@ The e2e tests are organized into two suites based on their execution requirement
 
 # Run parallel test suite (isolated tests)
 ./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/operator/parallel
+
+# Run preferred-host test suite
+./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/preferred-host/serial --max-parallel-tests=1
 
 # Run a specific test by name
 ./cluster-kube-scheduler-operator-tests-ext run-test "[sig-scheduling] kube scheduler operator [Operator][Serial] should create configmap when scheduler CR is updated"
@@ -358,5 +362,6 @@ Tests are tagged with the following labels to determine their execution suite:
 
 - **`[Operator][Serial]`** - Tests that modify shared cluster resources and must run sequentially
 - **`[Operator][Parallel]`** - Tests that are isolated and can run concurrently
+- **`[PreferredHost][Serial]`** - Tests that verify KubeScheduler communication with kube-apiserver over preferred host
 
 For more information about the OTE framework, see the [openshift-tests-extension documentation](https://github.com/openshift-eng/openshift-tests-extension).

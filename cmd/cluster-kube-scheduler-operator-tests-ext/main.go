@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
 
 	_ "github.com/openshift/cluster-kube-scheduler-operator/test/e2e"
+	_ "github.com/openshift/cluster-kube-scheduler-operator/test/e2e-preferred-host"
 
 	"k8s.io/klog/v2"
 )
@@ -88,6 +89,17 @@ func prepareOperatorTestsRegistry() (*oteextension.Registry, error) {
 		Parallelism: 10,
 		Qualifiers: []string{
 			`name.contains("[Parallel]") && name.contains("[Operator]")`,
+		},
+	})
+
+	// Register preferred-host tests that verify KubeScheduler communication with
+	// kube-apiserver over preferred host. These tests are serial as they modify
+	// cluster-scoped KubeScheduler operator configuration.
+	extension.AddSuite(oteextension.Suite{
+		Name:        "openshift/cluster-kube-scheduler-operator/preferred-host/serial",
+		Parallelism: 1,
+		Qualifiers: []string{
+			`name.contains("[PreferredHost]") && name.contains("[Serial]")`,
 		},
 	})
 
