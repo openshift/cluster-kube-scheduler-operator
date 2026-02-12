@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -13,8 +12,8 @@ import (
 	operatorversionedclient "github.com/openshift/client-go/operator/clientset/versioned"
 	operatorclientv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
+	test "github.com/openshift/cluster-kube-scheduler-operator/test/library"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,25 +81,7 @@ func getOpenShiftRouteClient() (*routeclient.Clientset, error) {
 }
 
 func waitForOperator(ctx context.Context, kclient *k8sclient.Clientset) error {
-	return wait.PollImmediate(1*time.Second, 10*time.Minute, func() (bool, error) {
-		d, err := kclient.AppsV1().Deployments("openshift-kube-scheduler-operator").Get(ctx, "openshift-kube-scheduler-operator", metav1.GetOptions{})
-		if err != nil {
-			klog.Infof("error waiting for operator deployment to exist: %v\n", err)
-			return false, nil
-		}
-		fmt.Println("found operator deployment")
-		if d.Status.Replicas < 1 {
-			klog.Infof("operator deployment has no replicas")
-			return false, nil
-		}
-		for _, s := range d.Status.Conditions {
-			if s.Type == appsv1.DeploymentAvailable && s.Status == corev1.ConditionTrue {
-				return true, nil
-			}
-		}
-		klog.Infof("deployment is not yet available: %#v\n", d)
-		return false, nil
-	})
+	return test.WaitForOperator(ctx, kclient)
 }
 
 func createSchedulerConfigMap(ctx context.Context, kclient *k8sclient.Clientset) (*corev1.ConfigMap, error) {
