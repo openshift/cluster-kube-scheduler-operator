@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"math/rand"
 	"net"
 	"net/url"
@@ -12,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,20 +48,36 @@ var (
 	nsCreationPollInterval = 2 * time.Second
 )
 
-func TestKSTalksOverPreferredToKas(t *testing.T) {
+var _ = g.Describe("[sig-scheduling] kube scheduler operator", func() {
+	g.It("[PreferredHost][Serial] should communicate with kube-apiserver over preferred host", func() {
+		testKSTalksOverPreferredToKas(g.GinkgoTB())
+	})
+})
+
+func testKSTalksOverPreferredToKas(t testing.TB) {
 	// test data
 	kubeConfig, err := test.NewClientConfigForTest()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get kubeconfig: %v", err)
+	}
 	kubeClient, err := clientset.NewForConfig(kubeConfig)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get kubeclient: %v", err)
+	}
 	operatorClientSet, err := operatorv1client.NewForConfig(kubeConfig)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get operator client: %v", err)
+	}
 	ksoOperator := operatorClientSet.KubeSchedulers()
 	ksoOperatorConfig, err := ksoOperator.Get(context.TODO(), "cluster", metav1.GetOptions{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get kube scheduler operator config: %v", err)
+	}
 
 	openShiftConfigClient, err := configv1client.NewForConfig(kubeConfig)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get openshift config client: %v", err)
+	}
 
 	t.Log("getting the current Kube API host")
 	scheme, host := readCurrentKubeAPIHostAndScheme(t, openShiftConfigClient)
@@ -75,16 +91,22 @@ func TestKSTalksOverPreferredToKas(t *testing.T) {
 	}
 
 	raw, err := json.Marshal(data)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to marshal unsupported config overrides: %v", err)
+	}
 	ksoOperatorConfig.Spec.UnsupportedConfigOverrides.Raw = raw
 	_, err = ksoOperator.Update(context.TODO(), ksoOperatorConfig, metav1.UpdateOptions{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to update kube scheduler operator config: %v", err)
+	}
 	testlibrary.WaitForPodsToStabilizeOnTheSameRevision(t, kubeClient.CoreV1().Pods(operatorclient.TargetNamespace), "scheduler=true", waitForKSRevisionSuccessThreshold, waitForKSRevisionSuccessInterval, waitForKSRevisionPollInterval, waitForKSRevisionTimeout)
 
 	// act
 	t.Log("creating a namespace and waiting for a pod to be scheduled")
 	testNs, err := createTestingNS(t, "kso-preferred-host", kubeClient)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create test namespace: %v", err)
+	}
 	runAsNonRoot := true
 	allowPrivilegeEscalation := false
 	_, err = kubeClient.CoreV1().Pods(testNs.Name).Create(
@@ -118,14 +140,42 @@ func TestKSTalksOverPreferredToKas(t *testing.T) {
 			},
 		},
 		metav1.CreateOptions{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create test pod: %v", err)
+	}
 	err = waitForPodInNamespace(kubeClient, testNs.Name, "kso-e2e-preferred-host")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed waiting for pod to be scheduled: %v", err)
+	}
+
+	// Cleanup: Reset the KubeScheduler operator config
+	t.Log("cleaning up: resetting KubeScheduler operator config")
+	ksoOperatorConfig, err = ksoOperator.Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("failed to get kube scheduler operator config for cleanup: %v", err)
+	}
+	ksoOperatorConfig.Spec.UnsupportedConfigOverrides.Raw = nil
+	_, err = ksoOperator.Update(context.TODO(), ksoOperatorConfig, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("failed to reset kube scheduler operator config: %v", err)
+	}
+
+	// Wait for operator to stabilize after config reset
+	testlibrary.WaitForPodsToStabilizeOnTheSameRevision(t, kubeClient.CoreV1().Pods(operatorclient.TargetNamespace), "scheduler=true", waitForKSRevisionSuccessThreshold, waitForKSRevisionSuccessInterval, waitForKSRevisionPollInterval, waitForKSRevisionTimeout)
+
+	// Cleanup: Delete the test namespace
+	t.Logf("cleaning up: deleting test namespace %s", testNs.Name)
+	err = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), testNs.Name, metav1.DeleteOptions{})
+	if err != nil {
+		t.Logf("warning: failed to delete test namespace %s: %v", testNs.Name, err)
+	}
 }
 
-func readCurrentKubeAPIHostAndScheme(t *testing.T, openShiftClientSet configv1client.Interface) (string, string) {
+func readCurrentKubeAPIHostAndScheme(t testing.TB, openShiftClientSet configv1client.Interface) (string, string) {
 	infra, err := openShiftClientSet.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to get infrastructure: %v", err)
+	}
 
 	apiServerInternalURL := infra.Status.APIServerInternalURL
 	if len(apiServerInternalURL) == 0 {
@@ -149,7 +199,7 @@ func readCurrentKubeAPIHostAndScheme(t *testing.T, openShiftClientSet configv1cl
 // createTestingNS should be used by every test, note that we append a common prefix to the provided test name.
 // Please see NewFramework instead of using this directly.
 // note this method has been copied from k/k repo
-func createTestingNS(t *testing.T, baseName string, c clientset.Interface) (*v1.Namespace, error) {
+func createTestingNS(t testing.TB, baseName string, c clientset.Interface) (*v1.Namespace, error) {
 	// We don't use ObjectMeta.GenerateName feature, as in case of API call
 	// failure we don't know whether the namespace was created and what is its
 	// name.
