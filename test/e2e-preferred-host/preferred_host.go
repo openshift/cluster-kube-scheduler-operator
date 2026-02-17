@@ -49,7 +49,7 @@ var (
 )
 
 var _ = g.Describe("[sig-scheduling] kube scheduler operator", func() {
-	g.It("[PreferredHost][Serial] should communicate with kube-apiserver over preferred host", func() {
+	g.It("[PreferredHost][Serial] should communicate with kube-apiserver over preferred host [Timeout:30m]", func() {
 		testKSTalksOverPreferredToKas(g.GinkgoTB())
 	})
 })
