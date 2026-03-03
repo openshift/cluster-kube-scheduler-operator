@@ -1,0 +1,37 @@
+# Network policy for all pods in the openshift-kube-scheduler namespace.
+# The kube-scheduler itself runs with hostNetwork: true, so network policies
+# have no practical effect on it; however, non-hostNetwork pods (installer,
+# pruner) also run here and need DNS and API server access.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openshift-kube-scheduler
+  namespace: openshift-kube-scheduler
+spec:
+  # Applies to all pods in the namespace; the kube-scheduler uses hostNetwork
+  # so it is unaffected, but installer and pruner pods need these rules.
+  podSelector: {}
+  ingress:
+  # Allow metrics scraping and health checks to kube-scheduler pods
+  - ports:
+    - protocol: TCP
+      port: 10259
+  egress:
+  # Allow DNS resolution via the cluster DNS service
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-dns
+      podSelector:
+        matchLabels:
+          dns.operator.openshift.io/daemonset-dns: default
+    ports:
+    - protocol: TCP
+      port: 5353
+    - protocol: UDP
+      port: 5353
+  # Kubernetes API server; no port restriction since it may run on non-standard ports
+  - {}
+  policyTypes:
+  - Ingress
+  - Egress
