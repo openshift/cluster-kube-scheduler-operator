@@ -1,0 +1,13 @@
+# Default deny-all network policy for the openshift-kube-scheduler-operator
+# namespace. Denies all ingress and egress traffic for all pods in the
+# namespace unless explicitly allowed by other network policies.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: openshift-kube-scheduler-operator
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
