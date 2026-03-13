@@ -1,0 +1,40 @@
+# Network policy for the kube-scheduler operator pod in the
+# openshift-kube-scheduler-operator namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-scheduler-operator
+  namespace: openshift-kube-scheduler-operator
+  annotations:
+    include.release.openshift.io/hypershift: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
+spec:
+  podSelector:
+    matchLabels:
+      app: openshift-kube-scheduler-operator
+  ingress:
+  # Metrics scraping (TCP 8443) from any source
+  - ports:
+    - protocol: TCP
+      port: 8443
+  egress:
+  # Allow DNS resolution via the cluster DNS service
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-dns
+      podSelector:
+        matchLabels:
+          dns.operator.openshift.io/daemonset-dns: default
+    ports:
+    - protocol: TCP
+      port: 5353
+    - protocol: UDP
+      port: 5353
+  # Kubernetes API server; no port restriction since it may run on non-standard ports
+  - {}
+  policyTypes:
+  - Ingress
+  - Egress
