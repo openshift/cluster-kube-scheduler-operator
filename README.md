@@ -365,3 +365,20 @@ Tests are tagged with the following labels to determine their execution suite:
 - **`[PreferredHost][Serial]`** - Tests that verify KubeScheduler communication with kube-apiserver over preferred host
 
 For more information about the OTE framework, see the [openshift-tests-extension documentation](https://github.com/openshift-eng/openshift-tests-extension).
+
+
+
+
+
+  # Set KUBECONFIG
+  export KUBECONFIG=/home/yinzhou/kubeconfig
+
+  # Run all NetworkPolicy tests
+  go test ./test/e2e -v --ginkgo.focus="NetworkPolicy" -timeout 30m
+
+  # Run specific tests
+  go test ./test/e2e -v --ginkgo.focus="should ensure kube scheduler NetworkPolicies are defined" -timeout 10m
+  go test ./test/e2e -v --ginkgo.focus="should restore kube scheduler NetworkPolicies" -timeout 30m
+  go test ./test/e2e -v --ginkgo.focus="should enforce generic NetworkPolicies" -timeout 10m
+  go test ./test/e2e -v --ginkgo.focus="should enforce kube scheduler NetworkPolicies" -timeout 10m
+
