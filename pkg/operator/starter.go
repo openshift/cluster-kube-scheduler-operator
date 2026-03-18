@@ -119,6 +119,8 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		bindata.Asset,
 		[]string{
 			"assets/kube-scheduler/ns.yaml",
+			"assets/kube-scheduler/networkpolicy_installer-pruner.yaml",
+			"assets/kube-scheduler/networkpolicy_default-deny-all.yaml",
 			"assets/kube-scheduler/kubeconfig-cert-syncer.yaml",
 			"assets/kube-scheduler/leader-election-rolebinding.yaml",
 			"assets/kube-scheduler/scheduler-clusterrolebinding.yaml",
