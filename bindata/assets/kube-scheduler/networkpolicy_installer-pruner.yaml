@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: installer-pruner
+  namespace: openshift-kube-scheduler
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - installer
+      - pruner
+  egress:
+  # Allow DNS resolution via the cluster DNS service
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-dns
+      podSelector:
+        matchLabels:
+          dns.operator.openshift.io/daemonset-dns: default
+    ports:
+    - protocol: TCP
+      port: 5353
+    - protocol: UDP
+      port: 5353
+  # Kubernetes API server; no port restriction since it may run on non-standard ports
+  - {}
+  policyTypes:
+  - Egress
