@@ -51,6 +51,8 @@ spec:
       name: resource-dir
     - mountPath: /etc/kubernetes/static-pod-certs
       name: cert-dir
+    - mountPath: /var/run/kubernetes
+      name: var-run-kubernetes
     livenessProbe:
       httpGet:
         scheme: HTTPS
@@ -127,3 +129,5 @@ spec:
   - hostPath:
       path: /etc/kubernetes/static-pod-resources/kube-scheduler-certs
     name: cert-dir
+  - emptyDir: {}
+    name: var-run-kubernetes
