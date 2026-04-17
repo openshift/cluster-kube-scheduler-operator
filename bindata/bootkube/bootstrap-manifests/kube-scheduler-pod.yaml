@@ -32,6 +32,8 @@ spec:
       readOnly: true
     - mountPath: /var/log/bootstrap-control-plane
       name: logs
+    - mountPath: /var/run/kubernetes
+      name: var-run-kubernetes
   hostNetwork: true
   volumes:
   - hostPath:
@@ -40,3 +42,5 @@ spec:
   - hostPath:
       path: /var/log/bootstrap-control-plane
     name: logs
+  - emptyDir: {}
+    name: var-run-kubernetes
