@@ -42,6 +42,8 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+const guardControllerDegradedConditionType = "GuardControllerDegraded"
+
 func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error {
 	kubeClient, err := kubernetes.NewForConfig(cc.ProtoKubeConfig)
 	if err != nil {
@@ -234,6 +236,9 @@ func newDegradedInertia() status.Inertia {
 		// Similarly, applying static pods to nodes that are being restarted may temporarily fail.
 		// Use a longer inertia to avoid flapping the ClusterOperator Degraded condition.
 		inertiaForCondition(condition.StaticPodsDegradedConditionType, 10*time.Minute),
+		// Guard pods and PDBs may temporarily fail to reconcile during upgrades while nodes restart.
+		// Use a longer inertia to avoid flapping the ClusterOperator Degraded condition.
+		inertiaForCondition(guardControllerDegradedConditionType, 10*time.Minute),
 	).Inertia
 }
 
