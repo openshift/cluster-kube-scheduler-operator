@@ -308,60 +308,8 @@ I0105 03:32:31.936642       1 dumper.go:52] "Dump of cached NodeInfo" nodes=<
 
 ## Tests
 
-This repository is compatible with the [OpenShift Tests Extension (OTE)](https://github.com/openshift-eng/openshift-tests-extension) framework.
+See [CONTRIBUTING.md#openshift-tests-extension-ote](CONTRIBUTING.md#openshift-tests-extension-ote) for how to build and run the test binary.
 
-### Building the test binary
+## Contributing
 
-```bash
-make build
-```
-
-### Available Test Suites
-
-The e2e tests are organized into multiple suites based on their execution requirements:
-
-- **`openshift/cluster-kube-scheduler-operator/operator/serial`** - Tests that modify cluster-scoped resources (Scheduler CR) and must run sequentially (Parallelism: 1)
-- **`openshift/cluster-kube-scheduler-operator/operator/parallel`** - Tests that are isolated and can run concurrently (Parallelism: 10)
-- **`openshift/cluster-kube-scheduler-operator/preferred-host/serial`** - Tests that verify KubeScheduler communication with kube-apiserver over preferred host (Parallelism: 1)
-
-### Running test suites and tests
-
-```bash
-# Run serial test suite (tests that modify cluster-scoped resources)
-./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/operator/serial --max-parallel-tests=1
-
-# Run parallel test suite (isolated tests)
-./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/operator/parallel
-
-# Run preferred-host test suite
-./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/preferred-host/serial --max-parallel-tests=1
-
-# Run a specific test by name
-./cluster-kube-scheduler-operator-tests-ext run-test "[sig-scheduling] kube scheduler operator [Operator][Serial] should create configmap when scheduler CR is updated"
-
-# Run with JUnit output
-./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/operator/serial --junit-path /tmp/junit-serial.xml
-
-# Run with verbose logging
-./cluster-kube-scheduler-operator-tests-ext run-suite openshift/cluster-kube-scheduler-operator/operator/serial -v 4
-```
-
-### Listing available tests and suites
-
-```bash
-# List all test suites
-./cluster-kube-scheduler-operator-tests-ext list suites
-
-# List all available tests
-./cluster-kube-scheduler-operator-tests-ext list tests
-```
-
-### Test Categorization
-
-Tests are tagged with the following labels to determine their execution suite:
-
-- **`[Operator][Serial]`** - Tests that modify shared cluster resources and must run sequentially
-- **`[Operator][Parallel]`** - Tests that are isolated and can run concurrently
-- **`[PreferredHost][Serial]`** - Tests that verify KubeScheduler communication with kube-apiserver over preferred host
-
-For more information about the OTE framework, see the [openshift-tests-extension documentation](https://github.com/openshift-eng/openshift-tests-extension).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, code conventions, testing requirements, and the pull request process.
