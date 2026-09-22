@@ -756,6 +756,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 				configInformers,
 				&fakeResourceSyncer{},
 				eventRecorder,
+				featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"TLSGroupPreferences"}),
 			)
 
 			// Create target config controller - this registers event handlers with informers
@@ -763,7 +764,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 				"test-image",
 				"test-operator-image",
 				"0.0.1-snaphot",
-				featuregates.NewFeatureGate(nil, nil),
+				featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"TLSGroupPreferences"}),
 				fakeOperatorClient,
 				kubeInformersForNamespaces,
 				configInformers,

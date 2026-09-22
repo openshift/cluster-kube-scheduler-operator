@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/version"
 	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/certrotation"
 	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -214,6 +216,14 @@ func manageKubeSchedulerConfigMap_v311_00_to_latest(ctx context.Context, feature
 	return resourceapply.ApplyConfigMap(ctx, client, recorder, requiredConfigMap)
 }
 
+func int32sToStrings(nums []int32) []string {
+	strs := make([]string, len(nums))
+	for i, n := range nums {
+		strs[i] = strconv.Itoa(int(n))
+	}
+	return strs
+}
+
 func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.FeatureGate, configMapsGetter corev1client.ConfigMapsGetter, secretsGetter corev1client.SecretsGetter, recorder events.Recorder, operatorSpec *operatorv1.StaticPodOperatorSpec, imagePullSpec, operatorImagePullSpec, operatorImageVersion string, configSchedulerLister configlistersv1.SchedulerLister) (*corev1.ConfigMap, bool, error) {
 	required := resourceread.ReadPodV1OrDie(bindata.MustAsset("assets/kube-scheduler/pod.yaml"))
 	images := map[string]string{
@@ -290,12 +300,25 @@ func managePod_v311_00_to_latest(ctx context.Context, featureGates featuregates.
 		return nil, false, fmt.Errorf("couldn't get the servingInfo.minTLSVersion config from observedConfig: %v", err)
 	}
 
+	groups, groupsFound, err := unstructured.NestedStringSlice(observedConfig, "servingInfo", "groups")
+	if err != nil {
+		return nil, false, fmt.Errorf("couldn't get the servingInfo.groups config from observedConfig: %v", err)
+	}
+
 	if cipherSuitesFound && len(cipherSuites) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-cipher-suites=%s", strings.Join(cipherSuites, ",")))
 	}
 
 	if minTLSVersionFound && len(minTLSVersion) > 0 {
 		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-min-version=%s", minTLSVersion))
+	}
+
+	if groupsFound && len(groups) > 0 {
+		curvePreferences, unrecognizedGroups := crypto.TLSGroupsToCurvePreferences(groups)
+		if len(unrecognizedGroups) > 0 {
+			return nil, false, fmt.Errorf("unrecognized groups when reading curve preferences: %v", err)
+		}
+		required.Spec.Containers[0].Args = append(required.Spec.Containers[0].Args, fmt.Sprintf("--tls-curve-preferences=%s", strings.Join(int32sToStrings(curvePreferences), ",")))
 	}
 
 	// for now only unsupported config is supported

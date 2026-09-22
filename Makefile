@@ -24,6 +24,8 @@ $(call build-image,ocp-cluster-kube-scheduler-operator,$(IMAGE_REGISTRY)/ocp/4.2
 
 $(call verify-golang-versions,Dockerfile.ocp)
 
+build: GO_BUILD_FLAGS += -tags=no_openssl
+
 e2e: GO_TEST_PACKAGES :=./test/e2e
 e2e: GO_TEST_FLAGS += -timeout 1h
 e2e: test-unit

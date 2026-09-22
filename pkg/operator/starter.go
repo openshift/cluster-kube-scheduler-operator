@@ -114,6 +114,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		configInformers,
 		resourceSyncController,
 		cc.EventRecorder,
+		featureGates,
 	)
 
 	staticResourceController := staticresourcecontroller.NewStaticResourceController(
