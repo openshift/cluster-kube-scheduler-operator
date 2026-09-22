@@ -182,6 +182,46 @@ func newFakeSchedConfigLister(name string, config *configv1.Scheduler) *fakeSche
 	}
 }
 
+// newAPIServerWithTLSGroups creates an APIServer with a custom TLS security profile
+// The MinTLSVersion is always set to VersionTLS12 and ciphers are predefined.
+// Pass nil for groups to create a profile without groups.
+func newAPIServerWithTLSGroups(groups []configv1.TLSGroup) *configv1.APIServer {
+	return &configv1.APIServer{
+		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+		Spec: configv1.APIServerSpec{
+			TLSSecurityProfile: &configv1.TLSSecurityProfile{
+				Type: configv1.TLSProfileCustomType,
+				Custom: &configv1.CustomTLSProfile{
+					TLSProfileSpec: configv1.TLSProfileSpec{
+						Ciphers: []string{
+							"ECDHE-ECDSA-AES128-GCM-SHA256",
+							"ECDHE-RSA-AES128-GCM-SHA256",
+						},
+						MinTLSVersion: configv1.VersionTLS12,
+						Groups:        groups,
+					},
+				},
+			},
+		},
+	}
+}
+
+// decodeSchedulerPod extracts and decodes the scheduler pod from a ConfigMap
+func decodeSchedulerPod(t *testing.T, configMap *corev1.ConfigMap) *corev1.Pod {
+	t.Helper()
+	rawSchedulerPod, exist := configMap.Data["pod.yaml"]
+	if !exist {
+		t.Fatal("didn't find pod.yaml")
+	}
+
+	actualSchedulerPod := &corev1.Pod{}
+	if err := runtime.DecodeInto(codec, []byte(rawSchedulerPod), actualSchedulerPod); err != nil {
+		t.Fatal(err)
+	}
+
+	return actualSchedulerPod
+}
+
 func Test_manageKubeSchedulerConfigMap_v311_00_to_latest(t *testing.T) {
 
 	tests := []struct {
@@ -493,15 +533,7 @@ func TestManagePodToLatest(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			rawSchedulerPod, exist := actualConfigMap.Data["pod.yaml"]
-			if !exist {
-				t.Fatal("didn't find pod.yaml")
-			}
-
-			actualSchedulerPod := &corev1.Pod{}
-			if err := runtime.DecodeInto(codec, []byte(rawSchedulerPod), actualSchedulerPod); err != nil {
-				t.Fatal(err)
-			}
+			actualSchedulerPod := decodeSchedulerPod(t, actualConfigMap)
 
 			data := readBytesFromFile(t, scenario.goldenFile)
 			goldenSchedulerPod := &corev1.Pod{}
@@ -701,24 +733,8 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 			expectedMinTLSVer:    fmt.Sprintf("--tls-min-version=%s", intermediateProfile.MinTLSVersion),
 		},
 		{
-			name: "APIServer with TLS security profile",
-			apiServer: &configv1.APIServer{
-				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-				Spec: configv1.APIServerSpec{
-					TLSSecurityProfile: &configv1.TLSSecurityProfile{
-						Type: configv1.TLSProfileCustomType,
-						Custom: &configv1.CustomTLSProfile{
-							TLSProfileSpec: configv1.TLSProfileSpec{
-								Ciphers: []string{
-									"ECDHE-ECDSA-AES128-GCM-SHA256",
-									"ECDHE-RSA-AES128-GCM-SHA256",
-								},
-								MinTLSVersion: configv1.VersionTLS12,
-							},
-						},
-					},
-				},
-			},
+			name:                 "APIServer with TLS security profile",
+			apiServer:            newAPIServerWithTLSGroups(nil),
 			expectedCipherSuites: "--tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 			expectedMinTLSVer:    "--tls-min-version=VersionTLS12",
 		},
@@ -756,6 +772,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 				configInformers,
 				&fakeResourceSyncer{},
 				eventRecorder,
+				featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"TLSGroupPreferences"}),
 			)
 
 			// Create target config controller - this registers event handlers with informers
@@ -763,7 +780,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 				"test-image",
 				"test-operator-image",
 				"0.0.1-snaphot",
-				featuregates.NewFeatureGate(nil, nil),
+				featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"TLSGroupPreferences"}),
 				fakeOperatorClient,
 				kubeInformersForNamespaces,
 				configInformers,
@@ -816,15 +833,7 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 				t.Fatalf("failed to get kube-scheduler-pod ConfigMap: %v", err)
 			}
 
-			rawSchedulerPod, exist := actualConfigMap.Data["pod.yaml"]
-			if !exist {
-				t.Fatal("didn't find pod.yaml")
-			}
-
-			actualSchedulerPod := &corev1.Pod{}
-			if err := runtime.DecodeInto(codec, []byte(rawSchedulerPod), actualSchedulerPod); err != nil {
-				t.Fatal(err)
-			}
+			actualSchedulerPod := decodeSchedulerPod(t, actualConfigMap)
 
 			// Check container args for TLS settings
 			foundCipherSuites := false
@@ -850,6 +859,183 @@ func TestManagePod_TLSConfiguration(t *testing.T) {
 			}
 			if !foundMinTLSVersion {
 				t.Errorf("Expected to find --tls-min-version arg but didn't")
+			}
+		})
+	}
+}
+
+func TestManagePod_TLSGroupsInjection(t *testing.T) {
+	tests := []struct {
+		name                    string
+		apiServer               *configv1.APIServer
+		featureGateEnabled      bool
+		expectedCurvePreference string
+		expectCurveArg          bool
+	}{
+		{
+			name: "TLS groups injected when feature gate enabled",
+			apiServer: newAPIServerWithTLSGroups([]configv1.TLSGroup{
+				configv1.TLSGroupX25519,
+				configv1.TLSGroupSecP256r1,
+				configv1.TLSGroupSecP384r1,
+			}),
+			featureGateEnabled:      true,
+			expectedCurvePreference: "--tls-curve-preferences=29,23,24",
+			expectCurveArg:          true,
+		},
+		{
+			name: "TLS groups not injected when feature gate disabled",
+			apiServer: newAPIServerWithTLSGroups([]configv1.TLSGroup{
+				configv1.TLSGroupX25519,
+				configv1.TLSGroupSecP256r1,
+				configv1.TLSGroupSecP384r1,
+			}),
+		},
+		{
+			name:               "no TLS groups in profile",
+			apiServer:          newAPIServerWithTLSGroups(nil),
+			featureGateEnabled: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.TODO())
+			defer cancel()
+
+			// setup operator client with wrapper to support UpdateOperatorSpec
+			fakeOperatorClient := &fakeOperatorClientWrapper{
+				StaticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+					&operatorv1.StaticPodOperatorSpec{
+						OperatorSpec: operatorv1.OperatorSpec{},
+					},
+					&operatorv1.StaticPodOperatorStatus{
+						OperatorStatus: operatorv1.OperatorStatus{},
+					},
+					nil,
+					nil,
+				),
+			}
+
+			// setup fake clients with all required resources
+			fakeKubeClient, kubeInformersForNamespaces, configInformers := setupFakeClients(t, tt.apiServer)
+
+			// create event recorder
+			eventRecorder := events.NewInMemoryRecorder("", clock.RealClock{})
+
+			// Create feature gate based on test case
+			var featureGates featuregates.FeatureGate
+			if tt.featureGateEnabled {
+				featureGates = featuregates.NewFeatureGate([]configv1.FeatureGateName{"TLSGroupPreferences"}, nil)
+			} else {
+				featureGates = featuregates.NewFeatureGate(nil, []configv1.FeatureGateName{"TLSGroupPreferences"})
+			}
+
+			// Create config observer - this registers event handlers with informers
+			configObserver := configobservercontroller.NewConfigObserver(
+				fakeOperatorClient,
+				kubeInformersForNamespaces,
+				configInformers,
+				&fakeResourceSyncer{},
+				eventRecorder,
+				featureGates,
+			)
+
+			// Create target config controller - this registers event handlers with informers
+			targetConfigController := NewTargetConfigController(
+				"test-image",
+				"test-operator-image",
+				"0.0.1-snaphot",
+				featureGates,
+				fakeOperatorClient,
+				kubeInformersForNamespaces,
+				configInformers,
+				fakeOperatorClient,
+				fakeKubeClient,
+				eventRecorder,
+			)
+
+			// Start informers after controllers have registered their event handlers
+			kubeInformersForNamespaces.Start(ctx.Done())
+			configInformers.Start(ctx.Done())
+
+			// Run config observer sync to update observed config in operator spec
+			if err := configObserver.Sync(ctx, &fakeSyncContext{recorder: eventRecorder}); err != nil {
+				t.Logf("WARNING: config observer sync returned error: %v", err)
+			}
+
+			// Run target config controller sync to trigger the full production code path
+			if err := targetConfigController.Sync(ctx, &fakeSyncContext{recorder: eventRecorder}); err != nil {
+				t.Fatalf("targetConfigController.Sync failed: %v", err)
+			}
+
+			// Read the generated ConfigMap from the fake kube client
+			actualConfigMap, err := fakeKubeClient.CoreV1().ConfigMaps(operatorclient.TargetNamespace).Get(ctx, "kube-scheduler-pod", metav1.GetOptions{})
+			if err != nil {
+				t.Fatalf("failed to get kube-scheduler-pod ConfigMap: %v", err)
+			}
+
+			actualSchedulerPod := decodeSchedulerPod(t, actualConfigMap)
+
+			// Check container args for TLS curve preferences
+			foundCurvePreference := false
+
+			for _, arg := range actualSchedulerPod.Spec.Containers[0].Args {
+				if strings.HasPrefix(arg, "--tls-curve-preferences=") {
+					foundCurvePreference = true
+					if tt.expectCurveArg {
+						if arg != tt.expectedCurvePreference {
+							t.Errorf("Expected curve preference arg %q, got %q", tt.expectedCurvePreference, arg)
+						}
+					} else {
+						t.Errorf("Did not expect --tls-curve-preferences arg but found %q", arg)
+					}
+				}
+			}
+
+			if tt.expectCurveArg && !foundCurvePreference {
+				t.Errorf("Expected to find --tls-curve-preferences arg but didn't")
+			}
+			if !tt.expectCurveArg && foundCurvePreference {
+				t.Errorf("Did not expect to find --tls-curve-preferences arg but found one")
+			}
+		})
+	}
+}
+
+func TestInt32sToStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int32
+		expected []string
+	}{
+		{
+			name:     "empty slice",
+			input:    []int32{},
+			expected: []string{},
+		},
+		{
+			name:     "single value",
+			input:    []int32{29},
+			expected: []string{"29"},
+		},
+		{
+			name:     "multiple values",
+			input:    []int32{29, 23, 24},
+			expected: []string{"29", "23", "24"},
+		},
+		{
+			name:     "with negative values",
+			input:    []int32{-1, 0, 100},
+			expected: []string{"-1", "0", "100"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := int32sToStrings(tt.input)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("int32sToStrings(%v) = %v, want %v", tt.input, result, tt.expected)
 			}
 		})
 	}
