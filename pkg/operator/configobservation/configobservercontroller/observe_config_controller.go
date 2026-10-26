@@ -4,12 +4,14 @@ import (
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/api/features"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/configobservation/scheduler"
 	"github.com/openshift/cluster-kube-scheduler-operator/pkg/operator/operatorclient"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/configobserver"
 	libgoapiserver "github.com/openshift/library-go/pkg/operator/configobserver/apiserver"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -25,6 +27,7 @@ func NewConfigObserver(
 	configInformer configinformers.SharedInformerFactory,
 	resourceSyncer resourcesynccontroller.ResourceSyncer,
 	eventRecorder events.Recorder,
+	featureGates featuregates.FeatureGate,
 ) *ConfigObserver {
 	interestingNamespaces := []string{
 		operatorclient.GlobalUserSpecifiedConfigNamespace,
@@ -64,7 +67,24 @@ func NewConfigObserver(
 			},
 			informers,
 			scheduler.ObserveSchedulerConfig,
-			libgoapiserver.ObserveTLSSecurityProfile,
+			func(listers configobserver.Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				if featureGates.Enabled(features.FeatureGateTLSGroupPreferences) {
+					return libgoapiserver.ObserveTLSSecurityProfileWithGroupPaths(
+						listers,
+						recorder,
+						existingConfig,
+						[]string{"servingInfo", "minTLSVersion"},
+						[]string{"servingInfo", "cipherSuites"},
+						[]string{"servingInfo", "groups"},
+					)
+				} else {
+					return libgoapiserver.ObserveTLSSecurityProfile(
+						listers,
+						recorder,
+						existingConfig,
+					)
+				}
+			},
 		),
 	}
 
